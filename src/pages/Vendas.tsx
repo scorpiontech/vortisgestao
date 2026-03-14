@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
-import { mockProducts } from "@/data/mockData";
-import { SaleItem } from "@/types";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,21 +9,43 @@ import { Trash2, Printer, Plus, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
+interface SaleItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+}
+
 const Vendas = () => {
+  const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [paymentMethod, setPaymentMethod] = useState("Dinheiro");
   const [customerName, setCustomerName] = useState("");
   const [showReceipt, setShowReceipt] = useState(false);
+  const [saleId, setSaleId] = useState<string | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
+  }, []);
 
   const total = items.reduce((s, i) => s + i.total, 0);
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const addItem = () => {
-    const product = mockProducts.find(p => p.id === selectedProduct);
+    const product = products.find(p => p.id === selectedProduct);
     if (!product) { toast({ title: "Selecione um produto", variant: "destructive" }); return; }
     const qty = Number(quantity) || 1;
     const existing = items.find(i => i.productId === product.id);
@@ -36,24 +58,65 @@ const Vendas = () => {
     setSelectedProduct("");
   };
 
-  const removeItem = (productId: string) => {
-    setItems(items.filter(i => i.productId !== productId));
-  };
+  const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
 
-  const finalizeSale = () => {
+  const finalizeSale = async () => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
+
+    // Create sale
+    const { data: sale, error: saleError } = await supabase.from("sales").insert({
+      user_id: user!.id,
+      customer_name: customerName || null,
+      payment_method: paymentMethod,
+      total,
+    }).select().single();
+
+    if (saleError || !sale) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
+
+    // Create sale items
+    const saleItems = items.map(i => ({
+      sale_id: sale.id,
+      product_id: i.productId,
+      product_name: i.productName,
+      quantity: i.quantity,
+      unit_price: i.unitPrice,
+      total: i.total,
+    }));
+    await supabase.from("sale_items").insert(saleItems);
+
+    // Register financial transaction
+    await supabase.from("transactions").insert({
+      user_id: user!.id,
+      type: "entrada",
+      description: `Venda #${sale.id.slice(0, 8)}`,
+      amount: total,
+      category: "Vendas",
+      payment_method: paymentMethod,
+    });
+
+    // Update product stock
+    for (const item of items) {
+      await supabase.rpc("decrement_stock" as never, { p_id: item.productId, qty: item.quantity } as never).then(() => {});
+      // Fallback: direct update
+      const prod = products.find(p => p.id === item.productId);
+      if (prod) {
+        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.productId);
+      }
+    }
+
+    setSaleId(sale.id);
     setShowReceipt(true);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
   };
 
-  const printReceipt = () => {
-    window.print();
-  };
+  const printReceipt = () => window.print();
 
   const newSale = () => {
     setItems([]);
     setCustomerName("");
     setShowReceipt(false);
+    setSaleId(null);
+    supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
   };
 
   const now = new Date();
@@ -66,7 +129,6 @@ const Vendas = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Sale form */}
         <div className="lg:col-span-2 space-y-4">
           {!showReceipt && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-lg shadow-card border p-5 space-y-4">
@@ -76,8 +138,8 @@ const Vendas = () => {
                   <Select value={selectedProduct} onValueChange={setSelectedProduct}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      {mockProducts.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)}</SelectItem>
+                      {products.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)} (est: {p.stock})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -150,14 +212,13 @@ const Vendas = () => {
           {showReceipt && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
               <div className="flex gap-3">
-                <Button onClick={printReceipt} variant="default"><Printer className="h-4 w-4 mr-2" />Imprimir Cupom</Button>
+                <Button onClick={printReceipt}><Printer className="h-4 w-4 mr-2" />Imprimir Cupom</Button>
                 <Button onClick={newSale} variant="outline">Nova Venda</Button>
               </div>
             </motion.div>
           )}
         </div>
 
-        {/* Right: Receipt Preview */}
         <div>
           <div ref={receiptRef} className="receipt-print bg-card rounded-lg shadow-card border p-5">
             <div className="text-center border-b pb-3 mb-3">
@@ -167,6 +228,7 @@ const Vendas = () => {
               <div className="border-t border-dashed my-2" />
               <p className="text-[10px] font-medium">CUPOM FISCAL</p>
               <p className="text-[10px] text-muted-foreground">{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</p>
+              {saleId && <p className="text-[10px] text-muted-foreground">Venda: #{saleId.slice(0, 8)}</p>}
             </div>
 
             {items.length > 0 ? (

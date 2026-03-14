@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { mockProducts } from "@/data/mockData";
-import { Product } from "@/types";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,14 +10,37 @@ import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  price: number;
+  cost: number;
+  stock: number;
+  min_stock: number;
+  unit: string;
+}
+
 const Estoque = () => {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", minStock: "", unit: "un" });
+  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un" });
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from("products").select("*").order("name");
+    if (error) { toast({ title: "Erro ao carregar produtos", description: error.message, variant: "destructive" }); }
+    else setProducts(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchProducts(); }, []);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -26,48 +49,56 @@ const Estoque = () => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", minStock: "", unit: "un" });
+    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un" });
     setDialogOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditProduct(p);
-    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), minStock: String(p.minStock), unit: p.unit });
+    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit });
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.sku) {
       toast({ title: "Erro", description: "Preencha nome e SKU", variant: "destructive" });
       return;
     }
-    const data: Product = {
-      id: editProduct?.id || String(Date.now()),
+    const payload = {
       name: form.name,
       sku: form.sku,
       category: form.category,
       price: Number(form.price) || 0,
       cost: Number(form.cost) || 0,
       stock: Number(form.stock) || 0,
-      minStock: Number(form.minStock) || 0,
+      min_stock: Number(form.min_stock) || 0,
       unit: form.unit,
+      user_id: user!.id,
     };
+
     if (editProduct) {
-      setProducts(products.map(p => p.id === editProduct.id ? data : p));
+      const { error } = await supabase.from("products").update(payload).eq("id", editProduct.id);
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Produto atualizado!" });
     } else {
-      setProducts([...products, data]);
+      const { error } = await supabase.from("products").insert(payload);
+      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Produto cadastrado!" });
     }
     setDialogOpen(false);
+    fetchProducts();
   };
 
-  const handleDelete = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Produto removido" });
+    fetchProducts();
   };
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6">
@@ -99,7 +130,7 @@ const Estoque = () => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Estoque Atual</Label><Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
               </div>
               <Button onClick={handleSave} className="w-full">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
             </div>
@@ -133,22 +164,19 @@ const Estoque = () => {
                   <td className="px-4 py-3 hidden md:table-cell"><Badge variant="secondary">{p.category}</Badge></td>
                   <td className="px-4 py-3 text-right">{formatCurrency(p.price)}</td>
                   <td className="px-4 py-3 text-right">
-                    <span className={p.stock <= p.minStock ? "text-destructive font-bold" : ""}>
-                      {p.stock} {p.unit}
-                    </span>
+                    <span className={p.stock <= p.min_stock ? "text-destructive font-bold" : ""}>{p.stock} {p.unit}</span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}><Edit2 className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</td></tr>
+              )}
             </tbody>
           </table>
         </div>
