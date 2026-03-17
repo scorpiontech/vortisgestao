@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
@@ -24,13 +24,23 @@ interface Product {
   stock: number;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  document: string;
+  document_type: string;
+  phone: string;
+}
+
 const Vendas = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [paymentMethod, setPaymentMethod] = useState("Dinheiro");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [saleId, setSaleId] = useState<string | null>(null);
@@ -39,7 +49,21 @@ const Vendas = () => {
 
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
+    supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
   }, []);
+
+  const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  const handleCustomerChange = (value: string) => {
+    setSelectedCustomerId(value);
+    if (value === "__none__") {
+      setCustomerName("");
+      setSelectedCustomerId("");
+    } else {
+      const c = customers.find(c => c.id === value);
+      setCustomerName(c?.name || "");
+    }
+  };
 
   const total = items.reduce((s, i) => s + i.total, 0);
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -63,7 +87,6 @@ const Vendas = () => {
   const finalizeSale = async () => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
-    // Create sale
     const { data: sale, error: saleError } = await supabase.from("sales").insert({
       user_id: user!.id,
       customer_name: customerName || null,
@@ -73,7 +96,6 @@ const Vendas = () => {
 
     if (saleError || !sale) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
 
-    // Create sale items
     const saleItems = items.map(i => ({
       sale_id: sale.id,
       product_id: i.productId,
@@ -84,20 +106,16 @@ const Vendas = () => {
     }));
     await supabase.from("sale_items").insert(saleItems);
 
-    // Register financial transaction
     await supabase.from("transactions").insert({
       user_id: user!.id,
       type: "entrada",
-      description: `Venda #${sale.id.slice(0, 8)}`,
+      description: `Venda #${sale.id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`,
       amount: total,
       category: "Vendas",
       payment_method: paymentMethod,
     });
 
-    // Update product stock
     for (const item of items) {
-      await supabase.rpc("decrement_stock" as never, { p_id: item.productId, qty: item.quantity } as never).then(() => {});
-      // Fallback: direct update
       const prod = products.find(p => p.id === item.productId);
       if (prod) {
         await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.productId);
@@ -114,6 +132,7 @@ const Vendas = () => {
   const newSale = () => {
     setItems([]);
     setCustomerName("");
+    setSelectedCustomerId("");
     setShowReceipt(false);
     setSaleId(null);
     supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
@@ -180,8 +199,21 @@ const Vendas = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Cliente (opcional)</Label>
-                  <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Nome do cliente" />
+                  <Label className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Cliente</Label>
+                  <Select value={selectedCustomerId} onValueChange={handleCustomerChange}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um cliente (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Sem cliente —</SelectItem>
+                      {customers.map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}{c.document ? ` (${c.document_type.toUpperCase()}: ${c.document})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!selectedCustomerId && (
+                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Ou digite o nome manualmente" className="mt-1.5" />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Forma de Pagamento</Label>
@@ -250,6 +282,12 @@ const Vendas = () => {
                   <div className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{formatCurrency(total)}</span></div>
                   <div className="flex justify-between text-xs text-muted-foreground"><span>Pagamento</span><span>{paymentMethod}</span></div>
                   {customerName && <div className="flex justify-between text-xs text-muted-foreground"><span>Cliente</span><span>{customerName}</span></div>}
+                  {selectedCustomer?.document && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{selectedCustomer.document_type.toUpperCase()}</span>
+                      <span>{selectedCustomer.document}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="border-t border-dashed mt-3 pt-3 text-center">
                   <p className="text-[10px] text-muted-foreground">Obrigado pela preferência!</p>
