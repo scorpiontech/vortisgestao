@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      customers: {
+        Row: {
+          city: string
+          complement: string
+          created_at: string
+          document: string
+          document_type: string
+          email: string
+          id: string
+          name: string
+          neighborhood: string
+          number: string
+          observation: string
+          phone: string
+          state: string
+          street: string
+          updated_at: string
+          user_id: string
+          zip_code: string
+        }
+        Insert: {
+          city?: string
+          complement?: string
+          created_at?: string
+          document?: string
+          document_type?: string
+          email?: string
+          id?: string
+          name: string
+          neighborhood?: string
+          number?: string
+          observation?: string
+          phone?: string
+          state?: string
+          street?: string
+          updated_at?: string
+          user_id: string
+          zip_code?: string
+        }
+        Update: {
+          city?: string
+          complement?: string
+          created_at?: string
+          document?: string
+          document_type?: string
+          email?: string
+          id?: string
+          name?: string
+          neighborhood?: string
+          number?: string
+          observation?: string
+          phone?: string
+          state?: string
+          street?: string
+          updated_at?: string
+          user_id?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string
@@ -152,6 +212,60 @@ export type Database = {
           payment_method?: string
           total?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          city: string
+          complement: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          neighborhood: string
+          number: string
+          observation: string
+          phone: string
+          state: string
+          street: string
+          updated_at: string
+          user_id: string
+          zip_code: string
+        }
+        Insert: {
+          city?: string
+          complement?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          neighborhood?: string
+          number?: string
+          observation?: string
+          phone?: string
+          state?: string
+          street?: string
+          updated_at?: string
+          user_id: string
+          zip_code?: string
+        }
+        Update: {
+          city?: string
+          complement?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          neighborhood?: string
+          number?: string
+          observation?: string
+          phone?: string
+          state?: string
+          street?: string
+          updated_at?: string
+          user_id?: string
+          zip_code?: string
         }
         Relationships: []
       }
