@@ -153,7 +153,7 @@ const Vendas = () => {
     setSelectedCustomerId("");
     setShowReceipt(false);
     setSaleId(null);
-    supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
+    supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
   };
 
   const now = new Date();
