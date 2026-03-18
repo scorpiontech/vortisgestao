@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,12 @@ interface Product {
   stock: number;
   min_stock: number;
   unit: string;
+  supplier_id: string | null;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
 }
 
 const Estoque = () => {
@@ -31,7 +38,8 @@ const Estoque = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un" });
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("products").select("*").order("name");
@@ -40,7 +48,10 @@ const Estoque = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+    supabase.from("suppliers").select("id, name").order("name").then(({ data }) => setSuppliers(data || []));
+  }, []);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,13 +60,13 @@ const Estoque = () => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un" });
+    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditProduct(p);
-    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit });
+    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit, supplier_id: p.supplier_id || "" });
     setDialogOpen(true);
   };
 
@@ -73,6 +84,7 @@ const Estoque = () => {
       stock: Number(form.stock) || 0,
       min_stock: Number(form.min_stock) || 0,
       unit: form.unit,
+      supplier_id: form.supplier_id || null,
       user_id: user!.id,
     };
 
@@ -132,6 +144,16 @@ const Estoque = () => {
                 <div className="space-y-1.5"><Label>Estoque Atual</Label><Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
               </div>
+              <div className="space-y-1.5">
+                <Label>Fornecedor</Label>
+                <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um fornecedor (opcional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— Sem fornecedor —</SelectItem>
+                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button onClick={handleSave} className="w-full">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
             </div>
           </DialogContent>
@@ -151,6 +173,7 @@ const Estoque = () => {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Produto</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">SKU</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Categoria</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Fornecedor</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Preço</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Estoque</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Ações</th>
@@ -162,6 +185,7 @@ const Estoque = () => {
                   <td className="px-4 py-3 font-medium">{p.name}</td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{p.sku}</td>
                   <td className="px-4 py-3 hidden md:table-cell"><Badge variant="secondary">{p.category}</Badge></td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">{suppliers.find(s => s.id === p.supplier_id)?.name || "—"}</td>
                   <td className="px-4 py-3 text-right">{formatCurrency(p.price)}</td>
                   <td className="px-4 py-3 text-right">
                     <span className={p.stock <= p.min_stock ? "text-destructive font-bold" : ""}>{p.stock} {p.unit}</span>
@@ -175,7 +199,7 @@ const Estoque = () => {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum produto encontrado</td></tr>
               )}
             </tbody>
           </table>
