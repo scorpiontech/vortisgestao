@@ -32,6 +32,7 @@ const menuItems = [
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Vendas / Cupom", url: "/vendas", icon: Receipt },
+  { title: "Caixa", url: "/caixa", icon: Vault },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
