@@ -23,6 +23,7 @@ interface Product {
   name: string;
   price: number;
   stock: number;
+  sku: string;
 }
 
 interface Customer {
