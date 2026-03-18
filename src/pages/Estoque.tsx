@@ -47,7 +47,10 @@ const Estoque = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+    supabase.from("suppliers").select("id, name").order("name").then(({ data }) => setSuppliers(data || []));
+  }, []);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
