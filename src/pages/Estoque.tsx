@@ -185,6 +185,7 @@ const Estoque = () => {
                   <td className="px-4 py-3 font-medium">{p.name}</td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{p.sku}</td>
                   <td className="px-4 py-3 hidden md:table-cell"><Badge variant="secondary">{p.category}</Badge></td>
+                  <td className="px-4 py-3 hidden lg:table-cell text-muted-foreground">{suppliers.find(s => s.id === p.supplier_id)?.name || "—"}</td>
                   <td className="px-4 py-3 text-right">{formatCurrency(p.price)}</td>
                   <td className="px-4 py-3 text-right">
                     <span className={p.stock <= p.min_stock ? "text-destructive font-bold" : ""}>{p.stock} {p.unit}</span>
