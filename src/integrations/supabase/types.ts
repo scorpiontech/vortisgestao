@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_registers: {
+        Row: {
+          closed_at: string | null
+          closing_amount: number | null
+          created_at: string
+          expected_amount: number | null
+          id: string
+          notes: string | null
+          opened_at: string
+          opening_amount: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closing_amount?: number | null
+          created_at?: string
+          expected_amount?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opening_amount?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closing_amount?: number | null
+          created_at?: string
+          expected_amount?: number | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opening_amount?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           city: string
@@ -85,6 +124,7 @@ export type Database = {
           price: number
           sku: string
           stock: number
+          supplier_id: string | null
           unit: string
           updated_at: string
           user_id: string
@@ -99,6 +139,7 @@ export type Database = {
           price?: number
           sku: string
           stock?: number
+          supplier_id?: string | null
           unit?: string
           updated_at?: string
           user_id: string
@@ -113,11 +154,20 @@ export type Database = {
           price?: number
           sku?: string
           stock?: number
+          supplier_id?: string | null
           unit?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
