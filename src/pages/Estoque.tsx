@@ -37,7 +37,8 @@ const Estoque = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un" });
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("products").select("*").order("name");
