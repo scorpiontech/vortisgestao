@@ -65,7 +65,7 @@ const Estoque = () => {
 
   const openEdit = (p: Product) => {
     setEditProduct(p);
-    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit });
+    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit, supplier_id: p.supplier_id || "" });
     setDialogOpen(true);
   };
 
