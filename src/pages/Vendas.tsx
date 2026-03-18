@@ -46,6 +46,7 @@ const Vendas = () => {
   const [customerName, setCustomerName] = useState("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [saleId, setSaleId] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
