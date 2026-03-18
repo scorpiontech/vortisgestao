@@ -83,6 +83,7 @@ const Estoque = () => {
       stock: Number(form.stock) || 0,
       min_stock: Number(form.min_stock) || 0,
       unit: form.unit,
+      supplier_id: form.supplier_id || null,
       user_id: user!.id,
     };
 
