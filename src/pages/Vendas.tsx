@@ -51,7 +51,7 @@ const Vendas = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
+    supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
   }, []);
 
