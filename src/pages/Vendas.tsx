@@ -321,6 +321,12 @@ const Vendas = () => {
           </div>
         </div>
       </div>
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
     </div>
   );
 };
