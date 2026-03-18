@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode } from "lucide-react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
@@ -22,6 +23,7 @@ interface Product {
   name: string;
   price: number;
   stock: number;
+  sku: string;
 }
 
 interface Customer {
@@ -44,11 +46,12 @@ const Vendas = () => {
   const [customerName, setCustomerName] = useState("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [saleId, setSaleId] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
+    supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
   }, []);
 
@@ -83,6 +86,21 @@ const Vendas = () => {
   };
 
   const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
+
+  const handleBarcodeScan = (code: string) => {
+    const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
+    if (!product) {
+      toast({ title: "Produto não encontrado", description: `Código: ${code}`, variant: "destructive" });
+      return;
+    }
+    const existing = items.find(i => i.productId === product.id);
+    if (existing) {
+      setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice } : i));
+    } else {
+      setItems([...items, { productId: product.id, productName: product.name, quantity: 1, unitPrice: product.price, total: product.price }]);
+    }
+    toast({ title: `${product.name} adicionado` });
+  };
 
   const finalizeSale = async () => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
@@ -135,7 +153,7 @@ const Vendas = () => {
     setSelectedCustomerId("");
     setShowReceipt(false);
     setSaleId(null);
-    supabase.from("products").select("id, name, price, stock").order("name").then(({ data }) => setProducts(data || []));
+    supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
   };
 
   const now = new Date();
@@ -167,8 +185,11 @@ const Vendas = () => {
                   <Label>Qtd</Label>
                   <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end gap-1.5">
                   <Button onClick={addItem}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
+                  <Button variant="outline" size="icon" onClick={() => setScannerOpen(true)} title="Escanear código de barras">
+                    <ScanBarcode className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -300,6 +321,12 @@ const Vendas = () => {
           </div>
         </div>
       </div>
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
     </div>
   );
 };
