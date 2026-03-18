@@ -59,7 +59,7 @@ const Estoque = () => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un" });
+    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
     setDialogOpen(true);
   };
 
