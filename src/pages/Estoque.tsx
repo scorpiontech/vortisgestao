@@ -20,6 +20,12 @@ interface Product {
   stock: number;
   min_stock: number;
   unit: string;
+  supplier_id: string | null;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
 }
 
 const Estoque = () => {
