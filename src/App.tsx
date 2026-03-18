@@ -14,6 +14,7 @@ import Vendas from "./pages/Vendas";
 import Relatorios from "./pages/Relatorios";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
+import Caixa from "./pages/Caixa";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
