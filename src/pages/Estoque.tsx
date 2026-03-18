@@ -173,6 +173,7 @@ const Estoque = () => {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Produto</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">SKU</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Categoria</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Fornecedor</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Preço</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Estoque</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Ações</th>
