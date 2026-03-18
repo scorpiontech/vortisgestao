@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode } from "lucide-react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 
