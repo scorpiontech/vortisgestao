@@ -87,6 +87,21 @@ const Vendas = () => {
 
   const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
 
+  const handleBarcodeScan = (code: string) => {
+    const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
+    if (!product) {
+      toast({ title: "Produto não encontrado", description: `Código: ${code}`, variant: "destructive" });
+      return;
+    }
+    const existing = items.find(i => i.productId === product.id);
+    if (existing) {
+      setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice } : i));
+    } else {
+      setItems([...items, { productId: product.id, productName: product.name, quantity: 1, unitPrice: product.price, total: product.price }]);
+    }
+    toast({ title: `${product.name} adicionado` });
+  };
+
   const finalizeSale = async () => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
