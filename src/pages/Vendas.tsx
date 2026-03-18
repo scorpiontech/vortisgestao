@@ -185,8 +185,11 @@ const Vendas = () => {
                   <Label>Qtd</Label>
                   <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end gap-1.5">
                   <Button onClick={addItem}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
+                  <Button variant="outline" size="icon" onClick={() => setScannerOpen(true)} title="Escanear código de barras">
+                    <ScanBarcode className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
