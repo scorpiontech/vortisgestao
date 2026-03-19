@@ -127,7 +127,7 @@ const Caixa = () => {
       ${reg.closing_amount != null && reg.expected_amount != null ? `<div class="divider"></div><div class="row"><span>Diferença:</span><span class="${diff >= 0 ? "diff-pos" : "diff-neg"}">${diff >= 0 ? "+" : ""}${formatCurrency(diff)}</span></div>` : ""}
       ${reg.notes ? `<div class="divider"></div><div><strong>Obs:</strong> ${reg.notes}</div>` : ""}
       <div class="divider"></div>
-      <div style="text-align:center;margin-top:16px">StockFlow - Controle de Caixa</div>
+      <div style="text-align:center;margin-top:16px">Vortis Gestão - Controle de Caixa</div>
       </body></html>
     `);
     w.document.close();
