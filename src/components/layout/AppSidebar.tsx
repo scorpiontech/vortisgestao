@@ -34,6 +34,7 @@ const menuItems = [
   { title: "Financeiro", url: "/financeiro", icon: DollarSign },
   { title: "Vendas / Cupom", url: "/vendas", icon: Receipt },
   { title: "Caixa", url: "/caixa", icon: Vault },
+  { title: "Histórico Cliente", url: "/historico-cliente", icon: History },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
