@@ -128,7 +128,7 @@ const Login = () => {
             </TabsContent>
           </Tabs>
 
-          <p className="text-center text-xs text-muted-foreground mt-8">StockFlow © 2026 — Gestão Inteligente</p>
+          <p className="text-center text-xs text-muted-foreground mt-8">Vortis Gestão © 2026</p>
         </motion.div>
       </div>
     </div>

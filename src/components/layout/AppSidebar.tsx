@@ -54,18 +54,14 @@ export function AppSidebar() {
         <div className="px-4 py-5">
           {!collapsed ? (
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <Package className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-8" />
               <div>
-                <h1 className="text-sm font-bold text-sidebar-primary-foreground">StockFlow</h1>
-                <p className="text-[10px] text-sidebar-foreground/60">Gestão Inteligente</p>
+                <h1 className="text-sm font-bold text-sidebar-primary-foreground">Vortis</h1>
+                <p className="text-[10px] text-sidebar-foreground/60">Gestão</p>
               </div>
             </div>
           ) : (
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center mx-auto">
-              <Package className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-8 mx-auto" />
           )}
         </div>
 
