@@ -242,7 +242,9 @@ export type Database = {
         Row: {
           customer_name: string | null
           date: string
+          discount: number
           id: string
+          installments: number
           payment_method: string
           total: number
           user_id: string
@@ -250,7 +252,9 @@ export type Database = {
         Insert: {
           customer_name?: string | null
           date?: string
+          discount?: number
           id?: string
+          installments?: number
           payment_method?: string
           total?: number
           user_id: string
@@ -258,7 +262,9 @@ export type Database = {
         Update: {
           customer_name?: string | null
           date?: string
+          discount?: number
           id?: string
+          installments?: number
           payment_method?: string
           total?: number
           user_id?: string

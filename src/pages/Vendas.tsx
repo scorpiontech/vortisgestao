@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -47,6 +47,9 @@ const Vendas = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [saleId, setSaleId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [discount, setDiscount] = useState("0");
+  const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
+  const [installments, setInstallments] = useState("1");
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -68,8 +71,14 @@ const Vendas = () => {
     }
   };
 
-  const total = items.reduce((s, i) => s + i.total, 0);
+  const subtotal = items.reduce((s, i) => s + i.total, 0);
+  const discountValue = discountType === "percent"
+    ? subtotal * (Math.min(Number(discount) || 0, 100) / 100)
+    : Math.min(Number(discount) || 0, subtotal);
+  const total = Math.max(0, subtotal - discountValue);
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const showInstallments = paymentMethod === "Cartão Crédito";
 
   const addItem = () => {
     const product = products.find(p => p.id === selectedProduct);
@@ -105,17 +114,21 @@ const Vendas = () => {
   const finalizeSale = async () => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
+    const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
+
     const { data: sale, error: saleError } = await supabase.from("sales").insert({
       user_id: user!.id,
       customer_name: customerName || null,
       payment_method: paymentMethod,
       total,
-    }).select().single();
+      discount: discountValue,
+      installments: inst,
+    } as any).select().single();
 
     if (saleError || !sale) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
 
     const saleItems = items.map(i => ({
-      sale_id: sale.id,
+      sale_id: (sale as any).id,
       product_id: i.productId,
       product_name: i.productName,
       quantity: i.quantity,
@@ -127,10 +140,10 @@ const Vendas = () => {
     await supabase.from("transactions").insert({
       user_id: user!.id,
       type: "entrada",
-      description: `Venda #${sale.id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`,
+      description: `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`,
       amount: total,
       category: "Vendas",
-      payment_method: paymentMethod,
+      payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
     });
 
     for (const item of items) {
@@ -140,7 +153,7 @@ const Vendas = () => {
       }
     }
 
-    setSaleId(sale.id);
+    setSaleId((sale as any).id);
     setShowReceipt(true);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
   };
@@ -153,10 +166,14 @@ const Vendas = () => {
     setSelectedCustomerId("");
     setShowReceipt(false);
     setSaleId(null);
+    setDiscount("0");
+    setDiscountType("percent");
+    setInstallments("1");
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
   };
 
   const now = new Date();
+  const installmentsNum = Math.max(1, Number(installments) || 1);
 
   return (
     <div className="space-y-6">
@@ -238,7 +255,7 @@ const Vendas = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Forma de Pagamento</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); if (v !== "Cartão Crédito") setInstallments("1"); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Dinheiro">Dinheiro</SelectItem>
@@ -250,10 +267,60 @@ const Vendas = () => {
                 </div>
               </div>
 
+              {/* Desconto e Parcelas */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5"><Percent className="h-3.5 w-3.5" />Desconto</Label>
+                  <div className="flex gap-1.5">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={discount}
+                      onChange={e => setDiscount(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Select value={discountType} onValueChange={v => setDiscountType(v as "percent" | "value")}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percent">%</SelectItem>
+                        <SelectItem value="value">R$</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {showInstallments && (
+                  <div className="space-y-1.5">
+                    <Label>Parcelas</Label>
+                    <Select value={installments} onValueChange={setInstallments}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n}x {formatCurrency(total / n)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
+                  {discountValue > 0 && (
+                    <div className="flex gap-3 text-sm text-muted-foreground">
+                      <span>Subtotal: {formatCurrency(subtotal)}</span>
+                      <span className="text-destructive">Desc: -{formatCurrency(discountValue)}</span>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground">Total da Venda</p>
                   <p className="text-2xl font-bold">{formatCurrency(total)}</p>
+                  {showInstallments && installmentsNum > 1 && (
+                    <p className="text-sm text-muted-foreground">{installmentsNum}x de {formatCurrency(total / installmentsNum)}</p>
+                  )}
                 </div>
                 <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
                   <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
@@ -299,9 +366,21 @@ const Vendas = () => {
                   ))}
                 </div>
                 <div className="border-t border-dashed pt-2 space-y-1">
-                  <div className="flex justify-between text-xs"><span>Subtotal</span><span>{formatCurrency(total)}</span></div>
+                  <div className="flex justify-between text-xs"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+                  {discountValue > 0 && (
+                    <div className="flex justify-between text-xs text-destructive"><span>Desconto</span><span>-{formatCurrency(discountValue)}</span></div>
+                  )}
                   <div className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{formatCurrency(total)}</span></div>
-                  <div className="flex justify-between text-xs text-muted-foreground"><span>Pagamento</span><span>{paymentMethod}</span></div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Pagamento</span>
+                    <span>{paymentMethod}{showInstallments && installmentsNum > 1 ? ` ${installmentsNum}x` : ""}</span>
+                  </div>
+                  {showInstallments && installmentsNum > 1 && (
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Valor Parcela</span>
+                      <span>{formatCurrency(total / installmentsNum)}</span>
+                    </div>
+                  )}
                   {customerName && <div className="flex justify-between text-xs text-muted-foreground"><span>Cliente</span><span>{customerName}</span></div>}
                   {selectedCustomer?.document && (
                     <div className="flex justify-between text-xs text-muted-foreground">
