@@ -30,7 +30,7 @@ const Login = () => {
     if (error) {
       toast({ title: "Erro no login", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Login realizado!", description: "Bem-vindo ao StockFlow" });
+      toast({ title: "Login realizado!", description: "Bem-vindo ao Vortis Gestão" });
       navigate("/dashboard");
     }
   };
