@@ -99,10 +99,8 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <Package className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-bold">StockFlow</h1>
+            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-10" />
+            <h1 className="text-xl font-bold">Vortis Gestão</h1>
           </div>
 
           <Tabs defaultValue="login" className="w-full">
