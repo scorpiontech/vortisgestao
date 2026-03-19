@@ -2,22 +2,31 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
+import { printA4 } from "@/lib/printA4";
 
 const COLORS = ["hsl(215, 80%, 50%)", "hsl(152, 60%, 42%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(270, 60%, 50%)"];
 
 const Relatorios = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [sales, setSales] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const [p, t] = await Promise.all([
+      const [p, t, s, c] = await Promise.all([
         supabase.from("products").select("*"),
         supabase.from("transactions").select("*").order("date", { ascending: false }),
+        supabase.from("sales").select("*").order("date", { ascending: false }),
+        supabase.from("customers").select("*").order("name"),
       ]);
       setProducts(p.data || []);
       setTransactions(t.data || []);
+      setSales(s.data || []);
+      setCustomers(c.data || []);
       setLoading(false);
     };
     load();
@@ -36,15 +45,170 @@ const Relatorios = () => {
     else d.saidas += Number(t.amount);
     dayMap.set(t.date, d);
   });
-  const financialData = Array.from(dayMap, ([date, data]) => ({ date: date.slice(5), ...data })).reverse();
+  const financialData = Array.from(dayMap, ([date, data]) => ({ date, ...data })).reverse();
+
+  const totalEntradas = transactions.filter(t => t.type === "entrada").reduce((s, t) => s + Number(t.amount), 0);
+  const totalSaidas = transactions.filter(t => t.type === "saida").reduce((s, t) => s + Number(t.amount), 0);
+
+  // Print handlers
+  const printFinanceiro = () => {
+    const rows = financialData.map(d => `
+      <tr>
+        <td>${d.date}</td>
+        <td style="color:green">${formatCurrency(d.entradas)}</td>
+        <td style="color:red">${formatCurrency(d.saidas)}</td>
+        <td>${formatCurrency(d.entradas - d.saidas)}</td>
+      </tr>
+    `).join("");
+
+    printA4({
+      title: "Relatório Financeiro",
+      subtitle: `Movimentações — ${transactions.length} registros`,
+      content: `
+        <div class="highlight-box">
+          <div class="summary-row"><span>Total Entradas:</span><span style="color:green">${formatCurrency(totalEntradas)}</span></div>
+          <div class="summary-row"><span>Total Saídas:</span><span style="color:red">${formatCurrency(totalSaidas)}</span></div>
+          <div class="summary-row total"><span>Saldo:</span><span>${formatCurrency(totalEntradas - totalSaidas)}</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Entradas</th><th>Saídas</th><th>Saldo Dia</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" style="text-align:center">Sem dados</td></tr>'}</tbody>
+        </table>
+      `,
+    });
+  };
+
+  const printEstoque = () => {
+    const sorted = [...products].sort((a, b) => a.name.localeCompare(b.name));
+    const rows = sorted.map(p => {
+      const isLow = p.stock <= p.min_stock;
+      return `<tr style="${isLow ? 'background:#fff5f5' : ''}">
+        <td>${p.sku}</td>
+        <td>${p.name}</td>
+        <td>${p.category || "—"}</td>
+        <td style="text-align:right">${p.stock} ${p.unit}</td>
+        <td style="text-align:right">${p.min_stock} ${p.unit}</td>
+        <td style="text-align:right">${formatCurrency(p.cost)}</td>
+        <td style="text-align:right">${formatCurrency(p.price)}</td>
+        <td style="text-align:right;font-weight:600">${formatCurrency(p.stock * p.price)}</td>
+      </tr>`;
+    }).join("");
+
+    const totalValue = products.reduce((s, p) => s + p.stock * p.price, 0);
+    const totalCost = products.reduce((s, p) => s + p.stock * p.cost, 0);
+    const lowCount = products.filter(p => p.stock <= p.min_stock).length;
+
+    printA4({
+      title: "Relatório de Estoque",
+      subtitle: `${products.length} produtos cadastrados`,
+      orientation: "landscape",
+      content: `
+        <div class="highlight-box">
+          <div class="summary-row"><span>Valor Total em Estoque (Venda):</span><span>${formatCurrency(totalValue)}</span></div>
+          <div class="summary-row"><span>Custo Total em Estoque:</span><span>${formatCurrency(totalCost)}</span></div>
+          <div class="summary-row"><span>Produtos com Estoque Baixo:</span><span style="color:red">${lowCount}</span></div>
+        </div>
+        <table>
+          <thead><tr><th>SKU</th><th>Produto</th><th>Categoria</th><th style="text-align:right">Estoque</th><th style="text-align:right">Mínimo</th><th style="text-align:right">Custo</th><th style="text-align:right">Preço</th><th style="text-align:right">Valor Total</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="8" style="text-align:center">Sem produtos</td></tr>'}</tbody>
+        </table>
+      `,
+    });
+  };
+
+  const printVendas = () => {
+    const rows = sales.map(s => `
+      <tr>
+        <td>${s.date}</td>
+        <td>${s.customer_name || "—"}</td>
+        <td>${s.payment_method}</td>
+        <td style="text-align:right;font-weight:600">${formatCurrency(Number(s.total))}</td>
+      </tr>
+    `).join("");
+
+    const totalVendas = sales.reduce((sum, s) => sum + Number(s.total), 0);
+
+    printA4({
+      title: "Relatório de Vendas",
+      subtitle: `${sales.length} vendas realizadas`,
+      content: `
+        <div class="highlight-box">
+          <div class="summary-row total"><span>Faturamento Total:</span><span>${formatCurrency(totalVendas)}</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Data</th><th>Cliente</th><th>Pagamento</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" style="text-align:center">Sem vendas</td></tr>'}</tbody>
+        </table>
+      `,
+    });
+  };
+
+  const printClientes = () => {
+    const rows = customers.map(c => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${c.document_type?.toUpperCase() || ""}: ${c.document || "—"}</td>
+        <td>${c.phone || "—"}</td>
+        <td>${c.email || "—"}</td>
+        <td>${c.city || "—"}${c.state ? "/" + c.state : ""}</td>
+      </tr>
+    `).join("");
+
+    printA4({
+      title: "Relatório de Clientes",
+      subtitle: `${customers.length} clientes cadastrados`,
+      content: `
+        <table>
+          <thead><tr><th>Nome</th><th>Documento</th><th>Telefone</th><th>E-mail</th><th>Cidade/UF</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5" style="text-align:center">Sem clientes</td></tr>'}</tbody>
+        </table>
+      `,
+    });
+  };
+
+  const printMargem = () => {
+    const sorted = [...products].sort((a, b) => (b.price - b.cost) - (a.price - a.cost));
+    const rows = sorted.map((p, i) => {
+      const margin = p.price - p.cost;
+      const pct = p.price > 0 ? ((margin / p.price) * 100).toFixed(1) : "0";
+      return `<tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td>${p.name}</td>
+        <td style="text-align:right">${formatCurrency(p.cost)}</td>
+        <td style="text-align:right">${formatCurrency(p.price)}</td>
+        <td style="text-align:right;font-weight:600;color:green">${formatCurrency(margin)}</td>
+        <td style="text-align:right">${pct}%</td>
+      </tr>`;
+    }).join("");
+
+    printA4({
+      title: "Relatório de Margem de Lucro",
+      subtitle: `${products.length} produtos analisados`,
+      content: `
+        <table>
+          <thead><tr><th>#</th><th>Produto</th><th style="text-align:right">Custo</th><th style="text-align:right">Preço</th><th style="text-align:right">Margem R$</th><th style="text-align:right">Margem %</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6" style="text-align:center">Sem produtos</td></tr>'}</tbody>
+        </table>
+      `,
+    });
+  };
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Relatórios</h1>
-        <p className="text-sm text-muted-foreground">Análise de estoque e financeiro</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Relatórios</h1>
+          <p className="text-sm text-muted-foreground">Análise de estoque e financeiro</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={printFinanceiro}><Printer className="h-3.5 w-3.5 mr-1.5" />Financeiro</Button>
+          <Button variant="outline" size="sm" onClick={printEstoque}><Printer className="h-3.5 w-3.5 mr-1.5" />Estoque</Button>
+          <Button variant="outline" size="sm" onClick={printVendas}><Printer className="h-3.5 w-3.5 mr-1.5" />Vendas</Button>
+          <Button variant="outline" size="sm" onClick={printClientes}><Printer className="h-3.5 w-3.5 mr-1.5" />Clientes</Button>
+          <Button variant="outline" size="sm" onClick={printMargem}><Printer className="h-3.5 w-3.5 mr-1.5" />Margem</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -54,7 +218,7 @@ const Relatorios = () => {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={financialData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 88%)" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} tickFormatter={v => v.slice(5)} />
                 <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `R$${v}`} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} />
                 <Bar dataKey="entradas" fill="hsl(152, 60%, 42%)" radius={[4, 4, 0, 0]} name="Entradas" />
