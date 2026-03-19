@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Edit2, Trash2, Printer } from "lucide-react";
+import { printA4 } from "@/lib/printA4";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { formatCPF, formatCNPJ, formatPhone, formatCEP, validateCPF, validateCNPJ } from "@/lib/validators";
@@ -129,29 +130,28 @@ const Clientes = () => {
   };
 
   const handlePrint = (c: Customer) => {
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (!w) return;
-    w.document.write(`
-      <html><head><title>Cadastro - ${c.name}</title>
-      <style>body{font-family:'Courier New',monospace;font-size:12px;padding:10mm;width:80mm;margin:0 auto}
-      h2{text-align:center;border-bottom:1px dashed #000;padding-bottom:8px}
-      .row{display:flex;justify-content:space-between;padding:2px 0}
-      .label{font-weight:bold}hr{border:none;border-top:1px dashed #000;margin:8px 0}</style></head>
-      <body><h2>CADASTRO DE CLIENTE</h2>
-      <div class="row"><span class="label">Nome:</span><span>${c.name}</span></div>
-      <div class="row"><span class="label">${c.document_type.toUpperCase()}:</span><span>${c.document}</span></div>
-      <div class="row"><span class="label">Email:</span><span>${c.email}</span></div>
-      <div class="row"><span class="label">Telefone:</span><span>${c.phone}</span></div>
-      <hr/>
-      <div class="row"><span class="label">Endereço:</span></div>
-      <div>${c.street}${c.number ? ", " + c.number : ""}${c.complement ? " - " + c.complement : ""}</div>
-      <div>${c.neighborhood} - ${c.city}/${c.state}</div>
-      <div>CEP: ${c.zip_code}</div>
-      ${c.observation ? `<hr/><div class="row"><span class="label">Obs:</span></div><div>${c.observation}</div>` : ""}
-      </body></html>
-    `);
-    w.document.close();
-    w.print();
+    const content = `
+      <div class="section">
+        <div class="section-title">Dados Pessoais</div>
+        <div class="info-grid">
+          <div class="info-row"><span class="info-label">Nome:</span><span class="info-value">${c.name}</span></div>
+          <div class="info-row"><span class="info-label">${c.document_type.toUpperCase()}:</span><span class="info-value">${c.document || "—"}</span></div>
+          <div class="info-row"><span class="info-label">E-mail:</span><span class="info-value">${c.email || "—"}</span></div>
+          <div class="info-row"><span class="info-label">Telefone:</span><span class="info-value">${c.phone || "—"}</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Endereço</div>
+        <div class="info-grid">
+          <div class="info-row"><span class="info-label">Logradouro:</span><span class="info-value">${c.street || "—"}${c.number ? ", " + c.number : ""}${c.complement ? " - " + c.complement : ""}</span></div>
+          <div class="info-row"><span class="info-label">Bairro:</span><span class="info-value">${c.neighborhood || "—"}</span></div>
+          <div class="info-row"><span class="info-label">Cidade/UF:</span><span class="info-value">${c.city || "—"}${c.state ? "/" + c.state : ""}</span></div>
+          <div class="info-row"><span class="info-label">CEP:</span><span class="info-value">${c.zip_code || "—"}</span></div>
+        </div>
+      </div>
+      ${c.observation ? `<div class="section"><div class="section-title">Observações</div><p style="font-size:11px">${c.observation}</p></div>` : ""}
+    `;
+    printA4({ title: "Ficha Cadastral de Cliente", subtitle: c.name, content });
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
