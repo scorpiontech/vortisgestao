@@ -275,7 +275,7 @@ const Vendas = () => {
         <div>
           <div ref={receiptRef} className="receipt-print bg-card rounded-lg shadow-card border p-5">
             <div className="text-center border-b pb-3 mb-3">
-              <h3 className="font-bold text-sm">STOCKFLOW LTDA</h3>
+              <h3 className="font-bold text-sm">VORTIS GESTÃO</h3>
               <p className="text-[10px] text-muted-foreground">CNPJ: 00.000.000/0001-00</p>
               <p className="text-[10px] text-muted-foreground">Rua Exemplo, 123 - Centro</p>
               <div className="border-t border-dashed my-2" />

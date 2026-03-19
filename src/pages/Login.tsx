@@ -30,7 +30,7 @@ const Login = () => {
     if (error) {
       toast({ title: "Erro no login", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Login realizado!", description: "Bem-vindo ao StockFlow" });
+      toast({ title: "Login realizado!", description: "Bem-vindo ao Vortis Gestão" });
       navigate("/dashboard");
     }
   };
@@ -87,10 +87,8 @@ const Login = () => {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden" style={{ background: "var(--gradient-sidebar)" }}>
         <div className="relative z-10 text-center px-12">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-            <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-8">
-              <Package className="h-10 w-10 text-primary-foreground" />
-            </div>
-            <h1 className="text-4xl font-bold text-white mb-4">StockFlow</h1>
+            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-24 mx-auto mb-8" />
+            <h1 className="text-4xl font-bold text-white mb-4">Vortis Gestão</h1>
             <p className="text-lg text-white/60 max-w-md">Sistema completo de controle de estoque e gestão financeira para o seu negócio.</p>
           </motion.div>
         </div>
@@ -101,10 +99,8 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="w-full max-w-sm">
           <div className="lg:hidden flex items-center gap-3 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-              <Package className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-bold">StockFlow</h1>
+            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-10" />
+            <h1 className="text-xl font-bold">Vortis Gestão</h1>
           </div>
 
           <Tabs defaultValue="login" className="w-full">
@@ -132,7 +128,7 @@ const Login = () => {
             </TabsContent>
           </Tabs>
 
-          <p className="text-center text-xs text-muted-foreground mt-8">StockFlow © 2026 — Gestão Inteligente</p>
+          <p className="text-center text-xs text-muted-foreground mt-8">Vortis Gestão © 2026</p>
         </motion.div>
       </div>
     </div>
