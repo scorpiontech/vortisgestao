@@ -12,6 +12,7 @@ import Estoque from "./pages/Estoque";
 import Financeiro from "./pages/Financeiro";
 import Vendas from "./pages/Vendas";
 import Relatorios from "./pages/Relatorios";
+import HistoricoCliente from "./pages/HistoricoCliente";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
 import Caixa from "./pages/Caixa";
