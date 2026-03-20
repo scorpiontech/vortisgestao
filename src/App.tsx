@@ -16,6 +16,8 @@ import HistoricoCliente from "./pages/HistoricoCliente";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
 import Caixa from "./pages/Caixa";
+import Categorias from "./pages/Categorias";
+import Unidades from "./pages/Unidades";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +34,10 @@ const App = () => (
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/estoque" element={<Estoque />} />
+              <Route path="/categorias" element={<Categorias />} />
+              <Route path="/unidades" element={<Unidades />} />
               <Route path="/financeiro" element={<Financeiro />} />
+              <Route path="/movimentacao" element={<Financeiro />} />
               <Route path="/vendas" element={<Vendas />} />
               <Route path="/historico-cliente" element={<HistoricoCliente />} />
               <Route path="/relatorios" element={<Relatorios />} />

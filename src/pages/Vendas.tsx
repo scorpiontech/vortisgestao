@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -40,6 +40,7 @@ const Vendas = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState("");
+  const [productSearch, setProductSearch] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [paymentMethod, setPaymentMethod] = useState("Dinheiro");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -52,6 +53,11 @@ const Vendas = () => {
   const [installments, setInstallments] = useState("1");
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.sku.toLowerCase().includes(productSearch.toLowerCase())
+  );
 
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
@@ -178,8 +184,8 @@ const Vendas = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Vendas / Cupom Fiscal</h1>
-        <p className="text-sm text-muted-foreground">Registre vendas e emita cupons</p>
+        <h1 className="text-2xl font-bold">PDV</h1>
+        <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -189,12 +195,24 @@ const Vendas = () => {
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1 space-y-1.5">
                   <Label>Produto</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                    <Input
+                      placeholder="Buscar por nome ou SKU..."
+                      value={productSearch}
+                      onChange={e => { setProductSearch(e.target.value); setSelectedProduct(""); }}
+                      className="pl-9 mb-1.5"
+                    />
+                  </div>
                   <Select value={selectedProduct} onValueChange={setSelectedProduct}>
                     <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      {products.map(p => (
+                      {filteredProducts.map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)} (est: {p.stock})</SelectItem>
                       ))}
+                      {filteredProducts.length === 0 && (
+                        <div className="py-2 px-3 text-sm text-muted-foreground text-center">Nenhum produto encontrado</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

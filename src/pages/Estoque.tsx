@@ -29,6 +29,17 @@ interface Supplier {
   name: string;
 }
 
+interface CategoryItem {
+  id: string;
+  name: string;
+}
+
+interface UnitItem {
+  id: string;
+  name: string;
+  abbreviation: string;
+}
+
 const Estoque = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -39,6 +50,8 @@ const Estoque = () => {
   const { toast } = useToast();
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [units, setUnits] = useState<UnitItem[]>([]);
   const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
 
   const fetchProducts = async () => {
@@ -51,6 +64,8 @@ const Estoque = () => {
   useEffect(() => {
     fetchProducts();
     supabase.from("suppliers").select("id, name").order("name").then(({ data }) => setSuppliers(data || []));
+    supabase.from("categories").select("id, name").order("name").then(({ data }) => setCategories(data || []));
+    supabase.from("units").select("id, name, abbreviation").order("name").then(({ data }) => setUnits(data || []));
   }, []);
 
   const filtered = products.filter(p =>
@@ -133,8 +148,26 @@ const Estoque = () => {
                 <div className="space-y-1.5"><Label>SKU</Label><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Categoria</Label><Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Unidade</Label><Input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} /></div>
+                <div className="space-y-1.5">
+                  <Label>Categoria</Label>
+                  <Select value={form.category} onValueChange={v => setForm({ ...form, category: v === "__none__" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                      {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Unidade</Label>
+                  <Select value={form.unit} onValueChange={v => setForm({ ...form, unit: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {units.length === 0 && <SelectItem value="un">un</SelectItem>}
+                      {units.map(u => <SelectItem key={u.id} value={u.abbreviation || u.name}>{u.name} ({u.abbreviation})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Preço Venda</Label><Input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
