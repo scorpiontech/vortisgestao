@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { XmlProductImport } from "@/components/XmlProductImport";
 
 interface Product {
   id: string;
@@ -135,9 +136,12 @@ const Estoque = () => {
           <p className="text-sm text-muted-foreground">{products.length} produtos cadastrados</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Novo Produto</Button>
-          </DialogTrigger>
+          <div className="flex gap-2">
+            <XmlProductImport onImported={fetchProducts} />
+            <DialogTrigger asChild>
+              <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Novo Produto</Button>
+            </DialogTrigger>
+          </div>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>{editProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
