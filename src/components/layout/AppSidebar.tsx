@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MenuItem {
   title: string;
@@ -40,10 +41,10 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Clientes", url: "/clientes", icon: Users, children: [
     { title: "Histórico Cliente", url: "/historico-cliente", icon: History },
   ]},
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Estoque", url: "/estoque", icon: Package, children: [
     { title: "Categorias", url: "/categorias", icon: Tags },
     { title: "Unidades de Medida", url: "/unidades", icon: Ruler },
@@ -58,11 +59,16 @@ const menuItems: MenuItem[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const isMobile = useIsMobile();
+
+  const closeMobile = () => {
+    if (isMobile) setOpenMobile(false);
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -126,7 +132,7 @@ export function AppSidebar() {
                                 tooltip={item.title}
                                 className="h-8 text-xs"
                               >
-                                <NavLink to={item.url} end className="transition-colors" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                <NavLink to={item.url} end className="transition-colors" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium" onClick={closeMobile}>
                                   <item.icon className="h-3.5 w-3.5" />
                                   <span>Cadastro</span>
                                 </NavLink>
@@ -140,7 +146,7 @@ export function AppSidebar() {
                                 tooltip={child.title}
                                 className="h-8 text-xs"
                               >
-                                <NavLink to={child.url} end className="transition-colors" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                <NavLink to={child.url} end className="transition-colors" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium" onClick={closeMobile}>
                                   <child.icon className="h-3.5 w-3.5" />
                                   <span>{child.title}</span>
                                 </NavLink>
@@ -163,6 +169,7 @@ export function AppSidebar() {
                         end
                         className="transition-colors"
                         activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        onClick={closeMobile}
                       >
                         <item.icon className="h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
