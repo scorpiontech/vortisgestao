@@ -9,6 +9,10 @@ import {
   Truck,
   Vault,
   History,
+  ChevronDown,
+  Tags,
+  Ruler,
+  ArrowLeftRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -25,16 +29,31 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: React.ElementType;
+  children?: { title: string; url: string; icon: React.ElementType }[];
+}
+
+const menuItems: MenuItem[] = [
+  { title: "Clientes", url: "/clientes", icon: Users, children: [
+    { title: "Histórico Cliente", url: "/historico-cliente", icon: History },
+  ]},
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Estoque", url: "/estoque", icon: Package },
-  { title: "Clientes", url: "/clientes", icon: Users },
+  { title: "Estoque", url: "/estoque", icon: Package, children: [
+    { title: "Categorias", url: "/categorias", icon: Tags },
+    { title: "Unidades de Medida", url: "/unidades", icon: Ruler },
+  ]},
+  { title: "Financeiro", url: "/financeiro", icon: DollarSign, children: [
+    { title: "Movimentação", url: "/movimentacao", icon: ArrowLeftRight },
+    { title: "PDV", url: "/vendas", icon: Receipt },
+    { title: "Caixa", url: "/caixa", icon: Vault },
+  ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
-  { title: "Financeiro", url: "/financeiro", icon: DollarSign },
-  { title: "Vendas / Cupom", url: "/vendas", icon: Receipt },
-  { title: "Caixa", url: "/caixa", icon: Vault },
-  { title: "Histórico Cliente", url: "/historico-cliente", icon: History },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
@@ -49,6 +68,10 @@ export function AppSidebar() {
     await signOut();
     navigate("/");
   };
+
+  const isActive = (item: MenuItem) =>
+    location.pathname === item.url ||
+    item.children?.some(c => location.pathname === c.url);
 
   return (
     <Sidebar collapsible="icon">
@@ -73,25 +96,81 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                    tooltip={item.title}
-                  >
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+              {menuItems.map((item) =>
+                item.children ? (
+                  <Collapsible key={item.title} defaultOpen={isActive(item)}>
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          tooltip={item.title}
+                          className={cn(
+                            "transition-colors justify-between",
+                            isActive(item) && "bg-sidebar-accent text-sidebar-primary font-medium"
+                          )}
+                        >
+                          <span className="flex items-center gap-2">
+                            <item.icon className="h-4 w-4" />
+                            {!collapsed && <span>{item.title}</span>}
+                          </span>
+                          {!collapsed && <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />}
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      {!collapsed && (
+                        <CollapsibleContent>
+                          <div className="ml-4 border-l border-sidebar-border pl-2 mt-1 space-y-0.5">
+                            {/* Parent link */}
+                            {item.url !== "/financeiro" && (
+                              <SidebarMenuButton
+                                asChild
+                                isActive={location.pathname === item.url}
+                                tooltip={item.title}
+                                className="h-8 text-xs"
+                              >
+                                <NavLink to={item.url} end className="transition-colors" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                  <item.icon className="h-3.5 w-3.5" />
+                                  <span>Cadastro</span>
+                                </NavLink>
+                              </SidebarMenuButton>
+                            )}
+                            {item.children.map(child => (
+                              <SidebarMenuButton
+                                key={child.title}
+                                asChild
+                                isActive={location.pathname === child.url}
+                                tooltip={child.title}
+                                className="h-8 text-xs"
+                              >
+                                <NavLink to={child.url} end className="transition-colors" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                                  <child.icon className="h-3.5 w-3.5" />
+                                  <span>{child.title}</span>
+                                </NavLink>
+                              </SidebarMenuButton>
+                            ))}
+                          </div>
+                        </CollapsibleContent>
+                      )}
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.url}
+                      tooltip={item.title}
                     >
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      <NavLink
+                        to={item.url}
+                        end
+                        className="transition-colors"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
