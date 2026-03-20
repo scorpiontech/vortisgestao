@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { XmlProductImport } from "@/components/XmlProductImport";
 
 interface Product {
   id: string;
