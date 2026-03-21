@@ -273,7 +273,9 @@ export default function OrdensServico() {
       </tr>
     `).join("");
 
-    printA4("Ordem de Serviço", `
+    printA4({
+      title: "Ordem de Serviço",
+      content: `
       <div style="margin-bottom:20px">
         <p><strong>Cliente:</strong> ${order.customer_name}</p>
         <p><strong>Tipo de Serviço:</strong> ${order.service_type}</p>
@@ -301,9 +303,8 @@ export default function OrdensServico() {
       <div style="margin-top:16px">
         <p><strong>Pagamento:</strong> ${order.paid ? `Pago via ${order.payment_method} em ${order.paid_at ? new Date(order.paid_at).toLocaleString("pt-BR") : ""}` : "Pendente"}</p>
       </div>
-    `);
-  };
-
+    `,
+    });
   const statusBadge = (s: string, paid: boolean) => {
     if (s === "finalizada") return <Badge className="bg-green-600">Finalizada</Badge>;
     if (paid) return <Badge className="bg-blue-600">Paga</Badge>;
