@@ -292,6 +292,116 @@ export type Database = {
         }
         Relationships: []
       }
+      service_order_materials: {
+        Row: {
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          service_order_id: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          service_order_id: string
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          service_order_id?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_materials_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_materials_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_orders: {
+        Row: {
+          budget_total: number
+          closed_at: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string
+          id: string
+          opened_at: string
+          paid: boolean
+          paid_at: string | null
+          payment_method: string
+          problem_description: string
+          resolution_description: string
+          service_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_total?: number
+          closed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          opened_at?: string
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string
+          problem_description?: string
+          resolution_description?: string
+          service_type?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_total?: number
+          closed_at?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string
+          id?: string
+          opened_at?: string
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string
+          problem_description?: string
+          resolution_description?: string
+          service_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           city: string
