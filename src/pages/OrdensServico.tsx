@@ -248,6 +248,18 @@ export default function OrdensServico() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta ordem de serviço?")) return;
+    // Restore stock from materials before deleting
+    const { data: mats } = await supabase.from("service_order_materials").select("*").eq("service_order_id", id);
+    if (mats) {
+      for (const m of mats) {
+        if (m.product_id) {
+          const { data: prod } = await supabase.from("products").select("stock").eq("id", m.product_id).single();
+          if (prod) {
+            await supabase.from("products").update({ stock: prod.stock + m.quantity }).eq("id", m.product_id);
+          }
+        }
+      }
+    }
     await supabase.from("service_orders").delete().eq("id", id);
     toast.success("OS excluída!");
     fetchAll();
