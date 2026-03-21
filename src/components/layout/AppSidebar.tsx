@@ -13,6 +13,7 @@ import {
   Tags,
   Ruler,
   ArrowLeftRight,
+  ClipboardList,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -55,6 +56,7 @@ const menuItems: MenuItem[] = [
     { title: "Caixa", url: "/caixa", icon: Vault },
   ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
+  { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
 ];
 
