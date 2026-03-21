@@ -247,6 +247,17 @@ export default function OrdensServico() {
       payment_method: payMethod,
     }).eq("id", payingOrder.id);
     if (error) { toast.error("Erro ao registrar pagamento"); return; }
+
+    // Registrar entrada na movimentação financeira
+    await supabase.from("transactions").insert({
+      user_id: user!.id,
+      type: "entrada",
+      description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}`,
+      amount: payingOrder.budget_total,
+      category: "Ordem de Serviço",
+      payment_method: payMethod,
+    });
+
     toast.success("Pagamento registrado!");
     setPayDialogOpen(false);
     fetchAll();
