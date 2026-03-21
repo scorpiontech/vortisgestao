@@ -305,6 +305,8 @@ export default function OrdensServico() {
       </div>
     `,
     });
+  };
+
   const statusBadge = (s: string, paid: boolean) => {
     if (s === "finalizada") return <Badge className="bg-green-600">Finalizada</Badge>;
     if (paid) return <Badge className="bg-blue-600">Paga</Badge>;
