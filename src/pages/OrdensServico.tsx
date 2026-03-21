@@ -200,7 +200,18 @@ export default function OrdensServico() {
     if (editing) {
       const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
       if (error) { toast.error("Erro ao atualizar OS"); return; }
-      // Remove old materials
+      // Restore stock from old materials before deleting them
+      const { data: oldMats } = await supabase.from("service_order_materials").select("*").eq("service_order_id", editing.id);
+      if (oldMats) {
+        for (const m of oldMats) {
+          if (m.product_id) {
+            const { data: prod } = await supabase.from("products").select("stock").eq("id", m.product_id).single();
+            if (prod) {
+              await supabase.from("products").update({ stock: prod.stock + m.quantity }).eq("id", m.product_id);
+            }
+          }
+        }
+      }
       await supabase.from("service_order_materials").delete().eq("service_order_id", editing.id);
     } else {
       const { data, error } = await supabase.from("service_orders").insert(payload).select("id").single();
@@ -208,7 +219,7 @@ export default function OrdensServico() {
       orderId = data.id;
     }
 
-    // Insert materials
+    // Insert materials and deduct stock
     if (materials.length > 0 && orderId) {
       const rows = materials.map(m => ({
         service_order_id: orderId!,
@@ -219,6 +230,15 @@ export default function OrdensServico() {
         total: m.total,
       }));
       await supabase.from("service_order_materials").insert(rows);
+      // Deduct stock for each material with product_id
+      for (const m of materials) {
+        if (m.product_id) {
+          const { data: prod } = await supabase.from("products").select("stock").eq("id", m.product_id).single();
+          if (prod) {
+            await supabase.from("products").update({ stock: prod.stock - m.quantity }).eq("id", m.product_id);
+          }
+        }
+      }
     }
 
     toast.success(editing ? "OS atualizada!" : "OS criada!");
@@ -228,6 +248,18 @@ export default function OrdensServico() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta ordem de serviço?")) return;
+    // Restore stock from materials before deleting
+    const { data: mats } = await supabase.from("service_order_materials").select("*").eq("service_order_id", id);
+    if (mats) {
+      for (const m of mats) {
+        if (m.product_id) {
+          const { data: prod } = await supabase.from("products").select("stock").eq("id", m.product_id).single();
+          if (prod) {
+            await supabase.from("products").update({ stock: prod.stock + m.quantity }).eq("id", m.product_id);
+          }
+        }
+      }
+    }
     await supabase.from("service_orders").delete().eq("id", id);
     toast.success("OS excluída!");
     fetchAll();
