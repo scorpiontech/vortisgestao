@@ -105,7 +105,13 @@ export default function OrdensServico() {
     if (prodRes.data) setProducts(prodRes.data);
   };
 
-  useEffect(() => { fetchAll(); }, [user]);
+  const checkCaixa = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("cash_registers").select("id").eq("user_id", user.id).eq("status", "open").limit(1);
+    setHasCaixaAberto(!!(data && data.length > 0));
+  };
+
+  useEffect(() => { fetchAll(); checkCaixa(); }, [user]);
 
   const budgetTotal = useMemo(() => materials.reduce((s, m) => s + m.total, 0), [materials]);
 
@@ -127,6 +133,10 @@ export default function OrdensServico() {
   };
 
   const openEdit = async (order: ServiceOrder) => {
+    if (order.paid) {
+      toast.error("OS já paga não pode ser alterada");
+      return;
+    }
     setEditing(order);
     setForm({
       customer_id: order.customer_id,
@@ -266,6 +276,10 @@ export default function OrdensServico() {
   };
 
   const openPay = (order: ServiceOrder) => {
+    if (!hasCaixaAberto) {
+      toast.error("É necessário abrir o caixa antes de registrar pagamentos");
+      return;
+    }
     setPayingOrder(order);
     setPayMethod("");
     setPayDialogOpen(true);
@@ -405,16 +419,14 @@ export default function OrdensServico() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" onClick={() => openView(order)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
-                        {order.status !== "finalizada" && (
+                        {order.status !== "finalizada" && !order.paid && (
                           <>
                             <Button size="icon" variant="ghost" onClick={() => openEdit(order)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-                            {!order.paid && (
-                              <Button size="icon" variant="ghost" onClick={() => openPay(order)} title="Registrar Pagamento"><DollarSign className="h-4 w-4 text-green-600" /></Button>
-                            )}
-                            {order.paid && (
-                              <Button size="sm" variant="outline" onClick={() => handleFinalize(order)}>Finalizar</Button>
-                            )}
+                            <Button size="icon" variant="ghost" onClick={() => openPay(order)} title="Registrar Pagamento"><DollarSign className="h-4 w-4 text-green-600" /></Button>
                           </>
+                        )}
+                        {order.status !== "finalizada" && order.paid && (
+                          <Button size="sm" variant="outline" onClick={() => handleFinalize(order)}>Finalizar</Button>
                         )}
                         <Button size="icon" variant="ghost" className="text-destructive" onClick={() => handleDelete(order.id)} title="Excluir"><Trash2 className="h-4 w-4" /></Button>
                       </div>
