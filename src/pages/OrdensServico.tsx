@@ -92,6 +92,7 @@ export default function OrdensServico() {
   const [payMethod, setPayMethod] = useState("");
   const [payingOrder, setPayingOrder] = useState<ServiceOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState("todas");
+  const [hasCaixaAberto, setHasCaixaAberto] = useState(false);
 
   const fetchAll = async () => {
     if (!user) return;
