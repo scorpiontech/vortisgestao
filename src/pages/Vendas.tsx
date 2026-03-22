@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -39,7 +39,6 @@ const Vendas = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [paymentMethod, setPaymentMethod] = useState("Dinheiro");
@@ -51,6 +50,7 @@ const Vendas = () => {
   const [discount, setDiscount] = useState("0");
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
+  const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -62,6 +62,10 @@ const Vendas = () => {
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
+    // Check if cash register is open
+    supabase.from("cash_registers").select("id").eq("status", "open").limit(1).then(({ data }) => {
+      setCaixaAberto(data && data.length > 0);
+    });
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -86,10 +90,9 @@ const Vendas = () => {
 
   const showInstallments = paymentMethod === "Cartão Crédito";
 
-  const addItem = () => {
-    const product = products.find(p => p.id === selectedProduct);
-    if (!product) { toast({ title: "Selecione um produto", variant: "destructive" }); return; }
-    const qty = Number(quantity) || 1;
+  const addProductById = (productId: string, qty: number = 1) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
     const existing = items.find(i => i.productId === product.id);
     if (existing) {
       setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + qty, total: (i.quantity + qty) * i.unitPrice } : i));
@@ -97,7 +100,7 @@ const Vendas = () => {
       setItems([...items, { productId: product.id, productName: product.name, quantity: qty, unitPrice: product.price, total: qty * product.price }]);
     }
     setQuantity("1");
-    setSelectedProduct("");
+    setProductSearch("");
   };
 
   const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
@@ -108,12 +111,7 @@ const Vendas = () => {
       toast({ title: "Produto não encontrado", description: `Código: ${code}`, variant: "destructive" });
       return;
     }
-    const existing = items.find(i => i.productId === product.id);
-    if (existing) {
-      setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.unitPrice } : i));
-    } else {
-      setItems([...items, { productId: product.id, productName: product.name, quantity: 1, unitPrice: product.price, total: product.price }]);
-    }
+    addProductById(product.id, 1);
     toast({ title: `${product.name} adicionado` });
   };
 
@@ -181,6 +179,27 @@ const Vendas = () => {
   const now = new Date();
   const installmentsNum = Math.max(1, Number(installments) || 1);
 
+  // Loading state
+  if (caixaAberto === null) {
+    return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+  }
+
+  // Cash register not open
+  if (!caixaAberto) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+        </div>
+        <h2 className="text-xl font-bold">Caixa Fechado</h2>
+        <p className="text-sm text-muted-foreground text-center max-w-md">
+          Para registrar vendas, é necessário abrir o caixa primeiro. Acesse o menu <strong>Financeiro → Caixa</strong> para abrir um novo caixa.
+        </p>
+        <Button variant="outline" onClick={() => window.location.href = "/caixa"}>Ir para Caixa</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -192,40 +211,66 @@ const Vendas = () => {
         <div className="lg:col-span-2 space-y-4">
           {!showReceipt && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-lg shadow-card border p-5 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 space-y-1.5">
-                  <Label>Produto</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                    <Input
-                      placeholder="Buscar por nome ou SKU..."
-                      value={productSearch}
-                      onChange={e => { setProductSearch(e.target.value); setSelectedProduct(""); }}
-                      className="pl-9 mb-1.5"
-                    />
+              {/* Product search as table */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <Label>Buscar Produto</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                      <Input
+                        placeholder="Nome, SKU ou código de barras..."
+                        value={productSearch}
+                        onChange={e => setProductSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
                   </div>
-                  <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {filteredProducts.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name} — {formatCurrency(p.price)} (est: {p.stock})</SelectItem>
-                      ))}
-                      {filteredProducts.length === 0 && (
-                        <div className="py-2 px-3 text-sm text-muted-foreground text-center">Nenhum produto encontrado</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="w-24 space-y-1.5">
+                    <Label>Qtd</Label>
+                    <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
+                  </div>
+                  <div className="flex items-end">
+                    <Button variant="outline" size="icon" onClick={() => setScannerOpen(true)} title="Escanear código de barras">
+                      <ScanBarcode className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="w-24 space-y-1.5">
-                  <Label>Qtd</Label>
-                  <Input type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
-                </div>
-                <div className="flex items-end gap-1.5">
-                  <Button onClick={addItem}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
-                  <Button variant="outline" size="icon" onClick={() => setScannerOpen(true)} title="Escanear código de barras">
-                    <ScanBarcode className="h-4 w-4" />
-                  </Button>
-                </div>
+
+                {/* Product table */}
+                {productSearch && (
+                  <div className="border rounded-lg overflow-hidden max-h-[200px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0">
+                        <tr className="bg-muted/50 border-b">
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">Produto</th>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground">SKU</th>
+                          <th className="text-right px-3 py-2 font-medium text-muted-foreground">Preço</th>
+                          <th className="text-center px-3 py-2 font-medium text-muted-foreground">Estoque</th>
+                          <th className="px-2 py-2"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {filteredProducts.map(p => (
+                          <tr key={p.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => addProductById(p.id, Number(quantity) || 1)}>
+                            <td className="px-3 py-2 font-medium">{p.name}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{p.sku}</td>
+                            <td className="px-3 py-2 text-right">{formatCurrency(p.price)}</td>
+                            <td className="px-3 py-2 text-center">{p.stock}</td>
+                            <td className="px-2 py-2">
+                              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={(e) => { e.stopPropagation(); addProductById(p.id, Number(quantity) || 1); }}>
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredProducts.length === 0 && (
+                          <tr><td colSpan={5} className="px-3 py-4 text-center text-muted-foreground">Nenhum produto encontrado</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {items.length > 0 && (
