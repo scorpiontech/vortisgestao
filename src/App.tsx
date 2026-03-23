@@ -21,6 +21,9 @@ import Unidades from "./pages/Unidades";
 import OrdensServico from "./pages/OrdensServico";
 import Cadastro from "./pages/Cadastro";
 import Cobrancas from "./pages/Cobrancas";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +55,8 @@ const App = () => (
               <Route path="/cobrancas" element={<Cobrancas />} />
             </Route>
             <Route path="*" element={<NotFound />} />
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
