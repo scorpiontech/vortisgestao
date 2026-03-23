@@ -20,6 +20,7 @@ import Categorias from "./pages/Categorias";
 import Unidades from "./pages/Unidades";
 import OrdensServico from "./pages/OrdensServico";
 import Cadastro from "./pages/Cadastro";
+import Cobrancas from "./pages/Cobrancas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/caixa" element={<Caixa />} />
               <Route path="/ordens-servico" element={<OrdensServico />} />
               <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/cobrancas" element={<Cobrancas />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
