@@ -62,6 +62,7 @@ const menuItems: MenuItem[] = [
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Configurações", url: "/configuracoes", icon: Settings, children: [
     { title: "Cadastro", url: "/cadastro", icon: UserCog },
+    { title: "Cobranças", url: "/cobrancas", icon: Receipt },
   ]},
 ];
 
@@ -131,8 +132,8 @@ export function AppSidebar() {
                       {!collapsed && (
                         <CollapsibleContent>
                           <div className="ml-4 border-l border-sidebar-border pl-2 mt-1 space-y-0.5">
-                            {/* Parent link */}
-                            {item.url !== "/financeiro" && (
+                            {/* Parent link - only for items that have a distinct page */}
+                            {item.url !== "/financeiro" && item.url !== "/configuracoes" && (
                               <SidebarMenuButton
                                 asChild
                                 isActive={location.pathname === item.url}
