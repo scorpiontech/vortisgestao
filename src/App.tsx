@@ -55,6 +55,8 @@ const App = () => (
               <Route path="/cobrancas" element={<Cobrancas />} />
             </Route>
             <Route path="*" element={<NotFound />} />
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
