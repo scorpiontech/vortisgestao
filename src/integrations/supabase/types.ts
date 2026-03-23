@@ -74,6 +74,63 @@ export type Database = {
         }
         Relationships: []
       }
+      company_registrations: {
+        Row: {
+          city: string
+          complement: string
+          created_at: string
+          document: string
+          id: string
+          name: string
+          neighborhood: string
+          number: string
+          person_type: string
+          phone: string
+          state: string
+          state_registration: string
+          street: string
+          updated_at: string
+          user_id: string
+          zip_code: string
+        }
+        Insert: {
+          city?: string
+          complement?: string
+          created_at?: string
+          document?: string
+          id?: string
+          name: string
+          neighborhood?: string
+          number?: string
+          person_type?: string
+          phone?: string
+          state?: string
+          state_registration?: string
+          street?: string
+          updated_at?: string
+          user_id: string
+          zip_code?: string
+        }
+        Update: {
+          city?: string
+          complement?: string
+          created_at?: string
+          document?: string
+          id?: string
+          name?: string
+          neighborhood?: string
+          number?: string
+          person_type?: string
+          phone?: string
+          state?: string
+          state_registration?: string
+          street?: string
+          updated_at?: string
+          user_id?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           city: string
