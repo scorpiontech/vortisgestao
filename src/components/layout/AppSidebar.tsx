@@ -14,6 +14,8 @@ import {
   Ruler,
   ArrowLeftRight,
   ClipboardList,
+  Settings,
+  UserCog,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -58,6 +60,9 @@ const menuItems: MenuItem[] = [
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
   { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+  { title: "Configurações", url: "/configuracoes", icon: Settings, children: [
+    { title: "Cadastro", url: "/cadastro", icon: UserCog },
+  ]},
 ];
 
 export function AppSidebar() {

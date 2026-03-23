@@ -19,6 +19,7 @@ import Caixa from "./pages/Caixa";
 import Categorias from "./pages/Categorias";
 import Unidades from "./pages/Unidades";
 import OrdensServico from "./pages/OrdensServico";
+import Cadastro from "./pages/Cadastro";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/fornecedores" element={<Fornecedores />} />
               <Route path="/caixa" element={<Caixa />} />
               <Route path="/ordens-servico" element={<OrdensServico />} />
+              <Route path="/cadastro" element={<Cadastro />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
