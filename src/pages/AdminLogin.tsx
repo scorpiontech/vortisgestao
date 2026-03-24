@@ -65,7 +65,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@vortis.com"
+                placeholder="admin@vortisgestao.com.br"
                 required
               />
             </div>
