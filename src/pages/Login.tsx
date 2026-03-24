@@ -25,14 +25,24 @@ const Login = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      setLoading(false);
       toast({ title: "Erro no login", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Login realizado!", description: "Bem-vindo ao Vortis Gestão" });
-      navigate("/dashboard");
+      return;
     }
+
+    // Check if user is admin
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    setLoading(false);
+    toast({ title: "Login realizado!", description: "Bem-vindo ao Vortis Gestão" });
+    navigate(roleData ? "/admin/dashboard" : "/dashboard");
   };
 
   const handleSignup = async (e: React.FormEvent) => {
