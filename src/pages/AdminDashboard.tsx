@@ -39,6 +39,9 @@ export default function AdminDashboard() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selected, setSelected] = useState<ClientAccount | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", plan: "Plano Mensal", status: "ativo", monthly_value: 99.90 });
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", plan: "Plano Mensal", monthly_value: 99.90 });
+  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
   const fetchAccounts = async () => {
@@ -130,6 +133,46 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleCreate = async () => {
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      toast.error("Nome, e-mail e senha são obrigatórios");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            email: createForm.email,
+            password: createForm.password,
+            name: createForm.name,
+            plan: createForm.plan,
+            monthly_value: createForm.monthly_value,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        toast.error(result.error || "Erro ao criar conta");
+      } else {
+        toast.success("Conta criada com sucesso!");
+        setCreateOpen(false);
+        setCreateForm({ name: "", email: "", password: "", plan: "Plano Mensal", monthly_value: 99.90 });
+        fetchAccounts();
+      }
+    } catch (err) {
+      toast.error("Erro ao criar conta");
+    }
+    setCreating(false);
+  };
+
   const filtered = accounts.filter(
     (a) =>
       a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -213,6 +256,10 @@ export default function AdminDashboard() {
               className="pl-9"
             />
           </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Conta
+          </Button>
         </div>
 
         {/* Table */}
@@ -374,6 +421,55 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Conta de Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>E-mail</Label>
+              <Input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <Input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Plano</Label>
+              <Select value={createForm.plan} onValueChange={(v) => setCreateForm({ ...createForm, plan: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PLANS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor Mensal (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={createForm.monthly_value}
+                onChange={(e) => setCreateForm({ ...createForm, monthly_value: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? "Criando..." : "Criar Conta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
