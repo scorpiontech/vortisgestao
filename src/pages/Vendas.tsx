@@ -88,15 +88,23 @@ const Vendas = () => {
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
-  const handleCustomerChange = (value: string) => {
-    setSelectedCustomerId(value);
-    if (value === "__none__") {
-      setCustomerName("");
-      setSelectedCustomerId("");
-    } else {
-      const c = customers.find(c => c.id === value);
-      setCustomerName(c?.name || "");
-    }
+  const filteredCustomersForPDV = customers.filter(c => {
+    const q = customerSearch.toLowerCase();
+    if (!q) return false;
+    return c.name.toLowerCase().includes(q) || c.document.toLowerCase().includes(q);
+  });
+
+  const handleSelectCustomerPDV = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    const c = customers.find(c => c.id === customerId);
+    setCustomerName(c?.name || "");
+    setCustomerSearch("");
+  };
+
+  const clearCustomer = () => {
+    setSelectedCustomerId("");
+    setCustomerName("");
+    setCustomerSearch("");
   };
 
   const subtotal = items.reduce((s, i) => s + i.total, 0);
