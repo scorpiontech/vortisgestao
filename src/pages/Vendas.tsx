@@ -34,6 +34,20 @@ interface Customer {
   phone: string;
 }
 
+interface CompanyInfo {
+  name: string;
+  document: string;
+  person_type: string;
+  phone: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip_code: string;
+}
+
 const Vendas = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -51,6 +65,7 @@ const Vendas = () => {
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -62,9 +77,11 @@ const Vendas = () => {
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
-    // Check if cash register is open
     supabase.from("cash_registers").select("id").eq("status", "open").limit(1).then(({ data }) => {
       setCaixaAberto(data && data.length > 0);
+    });
+    supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
+      if (data) setCompanyInfo(data as CompanyInfo);
     });
   }, []);
 
@@ -405,9 +422,20 @@ const Vendas = () => {
         <div>
           <div ref={receiptRef} className="receipt-print bg-card rounded-lg shadow-card border p-5">
             <div className="text-center border-b pb-3 mb-3">
-              <h3 className="font-bold text-sm">VORTIS GESTÃO</h3>
-              <p className="text-[10px] text-muted-foreground">CNPJ: 00.000.000/0001-00</p>
-              <p className="text-[10px] text-muted-foreground">Rua Exemplo, 123 - Centro</p>
+              <h3 className="font-bold text-sm">{companyInfo?.name || "MINHA EMPRESA"}</h3>
+              {companyInfo?.document && (
+                <p className="text-[10px] text-muted-foreground">
+                  {companyInfo.person_type === "pj" ? "CNPJ" : "CPF"}: {companyInfo.document}
+                </p>
+              )}
+              {companyInfo?.street && (
+                <p className="text-[10px] text-muted-foreground">
+                  {companyInfo.street}{companyInfo.number ? `, ${companyInfo.number}` : ""}{companyInfo.complement ? ` - ${companyInfo.complement}` : ""} - {companyInfo.neighborhood || ""}{companyInfo.city ? `, ${companyInfo.city}` : ""}{companyInfo.state ? `/${companyInfo.state}` : ""}
+                </p>
+              )}
+              {companyInfo?.phone && (
+                <p className="text-[10px] text-muted-foreground">Tel: {companyInfo.phone}</p>
+              )}
               <div className="border-t border-dashed my-2" />
               <p className="text-[10px] font-medium">CUPOM FISCAL</p>
               <p className="text-[10px] text-muted-foreground">{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</p>
