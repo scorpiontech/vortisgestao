@@ -34,6 +34,20 @@ interface Customer {
   phone: string;
 }
 
+interface CompanyInfo {
+  name: string;
+  document: string;
+  person_type: string;
+  phone: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip_code: string;
+}
+
 const Vendas = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -51,6 +65,7 @@ const Vendas = () => {
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
