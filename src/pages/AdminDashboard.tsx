@@ -256,6 +256,10 @@ export default function AdminDashboard() {
               className="pl-9"
             />
           </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Conta
+          </Button>
         </div>
 
         {/* Table */}
