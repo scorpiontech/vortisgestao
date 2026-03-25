@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Printer, Users, ShoppingBag } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Printer, Users, ShoppingBag, Search } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
 import { motion } from "framer-motion";
 
@@ -36,6 +37,7 @@ interface SaleItemRow {
 
 const HistoricoCliente = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [sales, setSales] = useState<Sale[]>([]);
   const [saleItems, setSaleItems] = useState<Map<string, SaleItemRow[]>>(new Map());
@@ -49,6 +51,15 @@ const HistoricoCliente = () => {
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  const filteredCustomers = customers.filter(c => {
+    const q = customerSearch.toLowerCase();
+    if (!q) return false;
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.document.toLowerCase().includes(q)
+    );
+  });
 
   const fetchSales = async (customerId: string) => {
     const customer = customers.find(c => c.id === customerId);
@@ -64,7 +75,6 @@ const HistoricoCliente = () => {
     const salesData = (data || []) as Sale[];
     setSales(salesData);
 
-    // Fetch items for all sales
     if (salesData.length > 0) {
       const saleIds = salesData.map(s => s.id);
       const { data: items } = await supabase
@@ -86,11 +96,11 @@ const HistoricoCliente = () => {
     setLoading(false);
   };
 
-  const handleCustomerChange = (value: string) => {
-    setSelectedCustomerId(value);
+  const handleSelectCustomer = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    setCustomerSearch("");
     setExpandedSale(null);
-    if (value) fetchSales(value);
-    else { setSales([]); setSaleItems(new Map()); }
+    fetchSales(customerId);
   };
 
   const totalGasto = sales.reduce((s, sale) => s + Number(sale.total), 0);
@@ -143,18 +153,69 @@ const HistoricoCliente = () => {
         )}
       </div>
 
-      <div className="max-w-md space-y-1.5">
-        <Label className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Selecione o Cliente</Label>
-        <Select value={selectedCustomerId} onValueChange={handleCustomerChange}>
-          <SelectTrigger><SelectValue placeholder="Selecione um cliente..." /></SelectTrigger>
-          <SelectContent>
-            {customers.map(c => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}{c.document ? ` (${c.document_type.toUpperCase()}: ${c.document})` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Customer search */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Buscar Cliente</Label>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+          <Input
+            placeholder="Buscar por nome, CPF ou CNPJ..."
+            value={customerSearch}
+            onChange={e => setCustomerSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {selectedCustomer && !customerSearch && (
+          <div className="flex items-center gap-2 text-sm bg-muted/50 rounded-md px-3 py-2 max-w-md">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">{selectedCustomer.name}</span>
+            {selectedCustomer.document && (
+              <span className="text-muted-foreground">
+                ({selectedCustomer.document_type.toUpperCase()}: {selectedCustomer.document})
+              </span>
+            )}
+            <Button variant="ghost" size="sm" className="ml-auto h-6 px-2 text-xs" onClick={() => { setSelectedCustomerId(""); setSales([]); setSaleItems(new Map()); }}>
+              Limpar
+            </Button>
+          </div>
+        )}
+
+        {customerSearch && (
+          <div className="border rounded-lg overflow-hidden max-h-[250px] overflow-y-auto max-w-2xl">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Telefone</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCustomers.map(c => (
+                  <TableRow
+                    key={c.id}
+                    className="cursor-pointer hover:bg-muted/30 transition-colors"
+                    onClick={() => handleSelectCustomer(c.id)}
+                  >
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {c.document ? `${c.document_type.toUpperCase()}: ${c.document}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.phone || "—"}</TableCell>
+                  </TableRow>
+                ))}
+                {filteredCustomers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                      Nenhum cliente encontrado
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
 
       {loading && (
