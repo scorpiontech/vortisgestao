@@ -422,9 +422,20 @@ const Vendas = () => {
         <div>
           <div ref={receiptRef} className="receipt-print bg-card rounded-lg shadow-card border p-5">
             <div className="text-center border-b pb-3 mb-3">
-              <h3 className="font-bold text-sm">VORTIS GESTÃO</h3>
-              <p className="text-[10px] text-muted-foreground">CNPJ: 00.000.000/0001-00</p>
-              <p className="text-[10px] text-muted-foreground">Rua Exemplo, 123 - Centro</p>
+              <h3 className="font-bold text-sm">{companyInfo?.name || "MINHA EMPRESA"}</h3>
+              {companyInfo?.document && (
+                <p className="text-[10px] text-muted-foreground">
+                  {companyInfo.person_type === "pj" ? "CNPJ" : "CPF"}: {companyInfo.document}
+                </p>
+              )}
+              {companyInfo?.street && (
+                <p className="text-[10px] text-muted-foreground">
+                  {companyInfo.street}{companyInfo.number ? `, ${companyInfo.number}` : ""}{companyInfo.complement ? ` - ${companyInfo.complement}` : ""} - {companyInfo.neighborhood || ""}{companyInfo.city ? `, ${companyInfo.city}` : ""}{companyInfo.state ? `/${companyInfo.state}` : ""}
+                </p>
+              )}
+              {companyInfo?.phone && (
+                <p className="text-[10px] text-muted-foreground">Tel: {companyInfo.phone}</p>
+              )}
               <div className="border-t border-dashed my-2" />
               <p className="text-[10px] font-medium">CUPOM FISCAL</p>
               <p className="text-[10px] text-muted-foreground">{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</p>
