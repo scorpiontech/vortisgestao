@@ -133,7 +133,45 @@ export default function AdminDashboard() {
     }
   };
 
-  const filtered = accounts.filter(
+  const handleCreate = async () => {
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      toast.error("Nome, e-mail e senha são obrigatórios");
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            email: createForm.email,
+            password: createForm.password,
+            name: createForm.name,
+            plan: createForm.plan,
+            monthly_value: createForm.monthly_value,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        toast.error(result.error || "Erro ao criar conta");
+      } else {
+        toast.success("Conta criada com sucesso!");
+        setCreateOpen(false);
+        setCreateForm({ name: "", email: "", password: "", plan: "Plano Mensal", monthly_value: 99.90 });
+        fetchAccounts();
+      }
+    } catch (err) {
+      toast.error("Erro ao criar conta");
+    }
+    setCreating(false);
+  };
     (a) =>
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.email.toLowerCase().includes(search.toLowerCase())
