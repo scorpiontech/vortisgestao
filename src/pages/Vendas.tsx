@@ -58,6 +58,7 @@ const Vendas = () => {
   const [paymentMethod, setPaymentMethod] = useState("Dinheiro");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [showReceipt, setShowReceipt] = useState(false);
   const [saleId, setSaleId] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
