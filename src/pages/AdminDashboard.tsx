@@ -172,6 +172,8 @@ export default function AdminDashboard() {
     }
     setCreating(false);
   };
+
+  const filtered = accounts.filter(
     (a) =>
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.email.toLowerCase().includes(search.toLowerCase())
