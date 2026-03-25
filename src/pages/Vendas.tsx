@@ -327,19 +327,58 @@ const Vendas = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" />Cliente</Label>
-                  <Select value={selectedCustomerId} onValueChange={handleCustomerChange}>
-                    <SelectTrigger><SelectValue placeholder="Selecione um cliente (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— Sem cliente —</SelectItem>
-                      {customers.map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}{c.document ? ` (${c.document_type.toUpperCase()}: ${c.document})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {!selectedCustomerId && (
-                    <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Ou digite o nome manualmente" className="mt-1.5" />
+                  {selectedCustomer ? (
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-md px-3 py-2 text-sm">
+                      <span className="font-medium">{selectedCustomer.name}</span>
+                      {selectedCustomer.document && (
+                        <span className="text-muted-foreground text-xs">
+                          ({selectedCustomer.document_type.toUpperCase()}: {selectedCustomer.document})
+                        </span>
+                      )}
+                      <Button variant="ghost" size="icon" className="ml-auto h-6 w-6" onClick={clearCustomer}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                        <Input
+                          placeholder="Buscar por nome, CPF ou CNPJ..."
+                          value={customerSearch}
+                          onChange={e => setCustomerSearch(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      {customerSearch && (
+                        <div className="border rounded-lg overflow-hidden max-h-[180px] overflow-y-auto">
+                          <table className="w-full text-sm">
+                            <thead className="sticky top-0">
+                              <tr className="bg-muted/50 border-b">
+                                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Nome</th>
+                                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Documento</th>
+                                <th className="text-left px-3 py-2 font-medium text-muted-foreground">Telefone</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                              {filteredCustomersForPDV.map(c => (
+                                <tr key={c.id} className="hover:bg-muted/30 cursor-pointer transition-colors" onClick={() => handleSelectCustomerPDV(c.id)}>
+                                  <td className="px-3 py-2 font-medium">{c.name}</td>
+                                  <td className="px-3 py-2 text-muted-foreground">{c.document ? `${c.document_type.toUpperCase()}: ${c.document}` : "—"}</td>
+                                  <td className="px-3 py-2 text-muted-foreground">{c.phone || "—"}</td>
+                                </tr>
+                              ))}
+                              {filteredCustomersForPDV.length === 0 && (
+                                <tr><td colSpan={3} className="px-3 py-3 text-center text-muted-foreground">Nenhum cliente encontrado</td></tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      {!customerSearch && (
+                        <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Ou digite o nome manualmente" className="mt-1.5" />
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="space-y-1.5">
