@@ -39,6 +39,9 @@ export default function AdminDashboard() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selected, setSelected] = useState<ClientAccount | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", plan: "Plano Mensal", status: "ativo", monthly_value: 99.90 });
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", plan: "Plano Mensal", monthly_value: 99.90 });
+  const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
   const fetchAccounts = async () => {
