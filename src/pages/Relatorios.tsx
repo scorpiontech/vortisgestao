@@ -18,7 +18,11 @@ const Relatorios = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [billsFrom, setBillsFrom] = useState("");
+  const [billsTo, setBillsTo] = useState("");
+  const [billsDialogOpen, setBillsDialogOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
