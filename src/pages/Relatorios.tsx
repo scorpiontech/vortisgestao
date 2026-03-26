@@ -204,7 +204,61 @@ const Relatorios = () => {
     });
   };
 
+  const getFilteredBills = (type: "pagar" | "receber") => {
+    return bills.filter(b => {
+      if (b.type !== type) return false;
+      if (billsFrom && b.due_date < billsFrom) return false;
+      if (billsTo && b.due_date > billsTo) return false;
+      return true;
+    });
+  };
+
+  const printContas = (type: "pagar" | "receber") => {
+    const filtered = getFilteredBills(type);
+    const label = type === "pagar" ? "Pagar" : "Receber";
+    const totalPago = filtered.filter(b => b.paid).reduce((s: number, b: any) => s + Number(b.amount), 0);
+    const totalPendente = filtered.filter(b => !b.paid).reduce((s: number, b: any) => s + Number(b.amount), 0);
+    const totalAtrasado = filtered.filter(b => !b.paid && b.due_date < new Date().toISOString().slice(0, 10)).reduce((s: number, b: any) => s + Number(b.amount), 0);
+
+    const rows = filtered.map(b => {
+      const isOverdue = !b.paid && b.due_date < new Date().toISOString().slice(0, 10);
+      const status = b.paid ? "Pago" : isOverdue ? "Atrasado" : "Pendente";
+      const color = b.paid ? "green" : isOverdue ? "red" : "orange";
+      return `<tr>
+        <td>${b.due_date}</td>
+        <td>${b.description}</td>
+        <td>${b.payment_method || "—"}</td>
+        <td style="text-align:right">${formatCurrency(Number(b.amount))}</td>
+        <td style="color:${color};font-weight:600">${status}</td>
+      </tr>`;
+    }).join("");
+
+    const periodo = billsFrom || billsTo
+      ? `Período: ${billsFrom || "início"} a ${billsTo || "hoje"}`
+      : "Todos os períodos";
+
+    printA4({
+      title: `Relatório de Contas a ${label}`,
+      subtitle: `${filtered.length} registros — ${periodo}`,
+      content: `
+        <div class="highlight-box">
+          <div class="summary-row"><span>Total Pago:</span><span style="color:green">${formatCurrency(totalPago)}</span></div>
+          <div class="summary-row"><span>Total Pendente:</span><span style="color:orange">${formatCurrency(totalPendente)}</span></div>
+          <div class="summary-row"><span>Total Atrasado:</span><span style="color:red">${formatCurrency(totalAtrasado)}</span></div>
+          <div class="summary-row total"><span>Total Geral:</span><span>${formatCurrency(totalPago + totalPendente)}</span></div>
+        </div>
+        <table>
+          <thead><tr><th>Vencimento</th><th>Descrição</th><th>Pagamento</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5" style="text-align:center">Sem registros</td></tr>'}</tbody>
+        </table>
+      `,
+    });
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+
+  const billsPagar = getFilteredBills("pagar");
+  const billsReceber = getFilteredBills("receber");
 
   return (
     <div className="space-y-6">
