@@ -53,9 +53,11 @@ const menuItems: MenuItem[] = [
     { title: "Unidades de Medida", url: "/unidades", icon: Ruler },
   ]},
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, children: [
+    { title: "Caixa", url: "/caixa", icon: Vault },
+    { title: "Contas a Pagar", url: "/contas-pagar", icon: ArrowLeftRight },
+    { title: "Contas a Receber", url: "/contas-receber", icon: ArrowLeftRight },
     { title: "Movimentação", url: "/movimentacao", icon: ArrowLeftRight },
     { title: "PDV", url: "/vendas", icon: Receipt },
-    { title: "Caixa", url: "/caixa", icon: Vault },
   ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
   { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList },
