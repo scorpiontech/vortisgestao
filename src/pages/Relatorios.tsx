@@ -273,8 +273,111 @@ const Relatorios = () => {
           <Button variant="outline" size="sm" onClick={printVendas}><Printer className="h-3.5 w-3.5 mr-1.5" />Vendas</Button>
           <Button variant="outline" size="sm" onClick={printClientes}><Printer className="h-3.5 w-3.5 mr-1.5" />Clientes</Button>
           <Button variant="outline" size="sm" onClick={printMargem}><Printer className="h-3.5 w-3.5 mr-1.5" />Margem</Button>
+          <Button variant="outline" size="sm" onClick={() => setBillsDialogOpen(true)}><Printer className="h-3.5 w-3.5 mr-1.5" />Contas</Button>
         </div>
       </div>
+
+      {/* Dialog de filtro por período para contas */}
+      <Dialog open={billsDialogOpen} onOpenChange={setBillsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Relatório de Contas a Pagar e Receber</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-wrap items-end gap-4 mb-4">
+            <div>
+              <Label className="text-xs">De</Label>
+              <Input type="date" value={billsFrom} onChange={e => setBillsFrom(e.target.value)} className="w-40" />
+            </div>
+            <div>
+              <Label className="text-xs">Até</Label>
+              <Input type="date" value={billsTo} onChange={e => setBillsTo(e.target.value)} className="w-40" />
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => { setBillsFrom(""); setBillsTo(""); }}>Limpar</Button>
+            <div className="ml-auto flex gap-2">
+              <Button size="sm" onClick={() => printContas("pagar")}><Printer className="h-3.5 w-3.5 mr-1.5" />Imprimir Pagar</Button>
+              <Button size="sm" onClick={() => printContas("receber")}><Printer className="h-3.5 w-3.5 mr-1.5" />Imprimir Receber</Button>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-semibold mb-2">Contas a Pagar ({billsPagar.length})</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {billsPagar.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem registros</TableCell></TableRow>
+                  ) : billsPagar.map(b => {
+                    const isOverdue = !b.paid && b.due_date < new Date().toISOString().slice(0, 10);
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell>{b.due_date}</TableCell>
+                        <TableCell>{b.description}</TableCell>
+                        <TableCell>{b.payment_method || "—"}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(Number(b.amount))}</TableCell>
+                        <TableCell>
+                          <Badge variant={b.paid ? "default" : isOverdue ? "destructive" : "secondary"}>
+                            {b.paid ? "Pago" : isOverdue ? "Atrasado" : "Pendente"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <div className="text-sm text-right mt-1 font-semibold">
+                Total: {formatCurrency(billsPagar.reduce((s: number, b: any) => s + Number(b.amount), 0))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Contas a Receber ({billsReceber.length})</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {billsReceber.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem registros</TableCell></TableRow>
+                  ) : billsReceber.map(b => {
+                    const isOverdue = !b.paid && b.due_date < new Date().toISOString().slice(0, 10);
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell>{b.due_date}</TableCell>
+                        <TableCell>{b.description}</TableCell>
+                        <TableCell>{b.payment_method || "—"}</TableCell>
+                        <TableCell className="text-right font-medium">{formatCurrency(Number(b.amount))}</TableCell>
+                        <TableCell>
+                          <Badge variant={b.paid ? "default" : isOverdue ? "destructive" : "secondary"}>
+                            {b.paid ? "Pago" : isOverdue ? "Atrasado" : "Pendente"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <div className="text-sm text-right mt-1 font-semibold">
+                Total: {formatCurrency(billsReceber.reduce((s: number, b: any) => s + Number(b.amount), 0))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-lg shadow-card border p-5">
