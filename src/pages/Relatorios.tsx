@@ -26,16 +26,18 @@ const Relatorios = () => {
 
   useEffect(() => {
     const load = async () => {
-      const [p, t, s, c] = await Promise.all([
+      const [p, t, s, c, b] = await Promise.all([
         supabase.from("products").select("*"),
         supabase.from("transactions").select("*").order("date", { ascending: false }),
         supabase.from("sales").select("*").order("date", { ascending: false }),
         supabase.from("customers").select("*").order("name"),
+        supabase.from("bills").select("*").order("due_date", { ascending: false }),
       ]);
       setProducts(p.data || []);
       setTransactions(t.data || []);
       setSales(s.data || []);
       setCustomers(c.data || []);
+      setBills(b.data || []);
       setLoading(false);
     };
     load();
