@@ -21,6 +21,8 @@ import Unidades from "./pages/Unidades";
 import OrdensServico from "./pages/OrdensServico";
 import Cadastro from "./pages/Cadastro";
 import Cobrancas from "./pages/Cobrancas";
+import ContasPagar from "./pages/ContasPagar";
+import ContasReceber from "./pages/ContasReceber";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
