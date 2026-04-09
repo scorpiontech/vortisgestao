@@ -23,6 +23,7 @@ import Cadastro from "./pages/Cadastro";
 import Cobrancas from "./pages/Cobrancas";
 import ContasPagar from "./pages/ContasPagar";
 import ContasReceber from "./pages/ContasReceber";
+import Usuarios from "./pages/Usuarios";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/cobrancas" element={<Cobrancas />} />
               <Route path="/contas-pagar" element={<ContasPagar />} />
               <Route path="/contas-receber" element={<ContasReceber />} />
+              <Route path="/usuarios" element={<Usuarios />} />
             </Route>
             <Route path="*" element={<NotFound />} />
             <Route path="/admin" element={<AdminLogin />} />
