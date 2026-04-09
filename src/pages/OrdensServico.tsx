@@ -113,7 +113,7 @@ export default function OrdensServico() {
 
   const checkCaixa = async () => {
     if (!user) return;
-    const { data } = await supabase.from("cash_registers").select("id").eq("user_id", user.id).eq("status", "open").limit(1);
+    const { data } = await supabase.from("cash_registers").select("id").eq("status", "open").eq("user_id", user.id).limit(1);
     setHasCaixaAberto(!!(data && data.length > 0));
   };
 

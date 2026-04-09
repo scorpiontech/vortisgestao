@@ -83,7 +83,7 @@ const Vendas = () => {
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
-    supabase.from("cash_registers").select("id").eq("status", "open").limit(1).then(({ data }) => {
+    supabase.from("cash_registers").select("id").eq("status", "open").eq("user_id", user!.id).limit(1).then(({ data }) => {
       setCaixaAberto(data && data.length > 0);
     });
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
