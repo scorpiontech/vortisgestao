@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ interface CompanyInfo {
 
 const Vendas = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
@@ -147,7 +149,7 @@ const Vendas = () => {
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
 
     const { data: sale, error: saleError } = await supabase.from("sales").insert({
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       customer_name: customerName || null,
       payment_method: paymentMethod,
       total,
@@ -168,7 +170,7 @@ const Vendas = () => {
     await supabase.from("sale_items").insert(saleItems);
 
     await supabase.from("transactions").insert({
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       type: "entrada",
       description: `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`,
       amount: total,
