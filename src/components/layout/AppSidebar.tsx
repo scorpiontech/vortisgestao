@@ -79,6 +79,14 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const isMobile = useIsMobile();
+  const { isMaster } = useUserRole();
+
+  const menuItems = allMenuItems
+    .filter(item => !item.masterOnly || isMaster)
+    .map(item => ({
+      ...item,
+      children: item.children?.filter(c => !c.masterOnly || isMaster),
+    }));
 
   const closeMobile = () => {
     if (isMobile) setOpenMobile(false);
