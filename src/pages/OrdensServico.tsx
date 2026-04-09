@@ -299,7 +299,7 @@ export default function OrdensServico() {
 
     // Registrar entrada na movimentação financeira
     await supabase.from("transactions").insert({
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       type: "entrada",
       description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}`,
       amount: payingOrder.budget_total,
