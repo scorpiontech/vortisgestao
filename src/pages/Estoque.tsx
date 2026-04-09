@@ -44,6 +44,7 @@ interface UnitItem {
 
 const Estoque = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,7 +103,7 @@ const Estoque = () => {
       min_stock: Number(form.min_stock) || 0,
       unit: form.unit,
       supplier_id: form.supplier_id || null,
-      user_id: user!.id,
+      user_id: effectiveUserId!,
     };
 
     if (editProduct) {
