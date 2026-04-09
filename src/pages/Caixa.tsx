@@ -282,7 +282,7 @@ const Caixa = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  {r.status === "open" && isMaster && (
+                  {r.status === "open" && (isMaster || r.user_id === user?.id) && (
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCloseDialogFor(r)}>
                       <Lock className="h-3.5 w-3.5 text-destructive" />
                     </Button>
