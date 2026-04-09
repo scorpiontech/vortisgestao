@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, DollarSign, Search, Printer, X } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
+import { useSellerName } from "@/hooks/useSellerName";
 
 interface ServiceOrder {
   id: string;
@@ -80,6 +81,7 @@ const emptyOrder: Omit<ServiceOrder, "id"> = {
 export default function OrdensServico() {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
+  const sellerName = useSellerName();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -338,6 +340,7 @@ export default function OrdensServico() {
 
     printA4({
       title: "Ordem de Serviço",
+      sellerName,
       content: `
       <div style="margin-bottom:20px">
         <p><strong>Cliente:</strong> ${order.customer_name}</p>

@@ -8,9 +8,10 @@ interface PrintA4Options {
   subtitle?: string;
   content: string;
   orientation?: "portrait" | "landscape";
+  sellerName?: string;
 }
 
-export function printA4({ title, subtitle, content, orientation = "portrait" }: PrintA4Options) {
+export function printA4({ title, subtitle, content, orientation = "portrait", sellerName }: PrintA4Options) {
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
 
@@ -204,6 +205,7 @@ export function printA4({ title, subtitle, content, orientation = "portrait" }: 
       </div>
     </div>
     <div class="print-header-right">
+      ${sellerName ? `<div style="margin-bottom:2px"><strong>Emitido por:</strong> ${sellerName}</div>` : ""}
       Emitido em: ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
     </div>
   </div>
