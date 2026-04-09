@@ -10,6 +10,7 @@ import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Searc
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
+import { useSellerName } from "@/hooks/useSellerName";
 import { motion } from "framer-motion";
 
 interface SaleItem {
@@ -70,7 +71,7 @@ const Vendas = () => {
   const [installments, setInstallments] = useState("1");
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
-  const [sellerName, setSellerName] = useState("");
+  const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -88,19 +89,7 @@ const Vendas = () => {
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
       if (data) setCompanyInfo(data as CompanyInfo);
     });
-    // Buscar nome do vendedor
-    if (user) {
-      supabase.from("company_members").select("name").eq("user_id", user.id).eq("active", true).maybeSingle().then(({ data }) => {
-        if (data?.name) {
-          setSellerName(data.name);
-        } else {
-          supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle().then(({ data: profile }) => {
-            setSellerName(profile?.display_name || user.email || "");
-          });
-        }
-      });
-    }
-  }, [user]);
+  }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
