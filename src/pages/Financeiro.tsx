@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,7 @@ interface Transaction {
 
 const Financeiro = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [filter, setFilter] = useState<"all" | "entrada" | "saida">("all");
@@ -80,7 +82,7 @@ const Financeiro = () => {
       return;
     }
     const { error } = await supabase.from("transactions").insert({
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       type: form.type,
       description: form.description,
       amount: Number(form.amount),

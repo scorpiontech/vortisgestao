@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ const emptyForm = {
 
 const Clientes = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -106,7 +108,7 @@ const Clientes = () => {
       if (!valid) { setDocError(form.document_type === "cpf" ? "CPF inválido" : "CNPJ inválido"); return; }
     }
 
-    const payload = { ...form, user_id: user!.id };
+    const payload = { ...form, user_id: effectiveUserId! };
 
     if (editItem) {
       const { error } = await supabase.from("customers").update(payload).eq("id", editItem.id);

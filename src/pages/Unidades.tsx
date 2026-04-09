@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ interface Unit {
 
 const Unidades = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [units, setUnits] = useState<Unit[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Unit | null>(null);
@@ -40,7 +42,7 @@ const Unidades = () => {
 
   const handleSave = async () => {
     if (!name.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
-    const payload = { name: name.trim(), abbreviation: abbreviation.trim(), user_id: user!.id };
+    const payload = { name: name.trim(), abbreviation: abbreviation.trim(), user_id: effectiveUserId! };
     if (editItem) {
       const { error } = await supabase.from("units").update({ name: name.trim(), abbreviation: abbreviation.trim() }).eq("id", editItem.id);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }

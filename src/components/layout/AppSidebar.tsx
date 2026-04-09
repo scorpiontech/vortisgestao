@@ -16,10 +16,12 @@ import {
   ClipboardList,
   Settings,
   UserCog,
+  UsersRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Sidebar,
   SidebarContent,
@@ -40,30 +42,32 @@ interface MenuItem {
   title: string;
   url: string;
   icon: React.ElementType;
-  children?: { title: string; url: string; icon: React.ElementType }[];
+  masterOnly?: boolean;
+  children?: { title: string; url: string; icon: React.ElementType; masterOnly?: boolean }[];
 }
 
-const menuItems: MenuItem[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+const allMenuItems: MenuItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, masterOnly: true },
   { title: "Clientes", url: "/clientes", icon: Users, children: [
     { title: "Histórico Cliente", url: "/historico-cliente", icon: History },
   ]},
   { title: "Estoque", url: "/estoque", icon: Package, children: [
-    { title: "Categorias", url: "/categorias", icon: Tags },
-    { title: "Unidades de Medida", url: "/unidades", icon: Ruler },
+    { title: "Categorias", url: "/categorias", icon: Tags, masterOnly: true },
+    { title: "Unidades de Medida", url: "/unidades", icon: Ruler, masterOnly: true },
   ]},
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, children: [
     { title: "Caixa", url: "/caixa", icon: Vault },
-    { title: "Contas a Pagar", url: "/contas-pagar", icon: ArrowLeftRight },
-    { title: "Contas a Receber", url: "/contas-receber", icon: ArrowLeftRight },
-    { title: "Movimentação", url: "/movimentacao", icon: ArrowLeftRight },
+    { title: "Contas a Pagar", url: "/contas-pagar", icon: ArrowLeftRight, masterOnly: true },
+    { title: "Contas a Receber", url: "/contas-receber", icon: ArrowLeftRight, masterOnly: true },
+    { title: "Movimentação", url: "/movimentacao", icon: ArrowLeftRight, masterOnly: true },
     { title: "PDV", url: "/vendas", icon: Receipt },
   ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
-  { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-  { title: "Configurações", url: "/configuracoes", icon: Settings, children: [
+  { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList, masterOnly: true },
+  { title: "Relatórios", url: "/relatorios", icon: BarChart3, masterOnly: true },
+  { title: "Configurações", url: "/configuracoes", icon: Settings, masterOnly: true, children: [
     { title: "Cadastro", url: "/cadastro", icon: UserCog },
+    { title: "Usuários", url: "/usuarios", icon: UsersRound },
     { title: "Cobranças", url: "/cobrancas", icon: Receipt },
   ]},
 ];
@@ -75,6 +79,14 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const isMobile = useIsMobile();
+  const { isMaster } = useUserRole();
+
+  const menuItems = allMenuItems
+    .filter(item => !item.masterOnly || isMaster)
+    .map(item => ({
+      ...item,
+      children: item.children?.filter(c => !c.masterOnly || isMaster),
+    }));
 
   const closeMobile = () => {
     if (isMobile) setOpenMobile(false);

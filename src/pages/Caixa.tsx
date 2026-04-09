@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ interface CashRegister {
 
 const Caixa = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [registers, setRegisters] = useState<CashRegister[]>([]);
   const [openRegister, setOpenRegister] = useState<CashRegister | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -71,7 +73,7 @@ const Caixa = () => {
       return;
     }
     const { error } = await supabase.from("cash_registers").insert({
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       opening_amount: Number(openingAmount) || 0,
       status: "open",
     } as any);

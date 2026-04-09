@@ -152,6 +152,42 @@ export type Database = {
         }
         Relationships: []
       }
+      company_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string
+          id: string
+          name: string
+          owner_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          owner_id: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       company_registrations: {
         Row: {
           city: string
@@ -674,6 +710,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_effective_user_id: { Args: { _user_id: string }; Returns: string }
+      get_member_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
