@@ -70,6 +70,7 @@ const Vendas = () => {
   const [installments, setInstallments] = useState("1");
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+  const [sellerName, setSellerName] = useState("");
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -87,7 +88,19 @@ const Vendas = () => {
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
       if (data) setCompanyInfo(data as CompanyInfo);
     });
-  }, []);
+    // Buscar nome do vendedor
+    if (user) {
+      supabase.from("company_members").select("name").eq("user_id", user.id).eq("active", true).maybeSingle().then(({ data }) => {
+        if (data?.name) {
+          setSellerName(data.name);
+        } else {
+          supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle().then(({ data: profile }) => {
+            setSellerName(profile?.display_name || user.email || "");
+          });
+        }
+      });
+    }
+  }, [user]);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
 
@@ -489,7 +502,7 @@ const Vendas = () => {
                 <p className="text-[10px] text-muted-foreground">Tel: {companyInfo.phone}</p>
               )}
               <div className="border-t border-dashed my-2" />
-              <p className="text-[10px] font-medium">CUPOM FISCAL</p>
+              <p className="text-[10px] font-medium">CUPOM NÃO FISCAL</p>
               <p className="text-[10px] text-muted-foreground">{now.toLocaleDateString("pt-BR")} {now.toLocaleTimeString("pt-BR")}</p>
               {saleId && <p className="text-[10px] text-muted-foreground">Venda: #{saleId.slice(0, 8)}</p>}
             </div>
@@ -525,6 +538,7 @@ const Vendas = () => {
                     </div>
                   )}
                   {customerName && <div className="flex justify-between text-xs text-muted-foreground"><span>Cliente</span><span>{customerName}</span></div>}
+                  {sellerName && <div className="flex justify-between text-xs text-muted-foreground"><span>Vendedor</span><span>{sellerName}</span></div>}
                   {selectedCustomer?.document && (
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>{selectedCustomer.document_type.toUpperCase()}</span>
