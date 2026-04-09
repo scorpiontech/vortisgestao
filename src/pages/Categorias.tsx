@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ interface Category {
 
 const Categorias = () => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [categories, setCategories] = useState<Category[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Category | null>(null);
@@ -43,7 +45,7 @@ const Categorias = () => {
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Categoria atualizada!" });
     } else {
-      const { error } = await supabase.from("categories").insert({ name: name.trim(), user_id: user!.id });
+      const { error } = await supabase.from("categories").insert({ name: name.trim(), user_id: effectiveUserId! });
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Categoria cadastrada!" });
     }

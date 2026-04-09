@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,6 +78,7 @@ const emptyOrder: Omit<ServiceOrder, "id"> = {
 
 export default function OrdensServico() {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -194,7 +196,7 @@ export default function OrdensServico() {
 
     const total = materials.reduce((s, m) => s + m.total, 0);
     const payload = {
-      user_id: user.id,
+      user_id: effectiveUserId!,
       customer_id: form.customer_id,
       customer_name: form.customer_name,
       service_type: form.service_type,
