@@ -189,6 +189,7 @@ const Vendas = () => {
     setSaleId((sale as any).id);
     setShowReceipt(true);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
+    logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
   };
 
   const printReceipt = () => window.print();
