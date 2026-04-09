@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,7 @@ export default function OrdensServico() {
     }
 
     toast.success(editing ? "OS atualizada!" : "OS criada!");
+    logAudit({ action: editing ? "update" : "create", entity: "service_order", details: { customer: form.customer_name, service_type: form.service_type } });
     setDialogOpen(false);
     fetchAll();
   };
@@ -308,6 +310,7 @@ export default function OrdensServico() {
     });
 
     toast.success("Pagamento registrado!");
+    logAudit({ action: "payment", entity: "service_order", entityId: payingOrder.id, details: { amount: payingOrder.budget_total, payment_method: payMethod } });
     setPayDialogOpen(false);
     fetchAll();
   };
