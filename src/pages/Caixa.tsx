@@ -69,8 +69,8 @@ const Caixa = () => {
       .order("opened_at", { ascending: false });
     const list = (data || []) as CashRegister[];
     setRegisters(list);
-    // For the current user, find their open register
-    setOpenRegister(list.find(r => r.status === "open" && r.user_id === (effectiveUserId || user?.id)) || null);
+    // For the current user, find their open register (use actual user id, not effective)
+    setOpenRegister(list.find(r => r.status === "open" && r.user_id === user?.id) || null);
     setLoading(false);
   };
 
