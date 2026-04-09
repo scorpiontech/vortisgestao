@@ -101,6 +101,7 @@ const Caixa = () => {
       .eq("id", openRegister.id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Caixa fechado!" });
+    logAudit({ action: "cash_close", entity: "cash_register", details: { closing_amount: Number(closingAmount) || 0 } });
     setCloseDialog(false);
     setClosingAmount("");
     setNotes("");

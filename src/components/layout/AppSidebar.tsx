@@ -22,6 +22,7 @@ import {
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   Sidebar,
@@ -95,6 +96,7 @@ export function AppSidebar() {
   };
 
   const handleLogout = async () => {
+    await logAudit({ action: "logout", entity: "auth" });
     await signOut();
     navigate("/");
   };
