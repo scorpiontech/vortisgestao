@@ -7,6 +7,7 @@ import { Package, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
@@ -42,6 +43,7 @@ const Login = () => {
 
     setLoading(false);
     toast({ title: "Login realizado!", description: "Bem-vindo ao Vortis Gestão" });
+    logAudit({ action: "login", entity: "auth", details: { email } });
     navigate(roleData ? "/admin/dashboard" : "/dashboard");
   };
 
