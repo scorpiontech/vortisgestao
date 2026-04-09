@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +38,7 @@ const emptyForm = { description: "", amount: "", due_date: undefined as Date | u
 
 const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   const { user } = useAuth();
+  const { effectiveUserId } = useUserRole();
   const [bills, setBills] = useState<Bill[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
       toast({ title: "Conta atualizada!" });
     } else {
       const { error } = await supabase.from("bills").insert({
-        user_id: user!.id,
+        user_id: effectiveUserId!,
         type,
         description: form.description,
         amount: Number(form.amount),
@@ -148,7 +150,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
 
     await supabase.from("transactions").insert({
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       type: type === "receber" ? "entrada" : "saida",
       description: bill.description,
       amount: Number(bill.amount),
