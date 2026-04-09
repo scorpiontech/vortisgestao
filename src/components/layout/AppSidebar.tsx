@@ -17,10 +17,12 @@ import {
   Settings,
   UserCog,
   UsersRound,
+  ScrollText,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { logAudit } from "@/lib/auditLog";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   Sidebar,
@@ -68,6 +70,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Configurações", url: "/configuracoes", icon: Settings, masterOnly: true, children: [
     { title: "Cadastro", url: "/cadastro", icon: UserCog },
     { title: "Usuários", url: "/usuarios", icon: UsersRound },
+    { title: "Auditoria", url: "/auditoria", icon: ScrollText },
     { title: "Cobranças", url: "/cobrancas", icon: Receipt },
   ]},
 ];
@@ -93,6 +96,7 @@ export function AppSidebar() {
   };
 
   const handleLogout = async () => {
+    await logAudit({ action: "logout", entity: "auth" });
     await signOut();
     navigate("/");
   };

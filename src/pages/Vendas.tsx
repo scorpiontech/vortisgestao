@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 
 interface SaleItem {
@@ -188,6 +189,7 @@ const Vendas = () => {
     setSaleId((sale as any).id);
     setShowReceipt(true);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
+    logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
   };
 
   const printReceipt = () => window.print();

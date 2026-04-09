@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { formatPhone, formatCEP } from "@/lib/validators";
 
@@ -97,10 +98,12 @@ const Fornecedores = () => {
       const { error } = await supabase.from("suppliers").update(payload).eq("id", editItem.id);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Fornecedor atualizado!" });
+      logAudit({ action: "update", entity: "supplier", entityId: editItem.id, details: { name: form.name } });
     } else {
       const { error } = await supabase.from("suppliers").insert(payload);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Fornecedor cadastrado!" });
+      logAudit({ action: "create", entity: "supplier", details: { name: form.name } });
     }
     setDialogOpen(false);
     fetchData();

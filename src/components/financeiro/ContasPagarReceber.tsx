@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 import { format, isPast, parseISO } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -123,6 +124,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
       } as any);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: type === "pagar" ? "Conta a pagar registrada!" : "Conta a receber registrada!" });
+      logAudit({ action: "create", entity: type === "pagar" ? "bill_pagar" : "bill_receber", details: { description: form.description, amount: Number(form.amount) } });
     }
 
     setDialogOpen(false);
@@ -159,6 +161,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
     });
 
     toast({ title: "Marcado como pago!" });
+    logAudit({ action: "mark_paid", entity: type === "pagar" ? "bill_pagar" : "bill_receber", entityId: bill.id, details: { description: bill.description, amount: Number(bill.amount) } });
     fetchBills();
   };
 
