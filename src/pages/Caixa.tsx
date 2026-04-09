@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Lock, Unlock, Printer, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 
 interface CashRegister {
@@ -79,6 +80,7 @@ const Caixa = () => {
     } as any);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Caixa aberto!" });
+    logAudit({ action: "cash_open", entity: "cash_register", details: { opening_amount: Number(openingAmount) || 0 } });
     setOpenDialog(false);
     setOpeningAmount("");
     fetchRegisters();

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Edit2, Trash2, Printer } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { formatCPF, formatCNPJ, formatPhone, formatCEP, validateCPF, validateCNPJ } from "@/lib/validators";
 
@@ -114,10 +115,12 @@ const Clientes = () => {
       const { error } = await supabase.from("customers").update(payload).eq("id", editItem.id);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Cliente atualizado!" });
+      logAudit({ action: "update", entity: "customer", entityId: editItem.id, details: { name: form.name } });
     } else {
       const { error } = await supabase.from("customers").insert(payload);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Cliente cadastrado!" });
+      logAudit({ action: "create", entity: "customer", details: { name: form.name } });
     }
     setDialogOpen(false);
     fetchData();

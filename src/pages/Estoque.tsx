@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
 
@@ -110,10 +111,12 @@ const Estoque = () => {
       const { error } = await supabase.from("products").update(payload).eq("id", editProduct.id);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Produto atualizado!" });
+      logAudit({ action: "update", entity: "product", entityId: editProduct.id, details: { name: payload.name } });
     } else {
       const { error } = await supabase.from("products").insert(payload);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Produto cadastrado!" });
+      logAudit({ action: "create", entity: "product", details: { name: payload.name, sku: payload.sku } });
     }
     setDialogOpen(false);
     fetchProducts();
