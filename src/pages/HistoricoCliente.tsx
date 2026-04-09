@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Printer, Users, ShoppingBag, Search } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
+import { useSellerName } from "@/hooks/useSellerName";
 import { motion } from "framer-motion";
 
 interface Customer {

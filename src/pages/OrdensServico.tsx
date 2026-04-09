@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, DollarSign, Search, Printer, X } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
+import { useSellerName } from "@/hooks/useSellerName";
 
 interface ServiceOrder {
   id: string;

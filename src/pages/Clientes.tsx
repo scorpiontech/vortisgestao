@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Edit2, Trash2, Printer } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
+import { useSellerName } from "@/hooks/useSellerName";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";

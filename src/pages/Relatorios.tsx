@@ -10,10 +10,12 @@ import { printA4 } from "@/lib/printA4";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useSellerName } from "@/hooks/useSellerName";
 
 const COLORS = ["hsl(215, 80%, 50%)", "hsl(152, 60%, 42%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)", "hsl(270, 60%, 50%)"];
 
 const Relatorios = () => {
+  const sellerName = useSellerName();
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
@@ -75,6 +77,7 @@ const Relatorios = () => {
     printA4({
       title: "Relatório Financeiro",
       subtitle: `Movimentações — ${transactions.length} registros`,
+      sellerName,
       content: `
         <div class="highlight-box">
           <div class="summary-row"><span>Total Entradas:</span><span style="color:green">${formatCurrency(totalEntradas)}</span></div>
@@ -113,6 +116,7 @@ const Relatorios = () => {
       title: "Relatório de Estoque",
       subtitle: `${products.length} produtos cadastrados`,
       orientation: "landscape",
+      sellerName,
       content: `
         <div class="highlight-box">
           <div class="summary-row"><span>Valor Total em Estoque (Venda):</span><span>${formatCurrency(totalValue)}</span></div>
@@ -142,6 +146,7 @@ const Relatorios = () => {
     printA4({
       title: "Relatório de Vendas",
       subtitle: `${sales.length} vendas realizadas`,
+      sellerName,
       content: `
         <div class="highlight-box">
           <div class="summary-row total"><span>Faturamento Total:</span><span>${formatCurrency(totalVendas)}</span></div>
@@ -168,6 +173,7 @@ const Relatorios = () => {
     printA4({
       title: "Relatório de Clientes",
       subtitle: `${customers.length} clientes cadastrados`,
+      sellerName,
       content: `
         <table>
           <thead><tr><th>Nome</th><th>Documento</th><th>Telefone</th><th>E-mail</th><th>Cidade/UF</th></tr></thead>
@@ -195,6 +201,7 @@ const Relatorios = () => {
     printA4({
       title: "Relatório de Margem de Lucro",
       subtitle: `${products.length} produtos analisados`,
+      sellerName,
       content: `
         <table>
           <thead><tr><th>#</th><th>Produto</th><th style="text-align:right">Custo</th><th style="text-align:right">Preço</th><th style="text-align:right">Margem R$</th><th style="text-align:right">Margem %</th></tr></thead>
@@ -240,6 +247,7 @@ const Relatorios = () => {
     printA4({
       title: `Relatório de Contas a ${label}`,
       subtitle: `${filtered.length} registros — ${periodo}`,
+      sellerName,
       content: `
         <div class="highlight-box">
           <div class="summary-row"><span>Total Pago:</span><span style="color:green">${formatCurrency(totalPago)}</span></div>
