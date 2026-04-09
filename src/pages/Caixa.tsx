@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Lock, Unlock, Printer, DollarSign } from "lucide-react";
+import { Lock, Unlock, Printer, DollarSign, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
@@ -22,11 +23,18 @@ interface CashRegister {
   expected_amount: number | null;
   notes: string;
   status: string;
+  user_id: string;
+}
+
+interface CompanyMember {
+  user_id: string;
+  name: string;
+  role: string;
 }
 
 const Caixa = () => {
   const { user } = useAuth();
-  const { effectiveUserId } = useUserRole();
+  const { effectiveUserId, isMaster } = useUserRole();
   const [registers, setRegisters] = useState<CashRegister[]>([]);
   const [openRegister, setOpenRegister] = useState<CashRegister | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -36,10 +44,23 @@ const Caixa = () => {
   const [notes, setNotes] = useState("");
   const [salesTotal, setSalesTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<CompanyMember[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  const [closingRegister, setClosingRegister] = useState<CashRegister | null>(null);
   const { toast } = useToast();
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const formatDate = (d: string) => new Date(d).toLocaleString("pt-BR");
+
+  const fetchMembers = async () => {
+    if (!isMaster || !user) return;
+    const { data } = await supabase
+      .from("company_members")
+      .select("user_id, name, role")
+      .eq("owner_id", user.id)
+      .eq("active", true);
+    setMembers(data || []);
+  };
 
   const fetchRegisters = async () => {
     const { data } = await supabase
@@ -48,7 +69,8 @@ const Caixa = () => {
       .order("opened_at", { ascending: false });
     const list = (data || []) as CashRegister[];
     setRegisters(list);
-    setOpenRegister(list.find(r => r.status === "open") || null);
+    // For the current user, find their open register
+    setOpenRegister(list.find(r => r.status === "open" && r.user_id === (effectiveUserId || user?.id)) || null);
     setLoading(false);
   };
 
@@ -62,33 +84,56 @@ const Caixa = () => {
     setSalesTotal(entradas - saidas);
   };
 
-  useEffect(() => { fetchRegisters(); }, []);
+  useEffect(() => {
+    fetchRegisters();
+    fetchMembers();
+  }, [isMaster]);
 
   useEffect(() => {
     if (openRegister) fetchSalesForPeriod(openRegister.opened_at);
   }, [openRegister]);
 
+  const getMemberName = (userId: string) => {
+    if (userId === user?.id) return "Você (Master)";
+    const m = members.find(m => m.user_id === userId);
+    return m?.name || userId.slice(0, 8);
+  };
+
   const handleOpen = async () => {
-    if (openRegister) {
-      toast({ title: "Já existe um caixa aberto", variant: "destructive" });
+    const targetUserId = isMaster && selectedMemberId ? selectedMemberId : effectiveUserId!;
+    // Check if target already has an open register
+    const alreadyOpen = registers.find(r => r.status === "open" && r.user_id === targetUserId);
+    if (alreadyOpen) {
+      toast({ title: "Já existe um caixa aberto para este usuário", variant: "destructive" });
       return;
     }
     const { error } = await supabase.from("cash_registers").insert({
-      user_id: effectiveUserId!,
+      user_id: targetUserId,
       opening_amount: Number(openingAmount) || 0,
       status: "open",
     } as any);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Caixa aberto!" });
-    logAudit({ action: "cash_open", entity: "cash_register", details: { opening_amount: Number(openingAmount) || 0 } });
+    logAudit({ action: "cash_open", entity: "cash_register", details: { opening_amount: Number(openingAmount) || 0, target_user: targetUserId } });
     setOpenDialog(false);
     setOpeningAmount("");
+    setSelectedMemberId("");
     fetchRegisters();
   };
 
   const handleClose = async () => {
-    if (!openRegister) return;
-    const expectedAmount = openRegister.opening_amount + salesTotal;
+    const reg = closingRegister || openRegister;
+    if (!reg) return;
+    // Fetch sales for that register's period
+    const { data: txData } = await supabase
+      .from("transactions")
+      .select("amount, type")
+      .gte("created_at", reg.opened_at);
+    const entradas = (txData || []).filter(t => t.type === "entrada").reduce((s, t) => s + Number(t.amount), 0);
+    const saidas = (txData || []).filter(t => t.type === "saida").reduce((s, t) => s + Number(t.amount), 0);
+    const regSalesTotal = entradas - saidas;
+    const expectedAmount = reg.opening_amount + regSalesTotal;
+
     const { error } = await supabase
       .from("cash_registers")
       .update({
@@ -98,14 +143,20 @@ const Caixa = () => {
         expected_amount: expectedAmount,
         notes,
       } as any)
-      .eq("id", openRegister.id);
+      .eq("id", reg.id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Caixa fechado!" });
     logAudit({ action: "cash_close", entity: "cash_register", details: { closing_amount: Number(closingAmount) || 0 } });
     setCloseDialog(false);
     setClosingAmount("");
     setNotes("");
+    setClosingRegister(null);
     fetchRegisters();
+  };
+
+  const openCloseDialogFor = (reg: CashRegister) => {
+    setClosingRegister(reg);
+    setCloseDialog(true);
   };
 
   const printReport = (reg: CashRegister) => {
@@ -123,6 +174,7 @@ const Caixa = () => {
       </style></head><body>
       <h2>RELATÓRIO DE CAIXA</h2>
       <div class="divider"></div>
+      <div class="row"><span>Operador:</span><span>${getMemberName(reg.user_id)}</span></div>
       <div class="row"><span>Abertura:</span><span>${formatDate(reg.opened_at)}</span></div>
       ${reg.closed_at ? `<div class="row"><span>Fechamento:</span><span>${formatDate(reg.closed_at)}</span></div>` : ""}
       <div class="divider"></div>
@@ -142,6 +194,7 @@ const Caixa = () => {
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   const expectedAmount = openRegister ? openRegister.opening_amount + salesTotal : 0;
+  const openRegisters = registers.filter(r => r.status === "open");
 
   return (
     <div className="space-y-6">
@@ -151,18 +204,35 @@ const Caixa = () => {
           <p className="text-sm text-muted-foreground">Abertura, fechamento e conferência</p>
         </div>
         <div className="flex gap-2">
-          {!openRegister ? (
-            <Button onClick={() => setOpenDialog(true)}>
-              <Unlock className="h-4 w-4 mr-2" />Abrir Caixa
-            </Button>
-          ) : (
-            <Button variant="destructive" onClick={() => setCloseDialog(true)}>
-              <Lock className="h-4 w-4 mr-2" />Fechar Caixa
-            </Button>
-          )}
+          <Button onClick={() => setOpenDialog(true)}>
+            <Unlock className="h-4 w-4 mr-2" />Abrir Caixa
+          </Button>
         </div>
       </div>
 
+      {/* Master: show all open registers */}
+      {isMaster && openRegisters.length > 0 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+          <h2 className="text-sm font-semibold flex items-center gap-2"><Users className="h-4 w-4" />Caixas Abertos</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {openRegisters.map(reg => (
+              <div key={reg.id} className="bg-card rounded-lg p-4 shadow-card border space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">{getMemberName(reg.user_id)}</p>
+                  <Badge className="text-[10px] h-4">Aberto</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">{formatDate(reg.opened_at)}</p>
+                <p className="text-lg font-bold">{formatCurrency(reg.opening_amount)}</p>
+                <Button variant="destructive" size="sm" className="w-full" onClick={() => openCloseDialogFor(reg)}>
+                  <Lock className="h-3.5 w-3.5 mr-1.5" />Fechar Caixa
+                </Button>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Current user open register summary (non-master or master's own) */}
       {openRegister && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-card rounded-lg p-4 shadow-card border">
@@ -195,6 +265,7 @@ const Caixa = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium">{formatDate(r.opened_at)}</p>
+                      {isMaster && <span className="text-xs text-muted-foreground">({getMemberName(r.user_id)})</span>}
                       <Badge variant={r.status === "open" ? "default" : "secondary"} className="text-[10px] h-4">
                         {r.status === "open" ? "Aberto" : "Fechado"}
                       </Badge>
@@ -210,11 +281,18 @@ const Caixa = () => {
                     </div>
                   </div>
                 </div>
-                {r.status === "closed" && (
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => printReport(r)}>
-                    <Printer className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+                <div className="flex items-center gap-1">
+                  {r.status === "open" && isMaster && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openCloseDialogFor(r)}>
+                      <Lock className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  )}
+                  {r.status === "closed" && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => printReport(r)}>
+                      <Printer className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -222,10 +300,25 @@ const Caixa = () => {
         </div>
       </motion.div>
 
+      {/* Open Dialog */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader><DialogTitle>Abrir Caixa</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-2">
+            {isMaster && members.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Operador</Label>
+                <Select value={selectedMemberId} onValueChange={setSelectedMemberId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione (ou deixe para você)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={user?.id || ""}>Você (Master)</SelectItem>
+                    {members.map(m => (
+                      <SelectItem key={m.user_id} value={m.user_id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Valor Inicial (R$)</Label>
               <Input type="number" step="0.01" value={openingAmount} onChange={e => setOpeningAmount(e.target.value)} placeholder="0,00" />
@@ -235,24 +328,19 @@ const Caixa = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={closeDialog} onOpenChange={setCloseDialog}>
+      {/* Close Dialog */}
+      <Dialog open={closeDialog} onOpenChange={(v) => { setCloseDialog(v); if (!v) setClosingRegister(null); }}>
         <DialogContent className="sm:max-w-sm">
-          <DialogHeader><DialogTitle>Fechar Caixa</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Fechar Caixa{closingRegister && isMaster ? ` — ${getMemberName(closingRegister.user_id)}` : ""}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Abertura:</span><span>{formatCurrency(openRegister?.opening_amount || 0)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Movimentação:</span><span>{formatCurrency(salesTotal)}</span></div>
-              <div className="flex justify-between font-semibold border-t pt-1"><span>Esperado:</span><span>{formatCurrency(expectedAmount)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Abertura:</span><span>{formatCurrency((closingRegister || openRegister)?.opening_amount || 0)}</span></div>
+              <div className="flex justify-between font-semibold border-t pt-1"><span>Aberto em:</span><span>{(closingRegister || openRegister) ? formatDate((closingRegister || openRegister)!.opened_at) : ""}</span></div>
             </div>
             <div className="space-y-1.5">
               <Label>Valor em Caixa (R$)</Label>
               <Input type="number" step="0.01" value={closingAmount} onChange={e => setClosingAmount(e.target.value)} placeholder="Conte o dinheiro..." />
             </div>
-            {closingAmount && (
-              <div className={`text-sm font-medium ${Number(closingAmount) - expectedAmount >= 0 ? "text-success" : "text-destructive"}`}>
-                Diferença: {Number(closingAmount) - expectedAmount >= 0 ? "+" : ""}{formatCurrency(Number(closingAmount) - expectedAmount)}
-              </div>
-            )}
             <div className="space-y-1.5">
               <Label>Observações</Label>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anotações do fechamento..." rows={3} />
