@@ -41,6 +41,7 @@ const emptyForm = {
 const Clientes = () => {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
+  const sellerName = useSellerName();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -157,7 +158,7 @@ const Clientes = () => {
       </div>
       ${c.observation ? `<div class="section"><div class="section-title">Observações</div><p style="font-size:11px">${c.observation}</p></div>` : ""}
     `;
-    printA4({ title: "Ficha Cadastral de Cliente", subtitle: c.name, content });
+    printA4({ title: "Ficha Cadastral de Cliente", subtitle: c.name, content, sellerName });
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;

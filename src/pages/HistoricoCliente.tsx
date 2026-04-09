@@ -37,6 +37,7 @@ interface SaleItemRow {
 }
 
 const HistoricoCliente = () => {
+  const sellerName = useSellerName();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -126,6 +127,7 @@ const HistoricoCliente = () => {
     printA4({
       title: "Histórico de Compras",
       subtitle: `${selectedCustomer.name}${selectedCustomer.document ? ` — ${selectedCustomer.document_type.toUpperCase()}: ${selectedCustomer.document}` : ""}`,
+      sellerName,
       content: `
         <div class="highlight-box">
           <div class="summary-row"><span>Total de Compras:</span><span>${sales.length}</span></div>
