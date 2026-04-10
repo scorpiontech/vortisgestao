@@ -47,6 +47,7 @@ const Caixa = () => {
   const [members, setMembers] = useState<CompanyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [closingRegister, setClosingRegister] = useState<CashRegister | null>(null);
+  const [filterMemberId, setFilterMemberId] = useState<string>("all");
   const { toast } = useToast();
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
