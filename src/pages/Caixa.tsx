@@ -279,7 +279,7 @@ const Caixa = () => {
           )}
         </div>
         <div className="divide-y">
-          {registers.map(r => {
+          {filteredRegisters.map(r => {
             const diff = r.closing_amount != null && r.expected_amount != null ? r.closing_amount - r.expected_amount : null;
             return (
               <div key={r.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/30 transition-colors">
@@ -321,9 +321,11 @@ const Caixa = () => {
               </div>
             );
           })}
-          {registers.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum registro de caixa</div>}
+          {filteredRegisters.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum registro de caixa</div>}
         </div>
       </motion.div>
+        );
+      })()}
 
       {/* Open Dialog */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
