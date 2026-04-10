@@ -204,11 +204,12 @@ const Caixa = () => {
           <p className="text-sm text-muted-foreground">Abertura, fechamento e conferência</p>
         </div>
         <div className="flex gap-2">
-          {openRegister ? (
+          {openRegister && (
             <Button variant="destructive" onClick={() => openCloseDialogFor(openRegister)}>
-              <Lock className="h-4 w-4 mr-2" />Fechar Caixa
+              <Lock className="h-4 w-4 mr-2" />Fechar Meu Caixa
             </Button>
-          ) : (
+          )}
+          {(isMaster || !openRegister) && (
             <Button onClick={() => setOpenDialog(true)}>
               <Unlock className="h-4 w-4 mr-2" />Abrir Caixa
             </Button>
