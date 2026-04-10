@@ -47,6 +47,7 @@ const Caixa = () => {
   const [members, setMembers] = useState<CompanyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
   const [closingRegister, setClosingRegister] = useState<CashRegister | null>(null);
+  const [filterMemberId, setFilterMemberId] = useState<string>("all");
   const { toast } = useToast();
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -258,10 +259,27 @@ const Caixa = () => {
         </motion.div>
       )}
 
+      {(() => {
+        const filteredRegisters = filterMemberId === "all" ? registers : registers.filter(r => r.user_id === filterMemberId);
+        return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-lg shadow-card border">
-        <div className="p-5 border-b"><h2 className="font-semibold">Histórico de Caixas</h2></div>
+        <div className="p-5 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="font-semibold">Histórico de Caixas</h2>
+          {isMaster && members.length > 0 && (
+            <Select value={filterMemberId} onValueChange={setFilterMemberId}>
+              <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Filtrar por vendedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value={user?.id || ""}>Você (Master)</SelectItem>
+                {members.map(m => (
+                  <SelectItem key={m.user_id} value={m.user_id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <div className="divide-y">
-          {registers.map(r => {
+          {filteredRegisters.map(r => {
             const diff = r.closing_amount != null && r.expected_amount != null ? r.closing_amount - r.expected_amount : null;
             return (
               <div key={r.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/30 transition-colors">
@@ -303,9 +321,11 @@ const Caixa = () => {
               </div>
             );
           })}
-          {registers.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum registro de caixa</div>}
+          {filteredRegisters.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhum registro de caixa</div>}
         </div>
       </motion.div>
+        );
+      })()}
 
       {/* Open Dialog */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
