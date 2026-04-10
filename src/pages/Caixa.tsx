@@ -259,8 +259,25 @@ const Caixa = () => {
         </motion.div>
       )}
 
+      {(() => {
+        const filteredRegisters = filterMemberId === "all" ? registers : registers.filter(r => r.user_id === filterMemberId);
+        return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-lg shadow-card border">
-        <div className="p-5 border-b"><h2 className="font-semibold">Histórico de Caixas</h2></div>
+        <div className="p-5 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="font-semibold">Histórico de Caixas</h2>
+          {isMaster && members.length > 0 && (
+            <Select value={filterMemberId} onValueChange={setFilterMemberId}>
+              <SelectTrigger className="w-full sm:w-[220px]"><SelectValue placeholder="Filtrar por vendedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value={user?.id || ""}>Você (Master)</SelectItem>
+                {members.map(m => (
+                  <SelectItem key={m.user_id} value={m.user_id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
         <div className="divide-y">
           {registers.map(r => {
             const diff = r.closing_amount != null && r.expected_amount != null ? r.closing_amount - r.expected_amount : null;
