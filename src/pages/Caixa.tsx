@@ -210,7 +210,7 @@ const Caixa = () => {
               <Lock className="h-4 w-4 mr-2" />Fechar Meu Caixa
             </Button>
           )}
-          {(isMaster || !openRegister) && (
+          {isMaster && (
             <Button onClick={() => setOpenDialog(true)}>
               <Unlock className="h-4 w-4 mr-2" />Abrir Caixa
             </Button>
