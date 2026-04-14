@@ -18,24 +18,43 @@ else
     echo "[1/5] Nginx já instalado ✓"
 fi
 
+echo "[2/5] Verificando Node.js..."
+echo "  PATH atual: $PATH"
+
+# Remover versões antigas do NodeSource se existirem
+apt-get remove -y nodejs 2>/dev/null || true
+
+# Instalar Node.js 20 via NodeSource
+echo "  Instalando Node.js 20 via NodeSource..."
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs
+
+# Limpar cache de binários do shell
+hash -r
+
 NODE_BIN=$(command -v node || true)
-NODE_VERSION=$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)
-if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 20 ]; then
-    echo "[2/5] Instalando/atualizando Node.js 20+ (atual: ${NODE_BIN:-não encontrado} ${NODE_VERSION:-nenhuma})..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
-    hash -r
-    NODE_BIN=$(command -v node || true)
-    NODE_VERSION=$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)
-fi
+NODE_VERSION=$("$NODE_BIN" -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)
+
+echo "  Node detectado: $("$NODE_BIN" -v 2>/dev/null || echo 'não encontrado') em ${NODE_BIN:-desconhecido}"
 
 if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 20 ]; then
-    echo "❌ Falha: o build requer Node.js 20+. Versão detectada: $(node -v 2>/dev/null || echo 'não encontrada') em ${NODE_BIN:-caminho desconhecido}"
-    echo "Remova versões antigas do Node do servidor ou ajuste o PATH e execute novamente."
+    echo ""
+    echo "❌ ERRO: Node.js 20+ não foi instalado corretamente."
+    echo "  Versão detectada: $("$NODE_BIN" -v 2>/dev/null || echo 'nenhuma')"
+    echo ""
+    echo "Tente manualmente:"
+    echo "  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -"
+    echo "  sudo apt-get install -y nodejs"
+    echo "  node -v"
+    echo ""
+    echo "Se o problema persistir, remova versões conflitantes:"
+    echo "  sudo apt-get purge -y nodejs npm"
+    echo "  sudo rm -rf /usr/local/bin/node /usr/local/bin/npm"
+    echo "  Depois execute o deploy novamente."
     exit 1
 fi
 
-echo "[2/5] Usando Node $(node -v) em ${NODE_BIN} ✓"
+echo "[2/5] Usando Node $("$NODE_BIN" -v) ✓"
 
 # 2. Instalar dependências do projeto
 echo "[3/5] Instalando dependências do projeto..."
