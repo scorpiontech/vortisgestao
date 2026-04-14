@@ -25,6 +25,19 @@ git pull
 sudo bash deploy/deploy.sh
 ```
 
+## Diagnóstico de erro de build do Vite
+
+Se aparecer erro parecido com `Unexpected token '.'` em `node_modules/vite/bin/vite.js`, o servidor ainda está usando um Node.js antigo.
+
+Verifique com:
+
+```bash
+node -v
+which node
+```
+
+O deploy exige **Node.js 20 ou superior**. O script `deploy.sh` já valida isso automaticamente, então faça `git pull` antes de rodá-lo novamente.
+
 ## HTTPS (opcional)
 
 Para habilitar HTTPS com Let's Encrypt:

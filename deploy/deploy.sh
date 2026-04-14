@@ -18,14 +18,24 @@ else
     echo "[1/5] Nginx já instalado ✓"
 fi
 
-NODE_VERSION=$(node -v 2>/dev/null | grep -oP '\d+' | head -1)
+NODE_BIN=$(command -v node || true)
+NODE_VERSION=$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)
 if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 20 ]; then
-    echo "[2/5] Instalando Node.js 20 (versão atual: ${NODE_VERSION:-nenhuma})..."
+    echo "[2/5] Instalando/atualizando Node.js 20+ (atual: ${NODE_BIN:-não encontrado} ${NODE_VERSION:-nenhuma})..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y nodejs
-else
-    echo "[2/5] Node.js $NODE_VERSION já instalado ✓"
+    hash -r
+    NODE_BIN=$(command -v node || true)
+    NODE_VERSION=$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)
 fi
+
+if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 20 ]; then
+    echo "❌ Falha: o build requer Node.js 20+. Versão detectada: $(node -v 2>/dev/null || echo 'não encontrada') em ${NODE_BIN:-caminho desconhecido}"
+    echo "Remova versões antigas do Node do servidor ou ajuste o PATH e execute novamente."
+    exit 1
+fi
+
+echo "[2/5] Usando Node $(node -v) em ${NODE_BIN} ✓"
 
 # 2. Instalar dependências do projeto
 echo "[3/5] Instalando dependências do projeto..."
