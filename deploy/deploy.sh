@@ -18,12 +18,13 @@ else
     echo "[1/5] Nginx já instalado ✓"
 fi
 
-if ! command -v node &> /dev/null; then
-    echo "[2/5] Instalando Node.js 20..."
+NODE_VERSION=$(node -v 2>/dev/null | grep -oP '\d+' | head -1)
+if [ -z "$NODE_VERSION" ] || [ "$NODE_VERSION" -lt 20 ]; then
+    echo "[2/5] Instalando Node.js 20 (versão atual: ${NODE_VERSION:-nenhuma})..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
     apt-get install -y nodejs
 else
-    echo "[2/5] Node.js já instalado ✓"
+    echo "[2/5] Node.js $NODE_VERSION já instalado ✓"
 fi
 
 # 2. Instalar dependências do projeto
