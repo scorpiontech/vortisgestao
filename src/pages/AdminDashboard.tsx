@@ -90,7 +90,7 @@ export default function AdminDashboard() {
   const handleSave = async () => {
     if (!selected) return;
     const plan = plans.find(p => p.id === editForm.plan_id);
-    const updateData: Record<string, unknown> = {
+    const { error } = await supabase.from("client_accounts").update({
       name: editForm.name,
       email: editForm.email,
       plan_id: editForm.plan_id || null,
@@ -100,8 +100,7 @@ export default function AdminDashboard() {
       status: editForm.status,
       monthly_value: editForm.monthly_value,
       tolerance_days: editForm.tolerance_days,
-    };
-    const { error } = await supabase.from("client_accounts").update(updateData).eq("id", selected.id);
+    }).eq("id", selected.id);
     if (error) toast.error("Erro ao atualizar conta: " + error.message);
     else { toast.success("Conta atualizada!"); setEditOpen(false); fetchAccounts(); }
   };
