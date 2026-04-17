@@ -157,39 +157,68 @@ export type Database = {
       }
       client_accounts: {
         Row: {
+          billing_type: string
+          blocked: boolean
+          blocked_at: string | null
           created_at: string
+          due_day: number
           email: string
           id: string
           monthly_value: number
+          mp_subscription_id: string | null
           name: string
           plan: string
+          plan_id: string | null
           status: string
+          tolerance_days: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_type?: string
+          blocked?: boolean
+          blocked_at?: string | null
           created_at?: string
+          due_day?: number
           email: string
           id?: string
           monthly_value?: number
+          mp_subscription_id?: string | null
           name: string
           plan?: string
+          plan_id?: string | null
           status?: string
+          tolerance_days?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_type?: string
+          blocked?: boolean
+          blocked_at?: string | null
           created_at?: string
+          due_day?: number
           email?: string
           id?: string
           monthly_value?: number
+          mp_subscription_id?: string | null
           name?: string
           plan?: string
+          plan_id?: string | null
           status?: string
+          tolerance_days?: number
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_accounts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_members: {
         Row: {
@@ -612,6 +641,102 @@ export type Database = {
           },
         ]
       }
+      subscription_invoices: {
+        Row: {
+          amount: number
+          client_account_id: string
+          created_at: string
+          due_date: string
+          id: string
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          paid_at: string | null
+          payment_link: string | null
+          plan_id: string | null
+          reference_month: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_account_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          paid_at?: string | null
+          payment_link?: string | null
+          plan_id?: string | null
+          reference_month: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_account_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          paid_at?: string | null
+          payment_link?: string | null
+          plan_id?: string | null
+          reference_month?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_client_account_id_fkey"
+            columns: ["client_account_id"]
+            isOneToOne: false
+            referencedRelation: "client_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          id: string
+          monthly_value: number
+          mp_plan_id: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          monthly_value?: number
+          mp_plan_id?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          id?: string
+          monthly_value?: number
+          mp_plan_id?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           city: string
@@ -758,6 +883,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_client_blocked: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
