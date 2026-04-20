@@ -227,6 +227,9 @@ export default function AdminDashboard() {
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/planos")}>
             <FileText className="h-4 w-4 mr-2" />Planos
           </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/faturas")}>
+            <Receipt className="h-4 w-4 mr-2" />Faturas
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/relatorios")}>
             <Receipt className="h-4 w-4 mr-2" />Relatórios
           </Button>

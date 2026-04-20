@@ -29,6 +29,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPlanos from "./pages/AdminPlanos";
 import AdminRelatorios from "./pages/AdminRelatorios";
+import AdminFaturas from "./pages/AdminFaturas";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
               <Route path="/admin/planos" element={<AdminProtectedRoute><AdminPlanos /></AdminProtectedRoute>} />
               <Route path="/admin/relatorios" element={<AdminProtectedRoute><AdminRelatorios /></AdminProtectedRoute>} />
+              <Route path="/admin/faturas" element={<AdminProtectedRoute><AdminFaturas /></AdminProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
