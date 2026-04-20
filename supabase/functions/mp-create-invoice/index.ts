@@ -73,19 +73,9 @@ Deno.serve(async (req) => {
           currency_id: "BRL",
           unit_price: Number(amount),
         }],
-        payer: {
-          email: account.email,
-          name: account.name,
-        },
         external_reference: `${client_account_id}|${reference_month}`,
         notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
         statement_descriptor: "VORTIS GESTAO",
-        payment_methods: {
-          excluded_payment_types: [],
-          excluded_payment_methods: [],
-          installments: 12,
-          default_installments: 1,
-        },
         back_urls: {
           success: "https://vortisgestao.lovable.app/cobrancas",
           pending: "https://vortisgestao.lovable.app/cobrancas",
