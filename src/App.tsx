@@ -28,6 +28,7 @@ import Auditoria from "./pages/Auditoria";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPlanos from "./pages/AdminPlanos";
+import AdminRelatorios from "./pages/AdminRelatorios";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -65,7 +66,8 @@ const App = () => (
             </Route>
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-            <Route path="/admin/planos" element={<AdminProtectedRoute><AdminPlanos /></AdminProtectedRoute>} />
+              <Route path="/admin/planos" element={<AdminProtectedRoute><AdminPlanos /></AdminProtectedRoute>} />
+              <Route path="/admin/relatorios" element={<AdminProtectedRoute><AdminRelatorios /></AdminProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
