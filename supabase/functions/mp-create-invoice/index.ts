@@ -52,6 +52,10 @@ Deno.serve(async (req) => {
     const amount = custom_amount ?? account.subscription_plans?.monthly_value ?? account.monthly_value;
     const planName = account.subscription_plans?.name ?? account.plan ?? "Mensalidade";
 
+    // Detecta se é token de TESTE ou PRODUÇÃO
+    const isTestToken = mpToken.startsWith("TEST-");
+    console.log(`[mp-create-invoice] mode=${isTestToken ? "TEST" : "LIVE"} token_prefix=${mpToken.substring(0, 8)} amount=${amount}`);
+
     // cria preferência no Mercado Pago
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
@@ -61,31 +65,47 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         items: [{
+          id: client_account_id,
           title: `${planName} - ${reference_month}`,
+          description: `Mensalidade ${planName}`,
+          category_id: "services",
           quantity: 1,
           currency_id: "BRL",
           unit_price: Number(amount),
         }],
-        payer: { email: account.email, name: account.name },
+        payer: {
+          email: account.email,
+          name: account.name,
+        },
         external_reference: `${client_account_id}|${reference_month}`,
         notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
+        statement_descriptor: "VORTIS GESTAO",
         payment_methods: {
           excluded_payment_types: [],
-          installments: 1,
+          excluded_payment_methods: [],
+          installments: 12,
+          default_installments: 1,
         },
         back_urls: {
           success: "https://vortisgestao.lovable.app/cobrancas",
           pending: "https://vortisgestao.lovable.app/cobrancas",
           failure: "https://vortisgestao.lovable.app/cobrancas",
         },
+        auto_return: "approved",
+        binary_mode: false,
+        expires: false,
       }),
     });
 
     const mpData = await mpRes.json();
     if (!mpRes.ok) {
-      console.error("MP error:", mpData);
+      console.error("MP error:", JSON.stringify(mpData));
       return new Response(JSON.stringify({ error: "Falha ao criar cobrança no Mercado Pago", details: mpData }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    // Em modo TESTE deve usar sandbox_init_point (senão checkout fica inativo)
+    const checkoutUrl = isTestToken ? mpData.sandbox_init_point : mpData.init_point;
+    console.log(`[mp-create-invoice] preference_id=${mpData.id} checkout=${checkoutUrl}`);
 
     // grava fatura
     const { data: invoice, error: invErr } = await supabase
@@ -97,7 +117,7 @@ Deno.serve(async (req) => {
         due_date,
         status: "pending",
         mp_preference_id: mpData.id,
-        payment_link: mpData.init_point,
+        payment_link: checkoutUrl,
         reference_month,
       })
       .select()
@@ -107,7 +127,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: invErr.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(JSON.stringify({ success: true, invoice, payment_link: mpData.init_point }), {
+    return new Response(JSON.stringify({ success: true, invoice, payment_link: checkoutUrl, mode: isTestToken ? "test" : "live" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
