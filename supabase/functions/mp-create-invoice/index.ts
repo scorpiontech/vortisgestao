@@ -64,8 +64,11 @@ Deno.serve(async (req) => {
     const isTestToken = mpToken.startsWith("TEST-");
     console.log(`[mp-create-invoice] mode=${isTestToken ? "TEST" : "LIVE"} token_prefix=${mpToken.substring(0, 8)} amount=${amount} email=${account.email}`);
 
-    // Payload mínimo e válido. Sem auto_return (exige back_urls 100% configuradas)
-    // Sem payment_methods (deixa MP usar todos os disponíveis na conta).
+    // IMPORTANTE: NÃO enviar payer.email, pois o MP bloqueia auto-pagamento
+    // (quando o e-mail do comprador = conta MP do vendedor, todos os métodos ficam inativos).
+    // Deixamos o MP coletar o e-mail do comprador na própria página de checkout.
+    // excluded_payment_types: account_money exige conta MP logada e é o principal causador
+    // do bloqueio quando o visitante usa a mesma conta MP do vendedor.
     const preferencePayload: Record<string, unknown> = {
       items: [{
         id: String(client_account_id).slice(0, 12),
@@ -76,10 +79,6 @@ Deno.serve(async (req) => {
         currency_id: "BRL",
         unit_price: amount,
       }],
-      payer: {
-        email: account.email,
-        name: account.name || undefined,
-      },
       external_reference: `${client_account_id}|${reference_month}`,
       notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
       statement_descriptor: "VORTISGESTAO",
@@ -88,7 +87,14 @@ Deno.serve(async (req) => {
         pending: "https://vortisgestao.lovable.app/cobrancas",
         failure: "https://vortisgestao.lovable.app/cobrancas",
       },
+      payment_methods: {
+        excluded_payment_types: [
+          { id: "account_money" },
+        ],
+        installments: 12,
+      },
       binary_mode: false,
+      purpose: "wallet_purchase",
     };
 
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
