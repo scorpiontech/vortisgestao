@@ -49,42 +49,56 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Conta não encontrada" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const amount = custom_amount ?? account.subscription_plans?.monthly_value ?? account.monthly_value;
+    let amount = Number(custom_amount ?? account.subscription_plans?.monthly_value ?? account.monthly_value);
     const planName = account.subscription_plans?.name ?? account.plan ?? "Mensalidade";
 
-    // Detecta se é token de TESTE ou PRODUÇÃO
-    const isTestToken = mpToken.startsWith("TEST-");
-    console.log(`[mp-create-invoice] mode=${isTestToken ? "TEST" : "LIVE"} token_prefix=${mpToken.substring(0, 8)} amount=${amount}`);
+    // Mercado Pago em produção exige valor mínimo (R$ 3,00 para Pix, R$ 5,00 para cartão)
+    // Forçar mínimo de R$ 5,00 para garantir todos os meios de pagamento
+    if (amount < 5) {
+      console.warn(`[mp-create-invoice] amount ${amount} below minimum, adjusting to 5.00`);
+      amount = 5;
+    }
+    // Garantir 2 casas decimais
+    amount = Math.round(amount * 100) / 100;
 
-    // cria preferência no Mercado Pago
+    const isTestToken = mpToken.startsWith("TEST-");
+    console.log(`[mp-create-invoice] mode=${isTestToken ? "TEST" : "LIVE"} token_prefix=${mpToken.substring(0, 8)} amount=${amount} email=${account.email}`);
+
+    // Payload mínimo e válido. Sem auto_return (exige back_urls 100% configuradas)
+    // Sem payment_methods (deixa MP usar todos os disponíveis na conta).
+    const preferencePayload: Record<string, unknown> = {
+      items: [{
+        id: String(client_account_id).slice(0, 12),
+        title: `${planName} - ${reference_month}`.slice(0, 250),
+        description: `Mensalidade ${planName}`.slice(0, 250),
+        category_id: "services",
+        quantity: 1,
+        currency_id: "BRL",
+        unit_price: amount,
+      }],
+      payer: {
+        email: account.email,
+        name: account.name || undefined,
+      },
+      external_reference: `${client_account_id}|${reference_month}`,
+      notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
+      statement_descriptor: "VORTISGESTAO",
+      back_urls: {
+        success: "https://vortisgestao.lovable.app/cobrancas",
+        pending: "https://vortisgestao.lovable.app/cobrancas",
+        failure: "https://vortisgestao.lovable.app/cobrancas",
+      },
+      binary_mode: false,
+    };
+
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${mpToken}`,
         "Content-Type": "application/json",
+        "X-Idempotency-Key": `${client_account_id}-${reference_month}-${Date.now()}`,
       },
-      body: JSON.stringify({
-        items: [{
-          id: client_account_id,
-          title: `${planName} - ${reference_month}`,
-          description: `Mensalidade ${planName}`,
-          category_id: "services",
-          quantity: 1,
-          currency_id: "BRL",
-          unit_price: Number(amount),
-        }],
-        external_reference: `${client_account_id}|${reference_month}`,
-        notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
-        statement_descriptor: "VORTIS GESTAO",
-        back_urls: {
-          success: "https://vortisgestao.lovable.app/cobrancas",
-          pending: "https://vortisgestao.lovable.app/cobrancas",
-          failure: "https://vortisgestao.lovable.app/cobrancas",
-        },
-        auto_return: "approved",
-        binary_mode: false,
-        expires: false,
-      }),
+      body: JSON.stringify(preferencePayload),
     });
 
     const mpData = await mpRes.json();
@@ -93,7 +107,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Falha ao criar cobrança no Mercado Pago", details: mpData }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Em modo TESTE deve usar sandbox_init_point (senão checkout fica inativo)
+    // Em LIVE usamos init_point. sandbox_init_point só funciona com TEST-
     const checkoutUrl = isTestToken ? mpData.sandbox_init_point : mpData.init_point;
     console.log(`[mp-create-invoice] preference_id=${mpData.id} checkout=${checkoutUrl}`);
 
@@ -103,7 +117,7 @@ Deno.serve(async (req) => {
       .insert({
         client_account_id,
         plan_id: account.plan_id,
-        amount: Number(amount),
+        amount,
         due_date,
         status: "pending",
         mp_preference_id: mpData.id,
