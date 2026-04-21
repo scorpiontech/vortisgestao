@@ -88,13 +88,9 @@ Deno.serve(async (req) => {
         failure: "https://vortisgestao.lovable.app/cobrancas",
       },
       payment_methods: {
-        excluded_payment_types: [
-          { id: "account_money" },
-        ],
         installments: 12,
       },
       binary_mode: false,
-      purpose: "wallet_purchase",
     };
 
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
