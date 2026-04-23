@@ -8,7 +8,7 @@ import { Camera, X } from "lucide-react";
 interface BarcodeScannerProps {
   open: boolean;
   onClose: () => void;
-  onScan: (code: string) => void;
+  onScan: (code: string, format?: string) => void;
 }
 
 // All 1D + 2D formats supported by ZXing
