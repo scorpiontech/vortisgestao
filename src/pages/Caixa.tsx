@@ -102,10 +102,20 @@ const Caixa = () => {
 
   const handleOpen = async () => {
     const targetUserId = isMaster && selectedMemberId ? selectedMemberId : effectiveUserId!;
-    // Check if target already has an open register
-    const alreadyOpen = registers.find(r => r.status === "open" && r.user_id === targetUserId);
-    if (alreadyOpen) {
-      toast({ title: "Já existe um caixa aberto para este usuário", variant: "destructive" });
+    // Re-fetch to ensure up-to-date state (prevents race conditions)
+    const { data: currentOpen } = await supabase
+      .from("cash_registers")
+      .select("id")
+      .eq("user_id", targetUserId)
+      .eq("status", "open")
+      .maybeSingle();
+    if (currentOpen) {
+      const who = targetUserId === user?.id ? "você" : getMemberName(targetUserId);
+      toast({
+        title: "Caixa já aberto",
+        description: `Já existe um caixa aberto para ${who}. Feche o caixa atual antes de abrir um novo.`,
+        variant: "destructive",
+      });
       return;
     }
     const { error } = await supabase.from("cash_registers").insert({
@@ -113,7 +123,19 @@ const Caixa = () => {
       opening_amount: Number(openingAmount) || 0,
       status: "open",
     } as any);
-    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    if (error) {
+      // Unique index violation (defense-in-depth)
+      if (error.code === "23505") {
+        toast({
+          title: "Caixa já aberto",
+          description: "Não é possível abrir um novo caixa enquanto houver um em aberto para este operador.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erro", description: error.message, variant: "destructive" });
+      }
+      return;
+    }
     toast({ title: "Caixa aberto!" });
     logAudit({ action: "cash_open", entity: "cash_register", details: { opening_amount: Number(openingAmount) || 0, target_user: targetUserId } });
     setOpenDialog(false);
