@@ -63,8 +63,9 @@ export const BarcodeScanner = ({ open, onClose, onScan }: BarcodeScannerProps) =
           videoRef.current,
           (result, err, ctrl) => {
             if (result) {
-              setDetectedFormat(BarcodeFormat[result.getBarcodeFormat()]);
-              onScan(result.getText());
+              const fmt = BarcodeFormat[result.getBarcodeFormat()];
+              setDetectedFormat(fmt);
+              onScan(result.getText(), fmt);
               ctrl.stop();
               onClose();
             }
