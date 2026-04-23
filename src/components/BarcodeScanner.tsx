@@ -8,7 +8,7 @@ import { Camera, X } from "lucide-react";
 interface BarcodeScannerProps {
   open: boolean;
   onClose: () => void;
-  onScan: (code: string) => void;
+  onScan: (code: string, format?: string) => void;
 }
 
 // All 1D + 2D formats supported by ZXing
@@ -63,8 +63,9 @@ export const BarcodeScanner = ({ open, onClose, onScan }: BarcodeScannerProps) =
           videoRef.current,
           (result, err, ctrl) => {
             if (result) {
-              setDetectedFormat(BarcodeFormat[result.getBarcodeFormat()]);
-              onScan(result.getText());
+              const fmt = BarcodeFormat[result.getBarcodeFormat()];
+              setDetectedFormat(fmt);
+              onScan(result.getText(), fmt);
               ctrl.stop();
               onClose();
             }

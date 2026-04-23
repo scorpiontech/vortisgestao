@@ -53,6 +53,51 @@ export type Database = {
         }
         Relationships: []
       }
+      barcode_scan_logs: {
+        Row: {
+          code: string
+          context: string
+          created_at: string
+          format: string
+          id: string
+          matched: boolean
+          owner_id: string
+          product_id: string | null
+          product_name: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          code: string
+          context?: string
+          created_at?: string
+          format?: string
+          id?: string
+          matched?: boolean
+          owner_id: string
+          product_id?: string | null
+          product_name?: string
+          user_email?: string
+          user_id: string
+          user_name?: string
+        }
+        Update: {
+          code?: string
+          context?: string
+          created_at?: string
+          format?: string
+          id?: string
+          matched?: boolean
+          owner_id?: string
+          product_id?: string | null
+          product_name?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       bills: {
         Row: {
           amount: number
