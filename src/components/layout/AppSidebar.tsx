@@ -73,6 +73,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Usuários", url: "/usuarios", icon: UsersRound },
     { title: "Auditoria", url: "/auditoria", icon: ScrollText },
     { title: "Cobranças", url: "/cobrancas", icon: Receipt },
+    { title: "Logs de Leituras", url: "/logs-leituras", icon: ScanBarcode },
   ]},
 ];
 
