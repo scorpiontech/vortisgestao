@@ -136,8 +136,23 @@ const Vendas = () => {
 
   const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
 
-  const handleBarcodeScan = (code: string) => {
+  const handleBarcodeScan = async (code: string, format?: string) => {
     const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
+    // Log the scan (always, matched or not) for auditing
+    if (user && effectiveUserId) {
+      supabase.from("barcode_scan_logs").insert({
+        owner_id: effectiveUserId,
+        user_id: user.id,
+        user_name: sellerName || "",
+        user_email: user.email || "",
+        code,
+        format: format || "",
+        product_id: product?.id || null,
+        product_name: product?.name || "",
+        matched: !!product,
+        context: "pdv",
+      } as any).then(() => {});
+    }
     if (!product) {
       toast({ title: "Produto não encontrado", description: `Código: ${code}`, variant: "destructive" });
       return;
