@@ -25,6 +25,7 @@ import ContasPagar from "./pages/ContasPagar";
 import ContasReceber from "./pages/ContasReceber";
 import Usuarios from "./pages/Usuarios";
 import Auditoria from "./pages/Auditoria";
+import LogsLeituras from "./pages/LogsLeituras";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPlanos from "./pages/AdminPlanos";
