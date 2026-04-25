@@ -105,10 +105,52 @@ const LogsLeituras = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><ScanBarcode className="h-6 w-6" />Logs de Leituras</h1>
-        <p className="text-sm text-muted-foreground">Auditoria de códigos de barras lidos no PDV</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><ScanBarcode className="h-6 w-6" />Logs de Leituras</h1>
+          <p className="text-sm text-muted-foreground">
+            Auditoria de códigos de barras lidos no PDV · Retenção: <span className="font-medium text-foreground">{savedRetention} dia{savedRetention > 1 ? "s" : ""}</span>
+          </p>
+        </div>
+        {isMaster && (
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Configurar retenção
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Retenção de Logs de Leituras</DialogTitle>
+                <DialogDescription>
+                  Defina por quantos dias os logs serão mantidos. Após esse prazo, são apagados automaticamente todos os dias às 03:00.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
+                <Label htmlFor="retention-days">Dias de retenção</Label>
+                <Input
+                  id="retention-days"
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={retentionDays}
+                  onChange={e => setRetentionDays(parseInt(e.target.value) || 0)}
+                />
+                <p className="text-xs text-muted-foreground">Mínimo 1 dia, máximo 3650 (10 anos).</p>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => { setRetentionDays(savedRetention); setSettingsOpen(false); }}>Cancelar</Button>
+                <Button onClick={handleSaveSettings} disabled={savingSettings}>
+                  {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Salvar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
+
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card rounded-lg p-4 shadow-card border">
