@@ -24,11 +24,16 @@ interface ScanLog {
 }
 
 const LogsLeituras = () => {
-  const { effectiveUserId } = useUserRole();
+  const { effectiveUserId, isMaster } = useUserRole();
+  const { user } = useAuth();
   const [logs, setLogs] = useState<ScanLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "matched" | "unmatched">("all");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [retentionDays, setRetentionDays] = useState<number>(30);
+  const [savedRetention, setSavedRetention] = useState<number>(30);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const fetchLogs = async () => {
     if (!effectiveUserId) return;
@@ -41,7 +46,39 @@ const LogsLeituras = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchLogs(); }, [effectiveUserId]);
+  const fetchSettings = async () => {
+    if (!effectiveUserId) return;
+    const { data } = await supabase
+      .from("barcode_scan_log_settings")
+      .select("retention_days")
+      .eq("owner_id", effectiveUserId)
+      .maybeSingle();
+    const days = data?.retention_days ?? 30;
+    setRetentionDays(days);
+    setSavedRetention(days);
+  };
+
+  useEffect(() => { fetchLogs(); fetchSettings(); }, [effectiveUserId]);
+
+  const handleSaveSettings = async () => {
+    if (!user || !effectiveUserId) return;
+    if (retentionDays < 1 || retentionDays > 3650) {
+      toast.error("Informe um valor entre 1 e 3650 dias");
+      return;
+    }
+    setSavingSettings(true);
+    const { error } = await supabase
+      .from("barcode_scan_log_settings")
+      .upsert({ owner_id: effectiveUserId, retention_days: retentionDays }, { onConflict: "owner_id" });
+    setSavingSettings(false);
+    if (error) {
+      toast.error("Erro ao salvar configuração: " + error.message);
+      return;
+    }
+    setSavedRetention(retentionDays);
+    setSettingsOpen(false);
+    toast.success(`Logs serão mantidos por ${retentionDays} dia${retentionDays > 1 ? "s" : ""}`);
+  };
 
   const formatDate = (d: string) => new Date(d).toLocaleString("pt-BR");
 
