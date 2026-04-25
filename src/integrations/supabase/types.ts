@@ -53,6 +53,30 @@ export type Database = {
         }
         Relationships: []
       }
+      barcode_scan_log_settings: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          retention_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          retention_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          retention_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       barcode_scan_logs: {
         Row: {
           code: string
@@ -919,6 +943,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_barcode_scan_logs: { Args: never; Returns: number }
       get_effective_user_id: { Args: { _user_id: string }; Returns: string }
       get_member_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
