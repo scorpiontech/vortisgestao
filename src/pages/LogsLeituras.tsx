@@ -1,10 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScanBarcode, Search, CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScanBarcode, Search, CheckCircle2, XCircle, Settings2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 interface ScanLog {
   id: string;
@@ -19,11 +24,16 @@ interface ScanLog {
 }
 
 const LogsLeituras = () => {
-  const { effectiveUserId } = useUserRole();
+  const { effectiveUserId, isMaster } = useUserRole();
+  const { user } = useAuth();
   const [logs, setLogs] = useState<ScanLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "matched" | "unmatched">("all");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [retentionDays, setRetentionDays] = useState<number>(30);
+  const [savedRetention, setSavedRetention] = useState<number>(30);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const fetchLogs = async () => {
     if (!effectiveUserId) return;
@@ -36,7 +46,39 @@ const LogsLeituras = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchLogs(); }, [effectiveUserId]);
+  const fetchSettings = async () => {
+    if (!effectiveUserId) return;
+    const { data } = await supabase
+      .from("barcode_scan_log_settings")
+      .select("retention_days")
+      .eq("owner_id", effectiveUserId)
+      .maybeSingle();
+    const days = data?.retention_days ?? 30;
+    setRetentionDays(days);
+    setSavedRetention(days);
+  };
+
+  useEffect(() => { fetchLogs(); fetchSettings(); }, [effectiveUserId]);
+
+  const handleSaveSettings = async () => {
+    if (!user || !effectiveUserId) return;
+    if (retentionDays < 1 || retentionDays > 3650) {
+      toast.error("Informe um valor entre 1 e 3650 dias");
+      return;
+    }
+    setSavingSettings(true);
+    const { error } = await supabase
+      .from("barcode_scan_log_settings")
+      .upsert({ owner_id: effectiveUserId, retention_days: retentionDays }, { onConflict: "owner_id" });
+    setSavingSettings(false);
+    if (error) {
+      toast.error("Erro ao salvar configuração: " + error.message);
+      return;
+    }
+    setSavedRetention(retentionDays);
+    setSettingsOpen(false);
+    toast.success(`Logs serão mantidos por ${retentionDays} dia${retentionDays > 1 ? "s" : ""}`);
+  };
 
   const formatDate = (d: string) => new Date(d).toLocaleString("pt-BR");
 
@@ -63,10 +105,52 @@ const LogsLeituras = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><ScanBarcode className="h-6 w-6" />Logs de Leituras</h1>
-        <p className="text-sm text-muted-foreground">Auditoria de códigos de barras lidos no PDV</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><ScanBarcode className="h-6 w-6" />Logs de Leituras</h1>
+          <p className="text-sm text-muted-foreground">
+            Auditoria de códigos de barras lidos no PDV · Retenção: <span className="font-medium text-foreground">{savedRetention} dia{savedRetention > 1 ? "s" : ""}</span>
+          </p>
+        </div>
+        {isMaster && (
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings2 className="h-4 w-4" />
+                Configurar retenção
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Retenção de Logs de Leituras</DialogTitle>
+                <DialogDescription>
+                  Defina por quantos dias os logs serão mantidos. Após esse prazo, são apagados automaticamente todos os dias às 03:00.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
+                <Label htmlFor="retention-days">Dias de retenção</Label>
+                <Input
+                  id="retention-days"
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={retentionDays}
+                  onChange={e => setRetentionDays(parseInt(e.target.value) || 0)}
+                />
+                <p className="text-xs text-muted-foreground">Mínimo 1 dia, máximo 3650 (10 anos).</p>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => { setRetentionDays(savedRetention); setSettingsOpen(false); }}>Cancelar</Button>
+                <Button onClick={handleSaveSettings} disabled={savingSettings}>
+                  {savingSettings && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Salvar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
+
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card rounded-lg p-4 shadow-card border">
