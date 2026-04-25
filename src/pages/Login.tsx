@@ -99,9 +99,8 @@ const Login = () => {
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden" style={{ background: "var(--gradient-sidebar)" }}>
         <div className="relative z-10 text-center px-12">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-24 mx-auto mb-8" />
-            <h1 className="text-4xl font-bold text-white mb-4">Vortis Gestão</h1>
-            <p className="text-lg text-white/60 max-w-md">Sistema completo de controle de estoque e gestão financeira para o seu negócio.</p>
+            <img src="/logo-transparente.png" alt="Vortis Gestão" className="w-full max-w-md mx-auto mb-6 drop-shadow-2xl" />
+            <p className="text-lg text-white/70 max-w-md mx-auto">Sistema completo de controle de estoque e gestão financeira para o seu negócio.</p>
           </motion.div>
         </div>
         <div className="absolute top-20 -left-20 h-64 w-64 rounded-full bg-primary/10" />
@@ -110,9 +109,8 @@ const Login = () => {
 
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="w-full max-w-sm">
-          <div className="lg:hidden flex items-center gap-3 mb-10">
-            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-10" />
-            <h1 className="text-xl font-bold">Vortis Gestão</h1>
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-32 w-auto" />
           </div>
 
           <Tabs defaultValue="login" className="w-full">
