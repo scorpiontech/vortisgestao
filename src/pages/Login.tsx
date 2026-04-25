@@ -96,15 +96,15 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center relative overflow-hidden" style={{ background: "var(--gradient-sidebar)" }}>
-        <div className="relative z-10 text-center px-12">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-            <img src="/logo-transparente.png" alt="Vortis Gestão" className="w-full max-w-md mx-auto mb-6 drop-shadow-2xl" />
-            <p className="text-lg text-white/70 max-w-md mx-auto">Sistema completo de controle de estoque e gestão financeira para o seu negócio.</p>
-          </motion.div>
-        </div>
-        <div className="absolute top-20 -left-20 h-64 w-64 rounded-full bg-primary/10" />
-        <div className="absolute bottom-20 -right-10 h-40 w-40 rounded-full bg-primary/5" />
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+        <motion.img
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          src="/logo-transparente.png"
+          alt="Vortis Gestão"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       </div>
 
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
