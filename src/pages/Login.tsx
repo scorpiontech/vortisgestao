@@ -95,22 +95,30 @@ const Login = () => {
   );
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand panel — full width on mobile (aspect-locked), half width on desktop */}
+      <div className="relative w-full lg:w-1/2 aspect-[16/9] sm:aspect-[2/1] lg:aspect-auto lg:min-h-screen overflow-hidden bg-muted">
         <motion.img
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
           src="/logo-transparente.png"
           alt="Vortis Gestão"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-background">
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="w-full max-w-sm">
-          <div className="lg:hidden flex justify-center mb-8">
-            <img src="/logo-transparente.png" alt="Vortis Gestão" className="h-32 w-auto" />
+      {/* Form panel — fluid padding scales with viewport */}
+      <div className="flex-1 flex items-center justify-center px-6 py-8 sm:px-10 sm:py-12 lg:px-12 bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="w-full max-w-[clamp(20rem,28vw,26rem)]"
+        >
+          <div className="mb-6 sm:mb-8 text-center lg:text-left">
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Bem-vindo</h2>
+            <p className="text-sm text-muted-foreground mt-1">Acesse sua conta para continuar</p>
           </div>
 
           <Tabs defaultValue="login" className="w-full">
