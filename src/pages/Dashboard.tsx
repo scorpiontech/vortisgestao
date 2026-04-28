@@ -9,16 +9,19 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const [prodRes, transRes] = await Promise.all([
+      const [prodRes, transRes, osRes] = await Promise.all([
         supabase.from("products").select("*"),
         supabase.from("transactions").select("*").order("date", { ascending: false }),
+        supabase.from("service_orders").select("id, status, paid, budget_total"),
       ]);
       setProducts(prodRes.data || []);
       setTransactions(transRes.data || []);
+      setServiceOrders(osRes.data || []);
       setLoading(false);
     };
     load();
