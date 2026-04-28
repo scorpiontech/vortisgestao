@@ -2,23 +2,26 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { DollarSign, Package, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { DollarSign, Package, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
-      const [prodRes, transRes] = await Promise.all([
+      const [prodRes, transRes, osRes] = await Promise.all([
         supabase.from("products").select("*"),
         supabase.from("transactions").select("*").order("date", { ascending: false }),
+        supabase.from("service_orders").select("id, status, paid, budget_total"),
       ]);
       setProducts(prodRes.data || []);
       setTransactions(transRes.data || []);
+      setServiceOrders(osRes.data || []);
       setLoading(false);
     };
     load();
@@ -38,11 +41,18 @@ const Dashboard = () => {
         <p className="text-sm text-muted-foreground">Visão geral do seu negócio</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard title="Receita Total" value={formatCurrency(totalRevenue)} icon={TrendingUp} variant="success" />
         <StatCard title="Despesas" value={formatCurrency(totalExpenses)} icon={DollarSign} variant="destructive" />
         <StatCard title="Produtos" value={String(products.length)} subtitle="cadastrados" icon={Package} />
         <StatCard title="Estoque Baixo" value={String(lowStock)} subtitle="produtos abaixo do mínimo" icon={AlertTriangle} variant="warning" />
+        <StatCard
+          title="Ordens de Serviço"
+          value={String(serviceOrders.filter(o => o.status === "aberta" || o.status === "em_andamento").length)}
+          subtitle={`${serviceOrders.length} no total · ${serviceOrders.filter(o => !o.paid).length} a receber`}
+          icon={Wrench}
+          variant="default"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
