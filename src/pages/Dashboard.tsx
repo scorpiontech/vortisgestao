@@ -41,11 +41,18 @@ const Dashboard = () => {
         <p className="text-sm text-muted-foreground">Visão geral do seu negócio</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <StatCard title="Receita Total" value={formatCurrency(totalRevenue)} icon={TrendingUp} variant="success" />
         <StatCard title="Despesas" value={formatCurrency(totalExpenses)} icon={DollarSign} variant="destructive" />
         <StatCard title="Produtos" value={String(products.length)} subtitle="cadastrados" icon={Package} />
         <StatCard title="Estoque Baixo" value={String(lowStock)} subtitle="produtos abaixo do mínimo" icon={AlertTriangle} variant="warning" />
+        <StatCard
+          title="Ordens de Serviço"
+          value={String(serviceOrders.filter(o => o.status === "aberta" || o.status === "em_andamento").length)}
+          subtitle={`${serviceOrders.length} no total · ${serviceOrders.filter(o => !o.paid).length} a receber`}
+          icon={Wrench}
+          variant="default"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
