@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { DollarSign, Package, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { DollarSign, Package, TrendingUp, AlertTriangle, ArrowUpRight, ArrowDownRight, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 
 const Dashboard = () => {
