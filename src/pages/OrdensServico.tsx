@@ -494,50 +494,95 @@ export default function OrdensServico() {
                 <Button type="button" size="sm" variant="outline" onClick={addMaterial}><Plus className="h-3 w-3 mr-1" />Adicionar</Button>
               </div>
               {materials.length > 0 && (
-                <div className="rounded-md border overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Produto</TableHead>
-                        <TableHead className="w-20">Qtd</TableHead>
-                        <TableHead className="w-28">Valor Un.</TableHead>
-                        <TableHead className="w-28 text-right">Total</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {materials.map((m, i) => (
-                        <TableRow key={i}>
-                          <TableCell>
-                            <Select value={m.product_id || "manual"} onValueChange={v => {
-                              if (v === "manual") updateMaterial(i, "product_id", null);
-                              else updateMaterial(i, "product_id", v);
-                            }}>
-                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="manual">Digitar manualmente</SelectItem>
-                                {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            {!m.product_id && (
-                              <Input className="mt-1 h-8" placeholder="Nome do material" value={m.product_name} onChange={e => updateMaterial(i, "product_name", e.target.value)} />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Input type="number" min={1} className="h-8" value={m.quantity} onChange={e => updateMaterial(i, "quantity", parseInt(e.target.value) || 1)} />
-                          </TableCell>
-                          <TableCell>
-                            <Input type="number" step="0.01" min={0} className="h-8" value={m.unit_price} onChange={e => updateMaterial(i, "unit_price", parseFloat(e.target.value) || 0)} />
-                          </TableCell>
-                          <TableCell className="text-right font-medium">R$ {m.total.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeMaterial(i)}><X className="h-3 w-3" /></Button>
-                          </TableCell>
+                <>
+                  {/* Desktop / tablet: table view */}
+                  <div className="rounded-md border overflow-auto hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead className="w-24">Qtd</TableHead>
+                          <TableHead className="w-32">Valor Un.</TableHead>
+                          <TableHead className="w-28 text-right">Total</TableHead>
+                          <TableHead className="w-10"></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableHeader>
+                      <TableBody>
+                        {materials.map((m, i) => (
+                          <TableRow key={i}>
+                            <TableCell>
+                              <Select value={m.product_id || "manual"} onValueChange={v => {
+                                if (v === "manual") updateMaterial(i, "product_id", null);
+                                else updateMaterial(i, "product_id", v);
+                              }}>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="manual">Digitar manualmente</SelectItem>
+                                  {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                              {!m.product_id && (
+                                <Input className="mt-1 h-9" placeholder="Nome do material" value={m.product_name} onChange={e => updateMaterial(i, "product_name", e.target.value)} />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" inputMode="numeric" min={1} className="h-9" value={m.quantity} onChange={e => updateMaterial(i, "quantity", parseInt(e.target.value) || 1)} />
+                            </TableCell>
+                            <TableCell>
+                              <Input type="number" inputMode="decimal" step="0.01" min={0} className="h-9" value={m.unit_price} onChange={e => updateMaterial(i, "unit_price", parseFloat(e.target.value) || 0)} />
+                            </TableCell>
+                            <TableCell className="text-right font-medium">R$ {m.total.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeMaterial(i)}><X className="h-4 w-4" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Mobile: stacked card view for easier interaction */}
+                  <div className="md:hidden space-y-3">
+                    {materials.map((m, i) => (
+                      <div key={i} className="rounded-md border p-3 space-y-3 bg-card">
+                        <div className="flex items-start justify-between gap-2">
+                          <Label className="text-xs text-muted-foreground">Material {i + 1}</Label>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 -mt-1 -mr-1" onClick={() => removeMaterial(i)}><X className="h-4 w-4" /></Button>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Produto</Label>
+                          <Select value={m.product_id || "manual"} onValueChange={v => {
+                            if (v === "manual") updateMaterial(i, "product_id", null);
+                            else updateMaterial(i, "product_id", v);
+                          }}>
+                            <SelectTrigger className="h-10"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="manual">Digitar manualmente</SelectItem>
+                              {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          {!m.product_id && (
+                            <Input className="mt-1 h-10" placeholder="Nome do material" value={m.product_name} onChange={e => updateMaterial(i, "product_name", e.target.value)} />
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Qtd</Label>
+                            <Input type="number" inputMode="numeric" min={1} className="h-10 text-base" value={m.quantity} onChange={e => updateMaterial(i, "quantity", parseInt(e.target.value) || 1)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Valor Un.</Label>
+                            <Input type="number" inputMode="decimal" step="0.01" min={0} className="h-10 text-base" value={m.unit_price} onChange={e => updateMaterial(i, "unit_price", parseFloat(e.target.value) || 0)} />
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t">
+                          <span className="text-xs text-muted-foreground">Total</span>
+                          <span className="font-semibold">R$ {m.total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
               <div className="text-right font-bold text-lg">Orçamento Total: R$ {budgetTotal.toFixed(2)}</div>
             </div>
