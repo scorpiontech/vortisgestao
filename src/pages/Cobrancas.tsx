@@ -29,8 +29,8 @@ interface Account {
 }
 
 const STATUS_LABEL: Record<string, { label: string; variant: "default" | "destructive" | "secondary"; icon: any; color: string }> = {
-  paid: { label: "Pago", variant: "default", icon: CheckCircle, color: "text-green-500" },
-  pending: { label: "Pendente", variant: "secondary", icon: Clock, color: "text-yellow-500" },
+  paid: { label: "Pago", variant: "default", icon: CheckCircle, color: "text-green-500 dark:text-green-400" },
+  pending: { label: "Pendente", variant: "secondary", icon: Clock, color: "text-yellow-500 dark:text-yellow-400" },
   overdue: { label: "Atrasado", variant: "destructive", icon: AlertTriangle, color: "text-destructive" },
   failed: { label: "Falhou", variant: "destructive", icon: AlertTriangle, color: "text-destructive" },
 };
@@ -122,7 +122,7 @@ export default function Cobrancas() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Status</CardTitle>
-            {account?.blocked ? <Ban className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-green-500" />}
+            {account?.blocked ? <Ban className="h-4 w-4 text-destructive" /> : <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400" />}
           </CardHeader>
           <CardContent>
             <Badge variant={account?.blocked ? "destructive" : "default"} className={account?.blocked ? "" : "bg-green-600"}>

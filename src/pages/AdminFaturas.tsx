@@ -130,7 +130,7 @@ export default function AdminFaturas() {
           </CardContent></Card>
           <Card><CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Pago</p>
-            <p className="text-2xl font-bold text-green-600">{totalPago.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totalPago.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
           </CardContent></Card>
           <Card><CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total em Aberto</p>
@@ -210,7 +210,7 @@ export default function AdminFaturas() {
                           )}
                           {inv.status !== "paid" && (
                             <Button variant="ghost" size="icon" title="Marcar como paga" onClick={() => markPaid(inv)}>
-                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                             </Button>
                           )}
                           <Button variant="ghost" size="icon" title="Excluir" onClick={() => { setSelected(inv); setDeleteOpen(true); }}>
