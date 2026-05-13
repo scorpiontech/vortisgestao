@@ -202,7 +202,7 @@ export default function Usuarios() {
                 </Badge>
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Ativo</Badge>
+                <Badge variant="outline" className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">Ativo</Badge>
               </TableCell>
               <TableCell className="text-right text-muted-foreground text-xs">—</TableCell>
             </TableRow>
@@ -221,7 +221,7 @@ export default function Usuarios() {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={member.active ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-red-500/10 text-red-600 border-red-500/20"}>
+                  <Badge variant="outline" className={member.active ? "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"}>
                     {member.active ? "Ativo" : "Inativo"}
                   </Badge>
                 </TableCell>

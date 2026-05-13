@@ -117,10 +117,10 @@ export default function AdminRelatorios() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium">Receita do Mês</CardTitle>
-                  <DollarSign className="h-4 w-4 text-green-500" />
+                  <DollarSign className="h-4 w-4 text-green-500 dark:text-green-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{fmt(monthlyRevenue)}</div>
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">{fmt(monthlyRevenue)}</div>
                   <p className="text-xs text-muted-foreground mt-1">Pagamentos confirmados</p>
                 </CardContent>
               </Card>
@@ -137,10 +137,10 @@ export default function AdminRelatorios() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium">Churn</CardTitle>
-                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <TrendingDown className="h-4 w-4 text-red-500 dark:text-red-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{churnRate.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{churnRate.toFixed(1)}%</div>
                   <p className="text-xs text-muted-foreground mt-1">{inactiveAccounts} contas inativas</p>
                 </CardContent>
               </Card>

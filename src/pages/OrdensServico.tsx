@@ -431,7 +431,7 @@ export default function OrdensServico() {
                         {order.status !== "finalizada" && !order.paid && (
                           <>
                             <Button size="icon" variant="ghost" onClick={() => openEdit(order)} title="Editar"><Pencil className="h-4 w-4" /></Button>
-                            <Button size="icon" variant="ghost" onClick={() => openPay(order)} title="Registrar Pagamento"><DollarSign className="h-4 w-4 text-green-600" /></Button>
+                            <Button size="icon" variant="ghost" onClick={() => openPay(order)} title="Registrar Pagamento"><DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" /></Button>
                           </>
                         )}
                         {order.status !== "finalizada" && order.paid && (

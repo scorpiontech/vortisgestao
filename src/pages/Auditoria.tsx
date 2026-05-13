@@ -25,16 +25,16 @@ interface AuditLog {
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  login: { label: "Login", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  logout: { label: "Logout", color: "bg-gray-500/10 text-gray-600 border-gray-500/20" },
-  create: { label: "Criação", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-  update: { label: "Edição", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
-  delete: { label: "Exclusão", color: "bg-red-500/10 text-red-600 border-red-500/20" },
+  login: { label: "Login", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" },
+  logout: { label: "Logout", color: "bg-muted text-muted-foreground border-border" },
+  create: { label: "Criação", color: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" },
+  update: { label: "Edição", color: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20" },
+  delete: { label: "Exclusão", color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" },
   sale: { label: "Venda", color: "bg-primary/10 text-primary border-primary/20" },
-  payment: { label: "Pagamento", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  cash_open: { label: "Abertura Caixa", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
-  cash_close: { label: "Fechamento Caixa", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
-  mark_paid: { label: "Marcou Pago", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  payment: { label: "Pagamento", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  cash_open: { label: "Abertura Caixa", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" },
+  cash_close: { label: "Fechamento Caixa", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" },
+  mark_paid: { label: "Marcou Pago", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
 };
 
 const ENTITY_LABELS: Record<string, string> = {
