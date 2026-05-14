@@ -21,12 +21,22 @@ interface Invoice {
 interface Account {
   id: string;
   plan: string;
+  plan_id: string | null;
   monthly_value: number;
   status: string;
   blocked: boolean;
   due_day: number;
   billing_type: string;
-  subscription_plans?: { name: string; monthly_value: number; description: string } | null;
+  subscription_plans?: { id: string; name: string; monthly_value: number; description: string; tier: string; nfe_quota: number | null } | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  description: string;
+  monthly_value: number;
+  tier: string;
+  nfe_quota: number | null;
 }
 
 const STATUS_LABEL: Record<string, { label: string; variant: "default" | "destructive" | "secondary"; icon: any; color: string }> = {
