@@ -50,16 +50,25 @@ export default function Cobrancas() {
   const { user } = useAuth();
   const [account, setAccount] = useState<Account | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
     const { data: acc } = await supabase
       .from("client_accounts")
-      .select("*, subscription_plans(name, monthly_value, description)")
+      .select("*, subscription_plans(id, name, monthly_value, description, tier, nfe_quota)")
       .eq("user_id", user.id)
       .maybeSingle();
-    setAccount(acc as Account | null);
+    setAccount(acc as unknown as Account | null);
+
+    const { data: pls } = await supabase
+      .from("subscription_plans")
+      .select("id, name, description, monthly_value, tier, nfe_quota")
+      .eq("active", true)
+      .order("monthly_value", { ascending: true });
+    setPlans((pls || []) as Plan[]);
 
     if (acc?.id) {
       const { data: inv } = await supabase
@@ -70,6 +79,27 @@ export default function Cobrancas() {
       setInvoices((inv || []) as Invoice[]);
     }
     setLoading(false);
+  };
+
+  const requestUpgrade = async (plan: Plan) => {
+    setRequesting(plan.id);
+    try {
+      await supabase.from("audit_logs").insert({
+        user_id: user!.id,
+        owner_id: user!.id,
+        user_email: user!.email ?? "",
+        user_name: user!.email ?? "",
+        action: "plan_upgrade_request",
+        entity: "subscription_plan",
+        entity_id: plan.id,
+        details: { plan_name: plan.name, plan_tier: plan.tier, monthly_value: plan.monthly_value, current_plan_id: account?.plan_id },
+      });
+      toast.success(`Solicitação enviada! O administrador irá revisar a mudança para ${plan.name}.`);
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível enviar a solicitação.");
+    } finally {
+      setRequesting(null);
+    }
   };
 
   useEffect(() => { load(); }, [user]);
