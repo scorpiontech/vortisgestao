@@ -149,8 +149,17 @@ export default function Cobrancas() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{planName}</div>
+            <div className="text-2xl font-bold flex items-center gap-2">
+              {planName}
+              {hasNfe && <Badge className="bg-primary text-primary-foreground gap-1"><Sparkles className="h-3 w-3" />Pro</Badge>}
+            </div>
             <p className="text-xs text-muted-foreground">{Number(planValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / mês</p>
+            {hasNfe && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                {planQuota === null ? "NF-e ilimitada" : `Até ${planQuota} NF-e/mês`}
+              </p>
+            )}
           </CardContent>
         </Card>
 
