@@ -137,7 +137,8 @@ export default function AdminPlanos() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>NF-e/mês</TableHead>
                   <TableHead>Valor Mensal</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -145,13 +146,23 @@ export default function AdminPlanos() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : plans.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum plano cadastrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum plano cadastrado</TableCell></TableRow>
                 ) : plans.map(p => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{p.description || "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      {p.name}
+                      <p className="text-xs text-muted-foreground font-normal max-w-xs truncate">{p.description || "—"}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={p.tier?.startsWith("pro") ? "default" : "secondary"} className={p.tier?.startsWith("pro") ? "bg-primary" : ""}>
+                        {TIERS.find(t => t.value === p.tier)?.label.split(" (")[0] ?? p.tier}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {p.tier === "basico" ? "—" : p.nfe_quota === null ? "Ilimitado" : `Até ${p.nfe_quota}`}
+                    </TableCell>
                     <TableCell>{Number(p.monthly_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
                     <TableCell>
                       <Badge variant={p.active ? "default" : "secondary"} className={p.active ? "bg-green-600" : ""}>
