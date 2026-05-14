@@ -442,6 +442,48 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_generation_logs: {
+        Row: {
+          acknowledged: boolean
+          amount: number
+          client_account_id: string | null
+          client_name: string
+          created_at: string
+          error_details: Json | null
+          error_message: string
+          id: string
+          reference_month: string
+          source: string
+          status: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          amount?: number
+          client_account_id?: string | null
+          client_name?: string
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string
+          id?: string
+          reference_month?: string
+          source?: string
+          status?: string
+        }
+        Update: {
+          acknowledged?: boolean
+          amount?: number
+          client_account_id?: string | null
+          client_name?: string
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string
+          id?: string
+          reference_month?: string
+          source?: string
+          status?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category: string

@@ -104,26 +104,61 @@ Deno.serve(async (req) => {
           binary_mode: false,
         };
 
-        const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${mpToken}`,
-            "Content-Type": "application/json",
-            "X-Idempotency-Key": `${acc.id}-${refMonth}-auto`,
-          },
-          body: JSON.stringify(preferencePayload),
-        });
+        let mpRes: Response;
+        let mpData: any;
+        try {
+          mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${mpToken}`,
+              "Content-Type": "application/json",
+              "X-Idempotency-Key": `${acc.id}-${refMonth}-auto`,
+            },
+            body: JSON.stringify(preferencePayload),
+          });
+          mpData = await mpRes.json();
+        } catch (fetchErr) {
+          const msg = (fetchErr as Error).message;
+          console.error(`[gen] MP fetch failed acc=${acc.id} name=${acc.name}:`, msg);
+          await supabase.from("invoice_generation_logs").insert({
+            client_account_id: acc.id,
+            client_name: acc.name || "",
+            reference_month: refMonth,
+            amount,
+            status: "error",
+            error_message: `Falha de rede ao contatar Mercado Pago: ${msg}`,
+            error_details: { stage: "mp_fetch", error: msg },
+            source: "auto",
+          });
+          summary.errors.push(`${acc.name}: falha de rede`);
+          continue;
+        }
 
-        const mpData = await mpRes.json();
         if (!mpRes.ok) {
-          console.error(`[gen] MP error acc=${acc.id}:`, JSON.stringify(mpData));
-          summary.errors.push(`${acc.id}: ${mpData?.message || "MP error"}`);
+          const errMsg = mpData?.message || mpData?.error || `HTTP ${mpRes.status}`;
+          console.error(`[gen] MP error acc=${acc.id} name=${acc.name} status=${mpRes.status}:`, JSON.stringify(mpData));
+          await supabase.from("invoice_generation_logs").insert({
+            client_account_id: acc.id,
+            client_name: acc.name || "",
+            reference_month: refMonth,
+            amount,
+            status: "error",
+            error_message: `Mercado Pago rejeitou a criação da preferência: ${errMsg}`,
+            error_details: {
+              stage: "mp_create_preference",
+              http_status: mpRes.status,
+              mp_response: mpData,
+              mp_cause: mpData?.cause,
+            },
+            source: "auto",
+          });
+          summary.errors.push(`${acc.name}: ${errMsg}`);
           continue;
         }
 
         const checkoutUrl = isTestToken ? mpData.sandbox_init_point : mpData.init_point;
 
-        const { error: invErr } = await supabase.from("subscription_invoices").insert({
+        const { data: insertedInv, error: invErr } = await supabase.from("subscription_invoices").insert({
           client_account_id: acc.id,
           plan_id: acc.plan_id,
           amount,
@@ -132,17 +167,52 @@ Deno.serve(async (req) => {
           mp_preference_id: mpData.id,
           payment_link: checkoutUrl,
           reference_month: refMonth,
-        });
+        }).select().single();
 
         if (invErr) {
-          summary.errors.push(`${acc.id}: ${invErr.message}`);
+          console.error(`[gen] DB insert error acc=${acc.id}:`, invErr.message);
+          await supabase.from("invoice_generation_logs").insert({
+            client_account_id: acc.id,
+            client_name: acc.name || "",
+            reference_month: refMonth,
+            amount,
+            status: "error",
+            error_message: `Preferência criada no MP, mas falhou ao salvar fatura: ${invErr.message}`,
+            error_details: { stage: "db_insert", mp_preference_id: mpData.id, db_error: invErr.message },
+            source: "auto",
+          });
+          summary.errors.push(`${acc.name}: ${invErr.message}`);
           continue;
         }
+
+        await supabase.from("invoice_generation_logs").insert({
+          client_account_id: acc.id,
+          client_name: acc.name || "",
+          reference_month: refMonth,
+          amount,
+          status: "success",
+          error_message: "",
+          error_details: { mp_preference_id: mpData.id, due_date: dueDateStr },
+          source: "auto",
+          acknowledged: true,
+        });
 
         summary.generated++;
         console.log(`[gen] fatura criada acc=${acc.id} ref=${refMonth} due=${dueDateStr}`);
       } catch (e) {
-        summary.errors.push(`${acc.id}: ${(e as Error).message}`);
+        const msg = (e as Error).message;
+        console.error(`[gen] unexpected error acc=${acc.id}:`, msg);
+        await supabase.from("invoice_generation_logs").insert({
+          client_account_id: acc.id,
+          client_name: acc.name || "",
+          reference_month: "",
+          amount: 0,
+          status: "error",
+          error_message: `Erro inesperado: ${msg}`,
+          error_details: { stage: "unexpected", error: msg },
+          source: "auto",
+        });
+        summary.errors.push(`${acc.name || acc.id}: ${msg}`);
       }
     }
 
