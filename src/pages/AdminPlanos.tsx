@@ -21,9 +21,28 @@ interface Plan {
   monthly_value: number;
   active: boolean;
   created_at: string;
+  tier: string;
+  nfe_quota: number | null;
+  features: any;
 }
 
-const emptyForm = { name: "", description: "", monthly_value: 99.90, active: true };
+const TIERS = [
+  { value: "basico",     label: "Básico (sem NF-e)" },
+  { value: "pro_6",      label: "Pro 6 (até 6 NF-e/mês)" },
+  { value: "pro_12",     label: "Pro 12 (até 12 NF-e/mês)" },
+  { value: "pro_20",     label: "Pro 20 (até 20 NF-e/mês)" },
+  { value: "pro_custom", label: "Pro+ (negociado)" },
+];
+
+const emptyForm = {
+  name: "",
+  description: "",
+  monthly_value: 99.90,
+  active: true,
+  tier: "basico",
+  nfe_quota: null as number | null,
+  features: { nfe: false } as { nfe: boolean },
+};
 
 export default function AdminPlanos() {
   const [plans, setPlans] = useState<Plan[]>([]);
