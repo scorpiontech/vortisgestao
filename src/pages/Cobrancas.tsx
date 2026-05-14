@@ -108,8 +108,13 @@ export default function Cobrancas() {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   }
 
+  const currentTier = account?.subscription_plans?.tier ?? "basico";
+  const currentPlanId = account?.subscription_plans?.id ?? account?.plan_id ?? null;
   const planName = account?.subscription_plans?.name || account?.plan || "—";
   const planValue = account?.subscription_plans?.monthly_value || account?.monthly_value || 0;
+  const planQuota = account?.subscription_plans?.nfe_quota ?? null;
+  const hasNfe = currentTier.startsWith("pro");
+  const upgradePlans = plans.filter(p => p.id !== currentPlanId && p.tier.startsWith("pro"));
   const pendingInvoice = invoices.find(i => i.status === "pending" || i.status === "overdue");
   const nextDue = pendingInvoice?.due_date;
 
