@@ -187,6 +187,38 @@ export default function AdminPlanos() {
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nome</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
             <div className="space-y-2"><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tier</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={form.tier}
+                  onChange={e => {
+                    const tier = e.target.value;
+                    const isPro = tier.startsWith("pro");
+                    setForm({
+                      ...form,
+                      tier,
+                      features: { ...form.features, nfe: isPro },
+                      nfe_quota: tier === "basico" ? null : tier === "pro_custom" ? null : form.nfe_quota,
+                    });
+                  }}
+                >
+                  {TIERS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cota NF-e/mês</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.nfe_quota ?? ""}
+                  placeholder={form.tier === "pro_custom" ? "Ilimitado" : "—"}
+                  disabled={form.tier === "basico"}
+                  onChange={e => setForm({ ...form, nfe_quota: e.target.value === "" ? null : parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
             <div className="space-y-2"><Label>Valor Mensal (R$)</Label><Input type="number" step="0.01" value={form.monthly_value} onChange={e => setForm({ ...form, monthly_value: parseFloat(e.target.value) || 0 })} /></div>
             <div className="flex items-center gap-2"><Switch checked={form.active} onCheckedChange={v => setForm({ ...form, active: v })} /><Label>Plano ativo</Label></div>
           </div>
