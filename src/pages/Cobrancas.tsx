@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Calendar, CheckCircle, AlertTriangle, Clock, ExternalLink, Ban } from "lucide-react";
+import { CreditCard, Calendar, CheckCircle, AlertTriangle, Clock, ExternalLink, Ban, Sparkles, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 
 interface Invoice {
   id: string;
@@ -20,12 +21,22 @@ interface Invoice {
 interface Account {
   id: string;
   plan: string;
+  plan_id: string | null;
   monthly_value: number;
   status: string;
   blocked: boolean;
   due_day: number;
   billing_type: string;
-  subscription_plans?: { name: string; monthly_value: number; description: string } | null;
+  subscription_plans?: { id: string; name: string; monthly_value: number; description: string; tier: string; nfe_quota: number | null } | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  description: string;
+  monthly_value: number;
+  tier: string;
+  nfe_quota: number | null;
 }
 
 const STATUS_LABEL: Record<string, { label: string; variant: "default" | "destructive" | "secondary"; icon: any; color: string }> = {
@@ -39,16 +50,25 @@ export default function Cobrancas() {
   const { user } = useAuth();
   const [account, setAccount] = useState<Account | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState<string | null>(null);
 
   const load = async () => {
     if (!user) return;
     const { data: acc } = await supabase
       .from("client_accounts")
-      .select("*, subscription_plans(name, monthly_value, description)")
+      .select("*, subscription_plans(id, name, monthly_value, description, tier, nfe_quota)")
       .eq("user_id", user.id)
       .maybeSingle();
-    setAccount(acc as Account | null);
+    setAccount(acc as unknown as Account | null);
+
+    const { data: pls } = await supabase
+      .from("subscription_plans")
+      .select("id, name, description, monthly_value, tier, nfe_quota")
+      .eq("active", true)
+      .order("monthly_value", { ascending: true });
+    setPlans((pls || []) as Plan[]);
 
     if (acc?.id) {
       const { data: inv } = await supabase
@@ -61,14 +81,40 @@ export default function Cobrancas() {
     setLoading(false);
   };
 
+  const requestUpgrade = async (plan: Plan) => {
+    setRequesting(plan.id);
+    try {
+      await supabase.from("audit_logs").insert({
+        user_id: user!.id,
+        owner_id: user!.id,
+        user_email: user!.email ?? "",
+        user_name: user!.email ?? "",
+        action: "plan_upgrade_request",
+        entity: "subscription_plan",
+        entity_id: plan.id,
+        details: { plan_name: plan.name, plan_tier: plan.tier, monthly_value: plan.monthly_value, current_plan_id: account?.plan_id },
+      });
+      toast.success(`Solicitação enviada! O administrador irá revisar a mudança para ${plan.name}.`);
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível enviar a solicitação.");
+    } finally {
+      setRequesting(null);
+    }
+  };
+
   useEffect(() => { load(); }, [user]);
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   }
 
+  const currentTier = account?.subscription_plans?.tier ?? "basico";
+  const currentPlanId = account?.subscription_plans?.id ?? account?.plan_id ?? null;
   const planName = account?.subscription_plans?.name || account?.plan || "—";
   const planValue = account?.subscription_plans?.monthly_value || account?.monthly_value || 0;
+  const planQuota = account?.subscription_plans?.nfe_quota ?? null;
+  const hasNfe = currentTier.startsWith("pro");
+  const upgradePlans = plans.filter(p => p.id !== currentPlanId && p.tier.startsWith("pro"));
   const pendingInvoice = invoices.find(i => i.status === "pending" || i.status === "overdue");
   const nextDue = pendingInvoice?.due_date;
 
@@ -103,8 +149,17 @@ export default function Cobrancas() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{planName}</div>
+            <div className="text-2xl font-bold flex items-center gap-2">
+              {planName}
+              {hasNfe && <Badge className="bg-primary text-primary-foreground gap-1"><Sparkles className="h-3 w-3" />Pro</Badge>}
+            </div>
             <p className="text-xs text-muted-foreground">{Number(planValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / mês</p>
+            {hasNfe && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                {planQuota === null ? "NF-e ilimitada" : `Até ${planQuota} NF-e/mês`}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -132,6 +187,64 @@ export default function Cobrancas() {
           </CardContent>
         </Card>
       </div>
+
+      {upgradePlans.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              {hasNfe ? "Mude de plano" : "Faça upgrade para o Pro"}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {hasNfe
+                ? "Precisa de mais cota de notas? Escolha um tier maior."
+                : "Os planos Pro liberam a emissão de NFC-e direto do PDV. Escolha quantas notas você precisa por mês."}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {upgradePlans.map((p) => {
+                const isCurrent = p.id === currentPlanId;
+                const isHigher = Number(p.monthly_value) > Number(planValue);
+                return (
+                  <Card key={p.id} className={isHigher ? "border-primary" : ""}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{p.name}</CardTitle>
+                        {isHigher && <Badge className="bg-primary text-primary-foreground text-[10px]">Upgrade</Badge>}
+                      </div>
+                      <p className="text-2xl font-bold mt-1">
+                        {Number(p.monthly_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        <span className="text-xs font-normal text-muted-foreground">/mês</span>
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <ul className="space-y-1.5 text-sm">
+                        <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary" />
+                          {p.nfe_quota === null ? "NF-e ilimitada" : `Até ${p.nfe_quota} NFC-e/mês`}
+                        </li>
+                        <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary" />Tudo do plano Básico</li>
+                        <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary" />Impressão DANFE no PDV</li>
+                      </ul>
+                      <Button
+                        className="w-full"
+                        variant={isHigher ? "default" : "outline"}
+                        disabled={isCurrent || requesting === p.id}
+                        onClick={() => requestUpgrade(p)}
+                      >
+                        {requesting === p.id ? "Enviando..." : isCurrent ? "Plano atual" : "Solicitar upgrade"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Precisa de mais de 20 notas por mês? Entre em contato — temos plano <strong>Pro+</strong> com valor negociado.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

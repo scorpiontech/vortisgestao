@@ -820,30 +820,39 @@ export type Database = {
           active: boolean
           created_at: string
           description: string
+          features: Json
           id: string
           monthly_value: number
           mp_plan_id: string | null
           name: string
+          nfe_quota: number | null
+          tier: string
           updated_at: string
         }
         Insert: {
           active?: boolean
           created_at?: string
           description?: string
+          features?: Json
           id?: string
           monthly_value?: number
           mp_plan_id?: string | null
           name: string
+          nfe_quota?: number | null
+          tier?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
           created_at?: string
           description?: string
+          features?: Json
           id?: string
           monthly_value?: number
           mp_plan_id?: string | null
           name?: string
+          nfe_quota?: number | null
+          tier?: string
           updated_at?: string
         }
         Relationships: []

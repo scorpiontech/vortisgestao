@@ -21,9 +21,28 @@ interface Plan {
   monthly_value: number;
   active: boolean;
   created_at: string;
+  tier: string;
+  nfe_quota: number | null;
+  features: any;
 }
 
-const emptyForm = { name: "", description: "", monthly_value: 99.90, active: true };
+const TIERS = [
+  { value: "basico",     label: "Básico (sem NF-e)" },
+  { value: "pro_6",      label: "Pro 6 (até 6 NF-e/mês)" },
+  { value: "pro_12",     label: "Pro 12 (até 12 NF-e/mês)" },
+  { value: "pro_20",     label: "Pro 20 (até 20 NF-e/mês)" },
+  { value: "pro_custom", label: "Pro+ (negociado)" },
+];
+
+const emptyForm = {
+  name: "",
+  description: "",
+  monthly_value: 99.90,
+  active: true,
+  tier: "basico",
+  nfe_quota: null as number | null,
+  features: { nfe: false } as { nfe: boolean },
+};
 
 export default function AdminPlanos() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -49,7 +68,15 @@ export default function AdminPlanos() {
   const openNew = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (p: Plan) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description, monthly_value: Number(p.monthly_value), active: p.active });
+    setForm({
+      name: p.name,
+      description: p.description,
+      monthly_value: Number(p.monthly_value),
+      active: p.active,
+      tier: p.tier ?? "basico",
+      nfe_quota: p.nfe_quota,
+      features: (p.features ?? { nfe: false }) as { nfe: boolean },
+    });
     setDialogOpen(true);
   };
 
@@ -110,7 +137,8 @@ export default function AdminPlanos() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>NF-e/mês</TableHead>
                   <TableHead>Valor Mensal</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -118,13 +146,23 @@ export default function AdminPlanos() {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : plans.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum plano cadastrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum plano cadastrado</TableCell></TableRow>
                 ) : plans.map(p => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{p.description || "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      {p.name}
+                      <p className="text-xs text-muted-foreground font-normal max-w-xs truncate">{p.description || "—"}</p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={p.tier?.startsWith("pro") ? "default" : "secondary"} className={p.tier?.startsWith("pro") ? "bg-primary" : ""}>
+                        {TIERS.find(t => t.value === p.tier)?.label.split(" (")[0] ?? p.tier}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {p.tier === "basico" ? "—" : p.nfe_quota === null ? "Ilimitado" : `Até ${p.nfe_quota}`}
+                    </TableCell>
                     <TableCell>{Number(p.monthly_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
                     <TableCell>
                       <Badge variant={p.active ? "default" : "secondary"} className={p.active ? "bg-green-600" : ""}>
@@ -149,6 +187,38 @@ export default function AdminPlanos() {
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nome</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
             <div className="space-y-2"><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tier</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={form.tier}
+                  onChange={e => {
+                    const tier = e.target.value;
+                    const isPro = tier.startsWith("pro");
+                    setForm({
+                      ...form,
+                      tier,
+                      features: { ...form.features, nfe: isPro },
+                      nfe_quota: tier === "basico" ? null : tier === "pro_custom" ? null : form.nfe_quota,
+                    });
+                  }}
+                >
+                  {TIERS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Cota NF-e/mês</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.nfe_quota ?? ""}
+                  placeholder={form.tier === "pro_custom" ? "Ilimitado" : "—"}
+                  disabled={form.tier === "basico"}
+                  onChange={e => setForm({ ...form, nfe_quota: e.target.value === "" ? null : parseInt(e.target.value) })}
+                />
+              </div>
+            </div>
             <div className="space-y-2"><Label>Valor Mensal (R$)</Label><Input type="number" step="0.01" value={form.monthly_value} onChange={e => setForm({ ...form, monthly_value: parseFloat(e.target.value) || 0 })} /></div>
             <div className="flex items-center gap-2"><Switch checked={form.active} onCheckedChange={v => setForm({ ...form, active: v })} /><Label>Plano ativo</Label></div>
           </div>
