@@ -240,6 +240,9 @@ export default function AdminDashboard() {
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/faturas")}>
             <Receipt className="h-4 w-4 mr-2" />Faturas
           </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/faturas-automaticas")}>
+            <Receipt className="h-4 w-4 mr-2" />Automáticas
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/logs-faturas")} className="relative">
             <Bell className="h-4 w-4 mr-2" />Logs
             {unreadLogs > 0 && (
