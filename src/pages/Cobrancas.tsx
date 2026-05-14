@@ -188,6 +188,64 @@ export default function Cobrancas() {
         </Card>
       </div>
 
+      {upgradePlans.length > 0 && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              {hasNfe ? "Mude de plano" : "Faça upgrade para o Pro"}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {hasNfe
+                ? "Precisa de mais cota de notas? Escolha um tier maior."
+                : "Os planos Pro liberam a emissão de NFC-e direto do PDV. Escolha quantas notas você precisa por mês."}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              {upgradePlans.map((p) => {
+                const isCurrent = p.id === currentPlanId;
+                const isHigher = Number(p.monthly_value) > Number(planValue);
+                return (
+                  <Card key={p.id} className={isHigher ? "border-primary" : ""}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-base">{p.name}</CardTitle>
+                        {isHigher && <Badge className="bg-primary text-primary-foreground text-[10px]">Upgrade</Badge>}
+                      </div>
+                      <p className="text-2xl font-bold mt-1">
+                        {Number(p.monthly_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        <span className="text-xs font-normal text-muted-foreground">/mês</span>
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <ul className="space-y-1.5 text-sm">
+                        <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary" />
+                          {p.nfe_quota === null ? "NF-e ilimitada" : `Até ${p.nfe_quota} NFC-e/mês`}
+                        </li>
+                        <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary" />Tudo do plano Básico</li>
+                        <li className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-primary" />Impressão DANFE no PDV</li>
+                      </ul>
+                      <Button
+                        className="w-full"
+                        variant={isHigher ? "default" : "outline"}
+                        disabled={isCurrent || requesting === p.id}
+                        onClick={() => requestUpgrade(p)}
+                      >
+                        {requesting === p.id ? "Enviando..." : isCurrent ? "Plano atual" : "Solicitar upgrade"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              Precisa de mais de 20 notas por mês? Entre em contato — temos plano <strong>Pro+</strong> com valor negociado.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Histórico de Faturas</CardTitle>
