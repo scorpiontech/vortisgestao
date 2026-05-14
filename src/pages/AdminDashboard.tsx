@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText } from "lucide-react";
+import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText, Bell } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -52,6 +52,7 @@ export default function AdminDashboard() {
   const [chargeOpen, setChargeOpen] = useState(false);
   const [chargeForm, setChargeForm] = useState({ due_date: "", reference_month: "", custom_amount: "" });
   const [generating, setGenerating] = useState(false);
+  const [unreadLogs, setUnreadLogs] = useState(0);
 
   const navigate = useNavigate();
 
@@ -68,7 +69,16 @@ export default function AdminDashboard() {
     setPlans(data || []);
   };
 
-  useEffect(() => { fetchAccounts(); fetchPlans(); }, []);
+  const fetchUnreadLogs = async () => {
+    const { count } = await supabase
+      .from("invoice_generation_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "error")
+      .eq("acknowledged", false);
+    setUnreadLogs(count || 0);
+  };
+
+  useEffect(() => { fetchAccounts(); fetchPlans(); fetchUnreadLogs(); }, []);
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate("/admin"); };
 
@@ -229,6 +239,14 @@ export default function AdminDashboard() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/faturas")}>
             <Receipt className="h-4 w-4 mr-2" />Faturas
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/admin/logs-faturas")} className="relative">
+            <Bell className="h-4 w-4 mr-2" />Logs
+            {unreadLogs > 0 && (
+              <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                {unreadLogs}
+              </span>
+            )}
           </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/relatorios")}>
             <Receipt className="h-4 w-4 mr-2" />Relatórios
