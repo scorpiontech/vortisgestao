@@ -68,7 +68,15 @@ export default function AdminPlanos() {
   const openNew = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (p: Plan) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description, monthly_value: Number(p.monthly_value), active: p.active });
+    setForm({
+      name: p.name,
+      description: p.description,
+      monthly_value: Number(p.monthly_value),
+      active: p.active,
+      tier: p.tier ?? "basico",
+      nfe_quota: p.nfe_quota,
+      features: (p.features ?? { nfe: false }) as { nfe: boolean },
+    });
     setDialogOpen(true);
   };
 
