@@ -290,15 +290,24 @@ export default function OrdensServico() {
     }
     setPayingOrder(order);
     setPayMethod("");
+    setPayDiscount(0);
     setPayDialogOpen(true);
   };
 
   const handlePay = async () => {
     if (!payingOrder || !payMethod) { toast.error("Selecione a forma de pagamento"); return; }
+    const discount = Math.max(0, Number(payDiscount) || 0);
+    if (discount > payingOrder.budget_total) {
+      toast.error("O desconto não pode ser maior que o valor do orçamento");
+      return;
+    }
+    const finalAmount = Number((payingOrder.budget_total - discount).toFixed(2));
+
     const { error } = await supabase.from("service_orders").update({
       paid: true,
       paid_at: new Date().toISOString(),
       payment_method: payMethod,
+      discount,
     }).eq("id", payingOrder.id);
     if (error) { toast.error("Erro ao registrar pagamento"); return; }
 
@@ -306,14 +315,14 @@ export default function OrdensServico() {
     await supabase.from("transactions").insert({
       user_id: effectiveUserId!,
       type: "entrada",
-      description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}`,
-      amount: payingOrder.budget_total,
+      description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}${discount > 0 ? ` (desc. R$ ${discount.toFixed(2)})` : ""}`,
+      amount: finalAmount,
       category: "Ordem de Serviço",
       payment_method: payMethod,
     });
 
     toast.success("Pagamento registrado!");
-    logAudit({ action: "payment", entity: "service_order", entityId: payingOrder.id, details: { amount: payingOrder.budget_total, payment_method: payMethod } });
+    logAudit({ action: "payment", entity: "service_order", entityId: payingOrder.id, details: { amount: finalAmount, discount, payment_method: payMethod } });
     setPayDialogOpen(false);
     fetchAll();
   };
