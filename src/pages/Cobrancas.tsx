@@ -252,7 +252,7 @@ export default function Cobrancas() {
                         disabled={isCurrent || requesting === p.id}
                         onClick={() => requestUpgrade(p)}
                       >
-                        {requesting === p.id ? "Enviando..." : isCurrent ? "Plano atual" : "Solicitar upgrade"}
+                        {requesting === p.id ? "Gerando fatura..." : isCurrent ? "Plano atual" : isHigher ? "Fazer upgrade agora" : "Mudar para este plano"}
                       </Button>
                     </CardContent>
                   </Card>
