@@ -161,11 +161,24 @@ export default function Cobrancas() {
               {hasNfe && <Badge className="bg-primary text-primary-foreground gap-1"><Sparkles className="h-3 w-3" />Pro</Badge>}
             </div>
             <p className="text-xs text-muted-foreground">{Number(planValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / mês</p>
-            {hasNfe && (
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {planQuota === null ? "NF-e ilimitada" : `Até ${planQuota} NF-e/mês`}
-              </p>
+            {hasNfe && quota && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  {quota.unlimited
+                    ? "NF-e ilimitada"
+                    : `${quota.used} / ${quota.quota} NFC-e usadas neste mês`}
+                </p>
+                {!quota.unlimited && quota.quota && (
+                  <Progress value={usagePct} className={quotaBlocked ? "[&>div]:bg-destructive" : nearLimit ? "[&>div]:bg-yellow-500" : ""} />
+                )}
+                {quotaBlocked && (
+                  <p className="text-xs text-destructive font-medium">Cota mensal esgotada — faça upgrade para emitir mais.</p>
+                )}
+                {nearLimit && !quotaBlocked && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">Você já usou {usagePct}% da cota mensal.</p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
