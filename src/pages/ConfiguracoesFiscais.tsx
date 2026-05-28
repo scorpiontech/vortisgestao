@@ -22,6 +22,7 @@ interface FiscalSettings {
   csosn_default: string;
   ambiente: string;
   provider: string;
+  provider_token: string;
   certificate_filename: string;
   certificate_subject: string;
   certificate_expires_at: string | null;
@@ -38,6 +39,7 @@ const empty: FiscalSettings = {
   csosn_default: "102",
   ambiente: "homologacao",
   provider: "focusnfe",
+  provider_token: "",
   certificate_filename: "",
   certificate_subject: "",
   certificate_expires_at: null,
@@ -133,6 +135,7 @@ export default function ConfiguracoesFiscais() {
               csosn_default: form.csosn_default,
               ambiente: form.ambiente,
               provider: form.provider,
+              provider_token: form.provider_token,
             },
           },
         });
@@ -167,6 +170,7 @@ export default function ConfiguracoesFiscais() {
           csosn_default: form.csosn_default,
           ambiente: form.ambiente,
           provider: form.provider,
+          provider_token: form.provider_token,
         }, { onConflict: "owner_id" });
         if (error) { toast.error("Erro ao salvar: " + error.message); return; }
         toast.success("Configurações salvas!");
