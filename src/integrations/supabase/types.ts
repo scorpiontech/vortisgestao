@@ -442,6 +442,75 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_settings: {
+        Row: {
+          ambiente: string
+          certificate_expires_at: string | null
+          certificate_filename: string
+          certificate_password_encrypted: string
+          certificate_path: string
+          certificate_subject: string
+          certificate_valid: boolean
+          cfop_default: string
+          cnpj: string
+          created_at: string
+          csc_id: string
+          csc_token: string
+          csosn_default: string
+          id: string
+          ie: string
+          owner_id: string
+          provider: string
+          provider_token: string
+          regime_tributario: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          certificate_expires_at?: string | null
+          certificate_filename?: string
+          certificate_password_encrypted?: string
+          certificate_path?: string
+          certificate_subject?: string
+          certificate_valid?: boolean
+          cfop_default?: string
+          cnpj?: string
+          created_at?: string
+          csc_id?: string
+          csc_token?: string
+          csosn_default?: string
+          id?: string
+          ie?: string
+          owner_id: string
+          provider?: string
+          provider_token?: string
+          regime_tributario?: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          certificate_expires_at?: string | null
+          certificate_filename?: string
+          certificate_password_encrypted?: string
+          certificate_path?: string
+          certificate_subject?: string
+          certificate_valid?: boolean
+          cfop_default?: string
+          cnpj?: string
+          created_at?: string
+          csc_id?: string
+          csc_token?: string
+          csosn_default?: string
+          id?: string
+          ie?: string
+          owner_id?: string
+          provider?: string
+          provider_token?: string
+          regime_tributario?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_generation_logs: {
         Row: {
           acknowledged: boolean
@@ -694,6 +763,7 @@ export type Database = {
           created_at: string
           customer_id: string | null
           customer_name: string
+          discount: number
           id: string
           opened_at: string
           paid: boolean
@@ -712,6 +782,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_name?: string
+          discount?: number
           id?: string
           opened_at?: string
           paid?: boolean
@@ -730,6 +801,7 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           customer_name?: string
+          discount?: number
           id?: string
           opened_at?: string
           paid?: boolean

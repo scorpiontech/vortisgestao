@@ -95,6 +95,7 @@ export default function OrdensServico() {
   const [form, setForm] = useState(emptyOrder);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [payMethod, setPayMethod] = useState("");
+  const [payDiscount, setPayDiscount] = useState(0);
   const [payingOrder, setPayingOrder] = useState<ServiceOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState("todas");
   const [hasCaixaAberto, setHasCaixaAberto] = useState(false);
@@ -289,15 +290,24 @@ export default function OrdensServico() {
     }
     setPayingOrder(order);
     setPayMethod("");
+    setPayDiscount(0);
     setPayDialogOpen(true);
   };
 
   const handlePay = async () => {
     if (!payingOrder || !payMethod) { toast.error("Selecione a forma de pagamento"); return; }
+    const discount = Math.max(0, Number(payDiscount) || 0);
+    if (discount > payingOrder.budget_total) {
+      toast.error("O desconto não pode ser maior que o valor do orçamento");
+      return;
+    }
+    const finalAmount = Number((payingOrder.budget_total - discount).toFixed(2));
+
     const { error } = await supabase.from("service_orders").update({
       paid: true,
       paid_at: new Date().toISOString(),
       payment_method: payMethod,
+      discount,
     }).eq("id", payingOrder.id);
     if (error) { toast.error("Erro ao registrar pagamento"); return; }
 
@@ -305,14 +315,14 @@ export default function OrdensServico() {
     await supabase.from("transactions").insert({
       user_id: effectiveUserId!,
       type: "entrada",
-      description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}`,
-      amount: payingOrder.budget_total,
+      description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}${discount > 0 ? ` (desc. R$ ${discount.toFixed(2)})` : ""}`,
+      amount: finalAmount,
       category: "Ordem de Serviço",
       payment_method: payMethod,
     });
 
     toast.success("Pagamento registrado!");
-    logAudit({ action: "payment", entity: "service_order", entityId: payingOrder.id, details: { amount: payingOrder.budget_total, payment_method: payMethod } });
+    logAudit({ action: "payment", entity: "service_order", entityId: payingOrder.id, details: { amount: finalAmount, discount, payment_method: payMethod } });
     setPayDialogOpen(false);
     fetchAll();
   };
@@ -661,6 +671,22 @@ export default function OrdensServico() {
           {payingOrder && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Valor do orçamento: <strong className="text-foreground">R$ {Number(payingOrder.budget_total).toFixed(2)}</strong></p>
+              <div className="space-y-2">
+                <Label>Desconto (R$)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={payingOrder.budget_total}
+                  step="0.01"
+                  value={payDiscount}
+                  onChange={(e) => setPayDiscount(Number(e.target.value))}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="rounded-md bg-muted px-3 py-2 text-sm flex justify-between">
+                <span className="text-muted-foreground">Total a receber:</span>
+                <strong>R$ {Math.max(0, payingOrder.budget_total - (Number(payDiscount) || 0)).toFixed(2)}</strong>
+              </div>
               <div className="space-y-2">
                 <Label>Forma de Pagamento *</Label>
                 <Select value={payMethod} onValueChange={setPayMethod}>
