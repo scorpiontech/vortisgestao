@@ -672,6 +672,22 @@ export default function OrdensServico() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Valor do orçamento: <strong className="text-foreground">R$ {Number(payingOrder.budget_total).toFixed(2)}</strong></p>
               <div className="space-y-2">
+                <Label>Desconto (R$)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={payingOrder.budget_total}
+                  step="0.01"
+                  value={payDiscount}
+                  onChange={(e) => setPayDiscount(Number(e.target.value))}
+                  placeholder="0,00"
+                />
+              </div>
+              <div className="rounded-md bg-muted px-3 py-2 text-sm flex justify-between">
+                <span className="text-muted-foreground">Total a receber:</span>
+                <strong>R$ {Math.max(0, payingOrder.budget_total - (Number(payDiscount) || 0)).toFixed(2)}</strong>
+              </div>
+              <div className="space-y-2">
                 <Label>Forma de Pagamento *</Label>
                 <Select value={payMethod} onValueChange={setPayMethod}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
