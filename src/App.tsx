@@ -34,6 +34,7 @@ import AdminRelatorios from "./pages/AdminRelatorios";
 import AdminFaturas from "./pages/AdminFaturas";
 import AdminLogsFaturas from "./pages/AdminLogsFaturas";
 import AdminFaturasAutomaticas from "./pages/AdminFaturasAutomaticas";
+import ConfiguracoesFiscais from "./pages/ConfiguracoesFiscais";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
