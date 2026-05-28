@@ -442,6 +442,33 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_quota_usage: {
+        Row: {
+          authorized_count: number
+          created_at: string
+          id: string
+          owner_id: string
+          updated_at: string
+          year_month: string
+        }
+        Insert: {
+          authorized_count?: number
+          created_at?: string
+          id?: string
+          owner_id: string
+          updated_at?: string
+          year_month: string
+        }
+        Update: {
+          authorized_count?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          updated_at?: string
+          year_month?: string
+        }
+        Relationships: []
+      }
       fiscal_settings: {
         Row: {
           ambiente: string
@@ -831,6 +858,7 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          metadata: Json
           mp_payment_id: string | null
           mp_preference_id: string | null
           paid_at: string | null
@@ -846,6 +874,7 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          metadata?: Json
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
@@ -861,6 +890,7 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          metadata?: Json
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           paid_at?: string | null
@@ -1066,6 +1096,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_nfce_quota: { Args: { _owner_id: string }; Returns: Json }
       cleanup_old_barcode_scan_logs: { Args: never; Returns: number }
       get_effective_user_id: { Args: { _user_id: string }; Returns: string }
       get_member_role: { Args: { _user_id: string }; Returns: string }
