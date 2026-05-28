@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
       csosn_default: settings?.csosn_default ?? "102",
       ambiente: settings?.ambiente ?? "homologacao",
       provider: settings?.provider ?? "focusnfe",
+      provider_token: settings?.provider_token ?? "",
       certificate_path: certPath,
       certificate_filename: filename,
       certificate_password_encrypted: encryptedPwd,

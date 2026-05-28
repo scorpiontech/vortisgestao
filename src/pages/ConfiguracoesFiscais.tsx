@@ -22,6 +22,7 @@ interface FiscalSettings {
   csosn_default: string;
   ambiente: string;
   provider: string;
+  provider_token: string;
   certificate_filename: string;
   certificate_subject: string;
   certificate_expires_at: string | null;
@@ -38,6 +39,7 @@ const empty: FiscalSettings = {
   csosn_default: "102",
   ambiente: "homologacao",
   provider: "focusnfe",
+  provider_token: "",
   certificate_filename: "",
   certificate_subject: "",
   certificate_expires_at: null,
@@ -133,6 +135,7 @@ export default function ConfiguracoesFiscais() {
               csosn_default: form.csosn_default,
               ambiente: form.ambiente,
               provider: form.provider,
+              provider_token: form.provider_token,
             },
           },
         });
@@ -167,6 +170,7 @@ export default function ConfiguracoesFiscais() {
           csosn_default: form.csosn_default,
           ambiente: form.ambiente,
           provider: form.provider,
+          provider_token: form.provider_token,
         }, { onConflict: "owner_id" });
         if (error) { toast.error("Erro ao salvar: " + error.message); return; }
         toast.success("Configurações salvas!");
@@ -180,12 +184,43 @@ export default function ConfiguracoesFiscais() {
   const certExpiringSoon = form.certificate_expires_at && !certExpired &&
     new Date(form.certificate_expires_at).getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
 
+  const readyToEmit =
+    validateCNPJ(form.cnpj) &&
+    !!form.ie &&
+    !!form.csc_id &&
+    !!form.csc_token &&
+    !!form.provider_token &&
+    form.certificate_valid &&
+    !certExpired;
+
+  const missing: string[] = [];
+  if (!validateCNPJ(form.cnpj)) missing.push("CNPJ");
+  if (!form.ie) missing.push("Inscrição Estadual");
+  if (!form.csc_id || !form.csc_token) missing.push("CSC (ID + Token)");
+  if (!form.provider_token) missing.push("Token do provedor fiscal");
+  if (!form.certificate_valid) missing.push("Certificado A1");
+  if (certExpired) missing.push("Certificado vencido");
+
   return (
     <div className="p-6 space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Configurações Fiscais</h1>
-        <p className="text-muted-foreground text-sm">Dados necessários para emissão de NFC-e (modelo 65).</p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Configurações Fiscais</h1>
+          <p className="text-muted-foreground text-sm">Dados necessários para emissão de NFC-e (modelo 65).</p>
+        </div>
+        <Badge variant={readyToEmit ? "default" : "secondary"} className={readyToEmit ? "bg-green-600 hover:bg-green-700 gap-1" : "gap-1"}>
+          {readyToEmit ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
+          {readyToEmit ? "Pronto para emitir" : "Configuração pendente"}
+        </Badge>
       </div>
+
+      {!readyToEmit && missing.length > 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Faltam itens para habilitar a emissão</AlertTitle>
+          <AlertDescription>{missing.join(" • ")}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -275,7 +310,10 @@ export default function ConfiguracoesFiscais() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Provedor e Ambiente</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Provedor Fiscal e Ambiente</CardTitle>
+          <CardDescription>API terceirizada que assina e transmite as notas para a SEFAZ.</CardDescription>
+        </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Provedor</Label>
@@ -284,6 +322,8 @@ export default function ConfiguracoesFiscais() {
               <SelectContent>
                 <SelectItem value="focusnfe">Focus NFe</SelectItem>
                 <SelectItem value="plugnotas">PlugNotas</SelectItem>
+                <SelectItem value="nfeio">NFe.io</SelectItem>
+                <SelectItem value="enotas">eNotas</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -297,6 +337,19 @@ export default function ConfiguracoesFiscais() {
               </SelectContent>
             </Select>
             <div className="pt-1"><Badge variant={form.ambiente === "producao" ? "default" : "secondary"}>{form.ambiente === "producao" ? "Notas com valor fiscal" : "Notas sem valor fiscal"}</Badge></div>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Token / API Key do provedor</Label>
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={form.provider_token}
+              onChange={(e) => setForm({ ...form, provider_token: e.target.value })}
+              placeholder="Token gerado no painel do provedor"
+            />
+            <p className="text-xs text-muted-foreground">
+              Encontrado no painel do provedor: Focus NFe → "Tokens"; PlugNotas → "Integrações"; NFe.io → "API Keys".
+            </p>
           </div>
         </CardContent>
       </Card>

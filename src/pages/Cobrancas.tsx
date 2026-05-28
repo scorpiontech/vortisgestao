@@ -4,9 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { CreditCard, Calendar, CheckCircle, AlertTriangle, Clock, ExternalLink, Ban, Sparkles, FileText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "sonner";
+import { useFiscalQuota } from "@/hooks/useFiscalQuota";
 
 interface Invoice {
   id: string;
@@ -48,6 +50,7 @@ const STATUS_LABEL: Record<string, { label: string; variant: "default" | "destru
 
 export default function Cobrancas() {
   const { user } = useAuth();
+  const { quota, usagePct, nearLimit, blocked: quotaBlocked } = useFiscalQuota();
   const [account, setAccount] = useState<Account | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -84,19 +87,23 @@ export default function Cobrancas() {
   const requestUpgrade = async (plan: Plan) => {
     setRequesting(plan.id);
     try {
-      await supabase.from("audit_logs").insert({
-        user_id: user!.id,
-        owner_id: user!.id,
-        user_email: user!.email ?? "",
-        user_name: user!.email ?? "",
-        action: "plan_upgrade_request",
-        entity: "subscription_plan",
-        entity_id: plan.id,
-        details: { plan_name: plan.name, plan_tier: plan.tier, monthly_value: plan.monthly_value, current_plan_id: account?.plan_id },
+      const { data, error } = await supabase.functions.invoke("request-plan-upgrade", {
+        body: { target_plan_id: plan.id },
       });
-      toast.success(`Solicitação enviada! O administrador irá revisar a mudança para ${plan.name}.`);
+      if (error || (data as any)?.error) {
+        toast.error((data as any)?.error || error?.message || "Falha ao gerar fatura");
+        return;
+      }
+      const link = (data as any).payment_link;
+      if ((data as any).downgrade) {
+        toast.success((data as any).message || "Downgrade agendado");
+      } else if (link) {
+        toast.success(`Fatura proporcional de ${Number((data as any).amount).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} criada. Abrindo checkout...`);
+        window.open(link, "_blank", "noopener,noreferrer");
+      }
+      await load();
     } catch (err: any) {
-      toast.error(err.message || "Não foi possível enviar a solicitação.");
+      toast.error(err.message || "Não foi possível processar o upgrade.");
     } finally {
       setRequesting(null);
     }
@@ -154,11 +161,24 @@ export default function Cobrancas() {
               {hasNfe && <Badge className="bg-primary text-primary-foreground gap-1"><Sparkles className="h-3 w-3" />Pro</Badge>}
             </div>
             <p className="text-xs text-muted-foreground">{Number(planValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} / mês</p>
-            {hasNfe && (
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {planQuota === null ? "NF-e ilimitada" : `Até ${planQuota} NF-e/mês`}
-              </p>
+            {hasNfe && quota && (
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  {quota.unlimited
+                    ? "NF-e ilimitada"
+                    : `${quota.used} / ${quota.quota} NFC-e usadas neste mês`}
+                </p>
+                {!quota.unlimited && quota.quota && (
+                  <Progress value={usagePct} className={quotaBlocked ? "[&>div]:bg-destructive" : nearLimit ? "[&>div]:bg-yellow-500" : ""} />
+                )}
+                {quotaBlocked && (
+                  <p className="text-xs text-destructive font-medium">Cota mensal esgotada — faça upgrade para emitir mais.</p>
+                )}
+                {nearLimit && !quotaBlocked && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">Você já usou {usagePct}% da cota mensal.</p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -232,7 +252,7 @@ export default function Cobrancas() {
                         disabled={isCurrent || requesting === p.id}
                         onClick={() => requestUpgrade(p)}
                       >
-                        {requesting === p.id ? "Enviando..." : isCurrent ? "Plano atual" : "Solicitar upgrade"}
+                        {requesting === p.id ? "Gerando fatura..." : isCurrent ? "Plano atual" : isHigher ? "Fazer upgrade agora" : "Mudar para este plano"}
                       </Button>
                     </CardContent>
                   </Card>
