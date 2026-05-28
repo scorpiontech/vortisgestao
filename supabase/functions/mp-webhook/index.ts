@@ -68,9 +68,16 @@ Deno.serve(async (req) => {
 
     await supabase.from("subscription_invoices").update(updateData).eq("id", invoice.id);
 
-    // se pago: desbloqueia conta
+    // se pago: desbloqueia conta e aplica upgrade de plano se houver
     if (newStatus === "paid") {
-      await supabase.from("client_accounts").update({ blocked: false, blocked_at: null, status: "ativo" }).eq("id", clientAccountId);
+      const accountUpdate: Record<string, unknown> = { blocked: false, blocked_at: null, status: "ativo" };
+      const meta = (invoice as any).metadata as Record<string, unknown> | null;
+      if (meta && meta.upgrade && meta.target_plan_id) {
+        accountUpdate.plan_id = meta.target_plan_id;
+        if (meta.target_plan_name) accountUpdate.plan = meta.target_plan_name;
+        if (meta.target_monthly_value) accountUpdate.monthly_value = meta.target_monthly_value;
+      }
+      await supabase.from("client_accounts").update(accountUpdate).eq("id", clientAccountId);
     }
 
     return new Response(JSON.stringify({ ok: true, status: newStatus }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
