@@ -70,11 +70,12 @@ const allMenuItems: MenuItem[] = [
   { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList, masterOnly: true },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3, masterOnly: true },
   { title: "Configurações", url: "/configuracoes", icon: Settings, masterOnly: true, children: [
-    { title: "Cadastro", url: "/cadastro", icon: UserCog },
-    { title: "Usuários", url: "/usuarios", icon: UsersRound },
     { title: "Auditoria", url: "/auditoria", icon: ScrollText },
+    { title: "Cadastro", url: "/cadastro", icon: UserCog },
     { title: "Cobranças", url: "/cobrancas", icon: Receipt },
+    { title: "Configurações Fiscais", url: "/configuracoes-fiscais", icon: FileText },
     { title: "Logs de Leituras", url: "/logs-leituras", icon: ScanBarcode },
+    { title: "Usuários", url: "/usuarios", icon: UsersRound },
   ]},
 ];
 
