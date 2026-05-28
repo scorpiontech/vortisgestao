@@ -310,7 +310,10 @@ export default function ConfiguracoesFiscais() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Provedor e Ambiente</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Provedor Fiscal e Ambiente</CardTitle>
+          <CardDescription>API terceirizada que assina e transmite as notas para a SEFAZ.</CardDescription>
+        </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Provedor</Label>
@@ -319,6 +322,8 @@ export default function ConfiguracoesFiscais() {
               <SelectContent>
                 <SelectItem value="focusnfe">Focus NFe</SelectItem>
                 <SelectItem value="plugnotas">PlugNotas</SelectItem>
+                <SelectItem value="nfeio">NFe.io</SelectItem>
+                <SelectItem value="enotas">eNotas</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -332,6 +337,19 @@ export default function ConfiguracoesFiscais() {
               </SelectContent>
             </Select>
             <div className="pt-1"><Badge variant={form.ambiente === "producao" ? "default" : "secondary"}>{form.ambiente === "producao" ? "Notas com valor fiscal" : "Notas sem valor fiscal"}</Badge></div>
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Token / API Key do provedor</Label>
+            <Input
+              type="password"
+              autoComplete="new-password"
+              value={form.provider_token}
+              onChange={(e) => setForm({ ...form, provider_token: e.target.value })}
+              placeholder="Token gerado no painel do provedor"
+            />
+            <p className="text-xs text-muted-foreground">
+              Encontrado no painel do provedor: Focus NFe → "Tokens"; PlugNotas → "Integrações"; NFe.io → "API Keys".
+            </p>
           </div>
         </CardContent>
       </Card>
