@@ -95,6 +95,7 @@ export default function OrdensServico() {
   const [form, setForm] = useState(emptyOrder);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [payMethod, setPayMethod] = useState("");
+  const [payDiscount, setPayDiscount] = useState(0);
   const [payingOrder, setPayingOrder] = useState<ServiceOrder | null>(null);
   const [statusFilter, setStatusFilter] = useState("todas");
   const [hasCaixaAberto, setHasCaixaAberto] = useState(false);
