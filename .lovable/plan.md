@@ -1,72 +1,30 @@
-# Plano de execução
+## Consulta automática de CNPJ no cadastro de clientes
 
-## 1. Linter de segurança Supabase
+Adicionar busca automática dos dados do CNPJ na Receita Federal ao cadastrar/editar cliente Pessoa Jurídica, preenchendo nome, endereço, telefone e e-mail.
 
-Os warnings remanescentes do linter (`SECURITY DEFINER executável por authenticated`, `extension in public`) já foram avaliados como necessários ao funcionamento das RLS. Vou aplicar o que ainda pode ser endurecido sem quebrar nada:
+### Como funciona para o usuário
 
-- Recriar as funções `get_effective_user_id`, `is_client_blocked`, `get_member_role`, `has_role` mantendo `SECURITY DEFINER` mas com `REVOKE EXECUTE ... FROM PUBLIC` reforçado e `SET search_path = public, pg_temp` (evita hijack de search_path).
-- Garantir que `cleanup_old_barcode_scan_logs` não tem nenhum GRANT a `anon`/`authenticated`.
-- Mover a extensão `pg_net` / `pg_cron` (se instaladas em `public`) para o schema `extensions` quando possível; caso a extensão não suporte, documentar no security memory.
-- Marcar como fixed/ignored o que sobrar com justificativa.
+1. No diálogo "Novo Cliente" / "Editar Cliente", ao selecionar tipo **CNPJ**, aparece um botão de lupa ao lado do campo Documento (igual ao print enviado).
+2. Usuário digita o CNPJ e clica na lupa (ou faz blur com 14 dígitos preenchidos).
+3. Sistema consulta a base pública da Receita Federal e preenche automaticamente:
+   - Razão Social → Nome
+   - Logradouro, número, complemento, bairro, CEP, cidade, UF
+   - Telefone e e-mail (quando disponíveis)
+4. Caso o CNPJ esteja inválido, baixado ou não encontrado, mostra toast de erro e mantém os campos como estão.
+5. Campos continuam editáveis depois do preenchimento.
 
-## 2. Configuração fiscal completa (provedor + parâmetros)
+### Detalhes técnicos
 
-A tabela `fiscal_settings` já existe. Falta:
+- **Fonte de dados**: API pública **BrasilAPI** (`https://brasilapi.com.br/api/cnpj/v1/{cnpj}`) — gratuita, sem chave, baseada nos dados da Receita Federal. Fallback para **ReceitaWS** (`https://receitaws.com.br/v1/cnpj/{cnpj}`) caso a BrasilAPI falhe.
+- **Onde**: chamada direta do frontend (sem edge function), já que ambas APIs têm CORS aberto — segue o mesmo padrão do `viacep` já usado no projeto.
+- **Arquivo novo**: `src/lib/cnpjLookup.ts` com função `fetchCnpjData(cnpj)` retornando objeto normalizado `{ name, zip_code, street, number, complement, neighborhood, city, state, phone, email }`.
+- **Arquivo alterado**: `src/pages/Clientes.tsx`
+  - Botão com ícone de lupa ao lado do input do documento, visível somente quando `document_type === "cnpj"`.
+  - Estado `cnpjLoading` para mostrar spinner durante a consulta.
+  - Função `handleCnpjLookup()` que valida o CNPJ, chama `fetchCnpjData` e faz merge no `form` (sem sobrescrever campos já preenchidos manualmente, exceto o nome quando vazio).
+  - Toasts de sucesso/erro.
 
-- Tela `ConfiguracoesFiscais.tsx`: adicionar seção "Provedor Fiscal" com seletor (Focus NFe, PlugNotas, NFe.io, eNotas), campo `provider_token`, ambiente (homologação/produção), `csc_id`, `csc_token`, CFOP padrão, CSOSN padrão.
-- Validação obrigatória antes de habilitar emissão: CNPJ válido + IE + certificado válido + CSC + token do provedor.
-- Badge de status "Pronto para emitir" / "Pendente" no topo da tela.
-- Bloquear botão "Salvar" se CNPJ inválido (usar `validators.ts` existente).
+### Fora de escopo
 
-## 3. Validação de cota mensal NFC-e
-
-Criar tabela `fiscal_quota_usage`:
-- `owner_id`, `year_month` (text `YYYY-MM`), `authorized_count` (int)
-- Unique `(owner_id, year_month)`
-- RLS: owner lê/atualiza própria linha; service_role total.
-
-Função `public.check_nfce_quota(_owner_id uuid)` (SECURITY DEFINER):
-- Lê `client_accounts.plan_id` → `subscription_plans.nfe_quota`
-- Lê `fiscal_quota_usage` do mês corrente
-- Retorna `{ allowed boolean, used int, quota int, remaining int }`
-- Quando `quota IS NULL` (tier `pro_custom`), retorna `allowed = true` sem limite.
-
-Hook React `useFiscalQuota()`:
-- Consulta a função RPC e expõe `quota`, `used`, `remaining`, `blocked`.
-- Banner de aviso ao atingir 80% e bloqueio em 100%.
-
-Antes da emissão (futura edge function `fiscal-emit-nfce`): primeira validação consulta `check_nfce_quota`; se `allowed = false`, retorna 402 com mensagem clara e registra em `audit_logs`.
-
-## 4. Fatura proporcional automática no upgrade
-
-Hoje o upgrade só registra `audit_logs`. Vou trocar por:
-
-- Edge function `request-plan-upgrade` (verify_jwt=true):
-  - Recebe `target_plan_id`.
-  - Lê `client_accounts` do usuário + plano atual + plano alvo.
-  - Calcula dias restantes do ciclo (`due_day` define o vencimento).
-  - Diferença mensal: `delta = (plano_alvo.monthly_value - plano_atual.monthly_value)`
-  - Valor proporcional: `delta * (dias_restantes / dias_do_ciclo)`, arredondado a 2 casas, mínimo R$5 (limite Mercado Pago).
-  - Cria preferência no Mercado Pago reutilizando a mesma lógica de `mp-create-invoice` e insere em `subscription_invoices` com `reference_month` = ciclo atual + sufixo `-upgrade`.
-  - Quando a fatura for paga, o webhook já existente (`mp-webhook`) atualiza `client_accounts.plan_id` para o `target_plan_id` (vou adicionar metadata `target_plan_id` na fatura via nova coluna `metadata jsonb` em `subscription_invoices`).
-- Frontend `Cobrancas.tsx`: trocar "Solicitar upgrade" por "Fazer upgrade agora", chamando a edge function e abrindo o `payment_link` em nova aba.
-- Pro Custom continua sendo tratamento manual (mostra "Falar com vendas").
-
-## Detalhes técnicos
-
-- Migrations:
-  1. Hardening de search_path nas funções SECURITY DEFINER.
-  2. Tabela `fiscal_quota_usage` + função `check_nfce_quota` + GRANTs/RLS.
-  3. Coluna `subscription_invoices.metadata jsonb default '{}'`.
-
-- Arquivos novos: `supabase/functions/request-plan-upgrade/index.ts`, `src/hooks/useFiscalQuota.ts`.
-- Arquivos editados: `src/pages/ConfiguracoesFiscais.tsx`, `src/pages/Cobrancas.tsx`, `supabase/functions/mp-webhook/index.ts` (aplicar `target_plan_id` no pagamento), `src/integrations/supabase/types.ts` (auto).
-
-## Ordem de entrega
-
-1. Migrations (linter + fiscal_quota + metadata).
-2. UI da Configuração Fiscal completa.
-3. Hook + banner de cota.
-4. Edge function `request-plan-upgrade` + ajuste do webhook + botão no Cobranças.
-
-Confirma para eu iniciar?
+- Não consulta automática em massa de clientes já cadastrados.
+- Não armazena status de inscrição (ativa/baixada) no banco — apenas exibe no toast se relevante.
