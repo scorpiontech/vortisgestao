@@ -88,8 +88,32 @@ const Clientes = () => {
   };
 
   const handleCnpjLookup = async () => {
-    if (form.document_type !== "cnpj") return;
-    if (!validateCNPJ(form.document)) { setDocError("CNPJ inválido"); return; }
+    if (form.document_type !== "cnpj") {
+      toast({ title: "Tipo inválido", description: "A consulta só está disponível para CNPJ.", variant: "destructive" });
+      return;
+    }
+    const digits = form.document.replace(/\D/g, "");
+    if (digits.length === 0) {
+      setDocError("Informe o CNPJ antes de consultar");
+      toast({ title: "CNPJ vazio", description: "Digite o CNPJ antes de consultar a Receita Federal.", variant: "destructive" });
+      return;
+    }
+    if (digits.length !== 14) {
+      setDocError(`CNPJ deve ter 14 dígitos (informados: ${digits.length})`);
+      toast({ title: "Formato inválido", description: `O CNPJ deve conter 14 dígitos numéricos. Você informou ${digits.length}.`, variant: "destructive" });
+      return;
+    }
+    if (/^(\d)\1{13}$/.test(digits)) {
+      setDocError("CNPJ inválido (sequência repetida)");
+      toast({ title: "CNPJ inválido", description: "CNPJs com todos os dígitos iguais não são válidos.", variant: "destructive" });
+      return;
+    }
+    if (!validateCNPJ(form.document)) {
+      setDocError("CNPJ inválido (dígitos verificadores não conferem)");
+      toast({ title: "CNPJ inválido", description: "Os dígitos verificadores do CNPJ não conferem. Revise o número informado.", variant: "destructive" });
+      return;
+    }
+    setDocError("");
     setCnpjLoading(true);
     try {
       const d = await fetchCnpjData(form.document);
