@@ -50,6 +50,7 @@ const Clientes = () => {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [docError, setDocError] = useState("");
+  const [cnpjLoading, setCnpjLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async () => {
