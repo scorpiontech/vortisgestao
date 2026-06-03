@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Edit2, Trash2, Printer } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Printer, Loader2 } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
 import { useSellerName } from "@/hooks/useSellerName";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { formatCPF, formatCNPJ, formatPhone, formatCEP, validateCPF, validateCNPJ } from "@/lib/validators";
+import { fetchCnpjData } from "@/lib/cnpjLookup";
 
 interface Customer {
   id: string;
@@ -49,6 +50,7 @@ const Clientes = () => {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [docError, setDocError] = useState("");
+  const [cnpjLoading, setCnpjLoading] = useState(false);
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -83,6 +85,34 @@ const Clientes = () => {
     const formatted = form.document_type === "cpf" ? formatCPF(value) : formatCNPJ(value);
     setForm({ ...form, document: formatted });
     setDocError("");
+  };
+
+  const handleCnpjLookup = async () => {
+    if (form.document_type !== "cnpj") return;
+    if (!validateCNPJ(form.document)) { setDocError("CNPJ inválido"); return; }
+    setCnpjLoading(true);
+    try {
+      const d = await fetchCnpjData(form.document);
+      setForm(f => ({
+        ...f,
+        name: f.name?.trim() ? f.name : d.name,
+        email: f.email?.trim() ? f.email : d.email,
+        phone: f.phone?.trim() ? f.phone : d.phone,
+        zip_code: d.zip_code || f.zip_code,
+        street: d.street || f.street,
+        number: d.number || f.number,
+        complement: d.complement || f.complement,
+        neighborhood: d.neighborhood || f.neighborhood,
+        city: d.city || f.city,
+        state: d.state || f.state,
+      }));
+      toast({ title: "Dados encontrados!", description: d.status ? `Situação: ${d.status}` : undefined });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao consultar CNPJ";
+      toast({ title: "Erro na consulta", description: msg, variant: "destructive" });
+    } finally {
+      setCnpjLoading(false);
+    }
   };
 
   const handlePhoneChange = (value: string) => {
@@ -196,7 +226,14 @@ const Clientes = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>{form.document_type.toUpperCase()}</Label>
-                  <Input value={form.document} onChange={e => handleDocChange(e.target.value)} placeholder={form.document_type === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"} />
+                  <div className="flex gap-2">
+                    <Input value={form.document} onChange={e => handleDocChange(e.target.value)} placeholder={form.document_type === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"} />
+                    {form.document_type === "cnpj" && (
+                      <Button type="button" size="icon" variant="secondary" onClick={handleCnpjLookup} disabled={cnpjLoading} title="Consultar CNPJ na Receita Federal">
+                        {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </div>
                   {docError && <p className="text-xs text-destructive">{docError}</p>}
                 </div>
               </div>
