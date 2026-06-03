@@ -226,7 +226,14 @@ const Clientes = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>{form.document_type.toUpperCase()}</Label>
-                  <Input value={form.document} onChange={e => handleDocChange(e.target.value)} placeholder={form.document_type === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"} />
+                  <div className="flex gap-2">
+                    <Input value={form.document} onChange={e => handleDocChange(e.target.value)} placeholder={form.document_type === "cpf" ? "000.000.000-00" : "00.000.000/0000-00"} />
+                    {form.document_type === "cnpj" && (
+                      <Button type="button" size="icon" variant="secondary" onClick={handleCnpjLookup} disabled={cnpjLoading} title="Consultar CNPJ na Receita Federal">
+                        {cnpjLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </div>
                   {docError && <p className="text-xs text-destructive">{docError}</p>}
                 </div>
               </div>
