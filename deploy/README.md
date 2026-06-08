@@ -1,5 +1,7 @@
 # Deploy - Vortis Gestão (Servidor Linux)
 
+> **Hospedando em Proxmox + Ubuntu 22.04?** Veja o guia dedicado: [PROXMOX.md](./PROXMOX.md).
+
 ## Requisitos
 - Ubuntu/Debian Linux
 - Acesso root (sudo)
