@@ -36,7 +36,7 @@ styles.add(ParagraphStyle("H2", parent=styles["Heading2"], fontSize=15, leading=
                           textColor=ACCENT, spaceBefore=14, spaceAfter=8))
 styles.add(ParagraphStyle("Body", parent=styles["BodyText"], fontSize=11, leading=16,
                           alignment=TA_LEFT, spaceAfter=8))
-styles.add(ParagraphStyle("Bullet", parent=styles["BodyText"], fontSize=11, leading=15,
+styles.add(ParagraphStyle("BulletItem", parent=styles["BodyText"], fontSize=11, leading=15,
                           leftIndent=18, bulletIndent=6, spaceAfter=4))
 styles.add(ParagraphStyle("Note", parent=styles["BodyText"], fontSize=10, leading=14,
                           textColor=MUTED, leftIndent=10, spaceAfter=8))
