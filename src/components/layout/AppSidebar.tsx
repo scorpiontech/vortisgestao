@@ -64,6 +64,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Contas a Pagar", url: "/contas-pagar", icon: ArrowLeftRight, masterOnly: true },
     { title: "Contas a Receber", url: "/contas-receber", icon: ArrowLeftRight, masterOnly: true },
     { title: "Movimentação", url: "/movimentacao", icon: ArrowLeftRight, masterOnly: true },
+    { title: "Orçamentos / Pré-venda", url: "/orcamentos", icon: FileText },
     { title: "PDV", url: "/vendas", icon: Receipt },
   ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
