@@ -100,11 +100,15 @@ export default function Orcamentos() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyQuote, setHistoryQuote] = useState<Quote | null>(null);
 
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const sellerName = useSellerName();
+
   const loadAll = async () => {
-    const [q, p, c] = await Promise.all([
+    const [q, p, c, comp] = await Promise.all([
       supabase.from("quotes").select("*").order("created_at", { ascending: false }),
       supabase.from("products").select("id, name, price, stock, sku").order("name"),
       supabase.from("customers").select("id, name, document, document_type").order("name"),
+      supabase.from("company_registrations").select("name, document, phone, email, street, number, neighborhood, city, state, zip_code").limit(1).maybeSingle(),
     ]);
     const quotesData = (q.data || []) as any[];
     // Auto-mark expired (client side display logic only; persist when user opens)
@@ -117,9 +121,51 @@ export default function Orcamentos() {
     setQuotes(quotesData as Quote[]);
     setProducts((p.data || []) as Product[]);
     setCustomers((c.data || []) as Customer[]);
+    setCompanyInfo(comp.data || null);
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  const handleDownloadPdf = async (q: Quote) => {
+    const { data: qItems } = await supabase
+      .from("quote_items").select("*").eq("quote_id", q.id);
+    const cust = q.customer_id ? customers.find(c => c.id === q.customer_id) : null;
+    // Position in chronological order for friendly number
+    const sortedAsc = [...quotes].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const idx = sortedAsc.findIndex(x => x.id === q.id);
+    const number = `ORC-${String(idx + 1).padStart(5, "0")}`;
+    // Taxes: not stored on quote; default 0 (placeholder lines in PDF)
+    const taxRate = 0;
+    const taxAmount = 0;
+    downloadQuotePdf({
+      id: q.id,
+      number,
+      status: q.status,
+      customer_name: q.customer_name,
+      customer_document: cust?.document || null,
+      payment_method: q.payment_method,
+      installments: q.installments,
+      valid_until: q.valid_until,
+      notes: q.notes,
+      subtotal: Number(q.subtotal),
+      discount: Number(q.discount),
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
+      total: Number(q.total),
+      created_at: q.created_at,
+      items: (qItems || []).map((it: any) => ({
+        product_name: it.product_name,
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+        total: Number(it.total),
+      })),
+      negotiation_log: q.negotiation_log || [],
+      company: companyInfo || undefined,
+      sellerName: sellerName || undefined,
+    });
+    logAudit({ action: "download_pdf", entity: "quote", entityId: q.id });
+  };
+
 
   const subtotal = items.reduce((s, i) => s + i.total, 0);
   const discNum = Math.min(Math.max(Number(discount) || 0, 0), subtotal);
