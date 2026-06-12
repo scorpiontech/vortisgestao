@@ -9,9 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, FileText, CheckCircle2, XCircle, Send, ShoppingCart, History, Edit } from "lucide-react";
+import { Plus, Trash2, Search, FileText, CheckCircle2, XCircle, Send, ShoppingCart, History, Edit, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
+import { useSellerName } from "@/hooks/useSellerName";
+import { downloadQuotePdf } from "@/lib/quotePdf";
 import { motion } from "framer-motion";
 
 type Status = "rascunho" | "enviado" | "aprovado" | "recusado" | "expirado" | "convertido";
