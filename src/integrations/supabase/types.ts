@@ -660,6 +660,126 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          quote_id: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          quote_id: string
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          quote_id?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          converted_sale_id: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          discount: number
+          id: string
+          installments: number
+          negotiation_log: Json
+          notes: string | null
+          payment_method: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          converted_sale_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          discount?: number
+          id?: string
+          installments?: number
+          negotiation_log?: Json
+          notes?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          converted_sale_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          discount?: number
+          id?: string
+          installments?: number
+          negotiation_log?: Json
+          notes?: string | null
+          payment_method?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_converted_sale_id_fkey"
+            columns: ["converted_sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           id: string
@@ -1111,6 +1231,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      quote_status:
+        | "rascunho"
+        | "enviado"
+        | "aprovado"
+        | "recusado"
+        | "expirado"
+        | "convertido"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1239,6 +1366,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      quote_status: [
+        "rascunho",
+        "enviado",
+        "aprovado",
+        "recusado",
+        "expirado",
+        "convertido",
+      ],
     },
   },
 } as const
