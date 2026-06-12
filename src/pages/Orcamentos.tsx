@@ -483,6 +483,9 @@ export default function Orcamentos() {
                   <td className="px-4 py-2 text-right font-medium">{fmt(Number(q.total))}</td>
                   <td className="px-4 py-2">
                     <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadPdf(q)} title="Baixar PDF">
+                        <Download className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => showHistory(q)} title="Histórico">
                         <History className="h-4 w-4" />
                       </Button>
