@@ -70,8 +70,16 @@ rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR"
 cp -r dist/* "$APP_DIR/"
 
-# Copiar config do Nginx
-cp deploy/nginx.conf "$NGINX_CONF"
+# Copiar config do Nginx APENAS na primeira instalação.
+# Se já existir (provavelmente já modificada pelo Certbot com o bloco HTTPS),
+# preservamos para não perder a configuração SSL.
+if [ ! -f "$NGINX_CONF" ]; then
+    echo "  Instalando nginx.conf pela primeira vez..."
+    cp deploy/nginx.conf "$NGINX_CONF"
+else
+    echo "  nginx.conf já existe — preservando configuração atual (HTTPS/Certbot)."
+    echo "  Para forçar a reinstalação: sudo rm $NGINX_CONF && sudo bash deploy/deploy.sh"
+fi
 
 # Ativar site (remover default se existir)
 rm -f /etc/nginx/sites-enabled/default
