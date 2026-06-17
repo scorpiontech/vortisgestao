@@ -140,27 +140,37 @@ Atualize o webhook do Mercado Pago para:
 
 ## 7. Backup
 
-Crie `/etc/cron.daily/vortis-backup`:
+Instalado por um único comando:
 
 ```bash
-#!/bin/bash
-set -e
-DEST=/backup/vortis
-mkdir -p "$DEST"
-DATE=$(date +%F)
-
-docker exec supabase-db pg_dump -U postgres postgres | gzip > "$DEST/db-$DATE.sql.gz"
-tar -czf "$DEST/storage-$DATE.tar.gz" /opt/supabase/docker/volumes/storage
-
-# Mantém 14 dias
-find "$DEST" -type f -mtime +14 -delete
+sudo bash deploy/setup-backup.sh
 ```
 
-```bash
-sudo chmod +x /etc/cron.daily/vortis-backup
+O script:
+
+- Copia `deploy/vortis-backup.sh` para `/etc/cron.daily/vortis-backup` (roda 1×/dia).
+- Cria `/backup/vortis` (configurável por `VORTIS_BACKUP_DIR`).
+- Roda o primeiro backup na hora pra validar.
+
+O que é gerado por execução:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `db-YYYY-MM-DD-HHMM.sql.gz` | `pg_dumpall` de todo o Postgres (inclui `auth`, `storage`, `public`) |
+| `storage-YYYY-MM-DD-HHMM.tar.gz` | Volume `/opt/supabase/docker/volumes/storage` (certificados fiscais etc.) |
+| `backup.log` | Log incremental de todas as execuções |
+
+Retenção padrão: **14 dias** (ajuste com `VORTIS_BACKUP_RETENTION=30 sudo bash deploy/setup-backup.sh`).
+
+### Cópia externa (recomendado)
+
+Adicione no crontab do root (`sudo crontab -e`) — toda madrugada de domingo manda pra outro host:
+
+```cron
+0 3 * * 0 rsync -az /backup/vortis/ usuario@offsite:/backup/vortis/
 ```
 
-Recomendado: enviar uma cópia semanal pra storage externo (S3, Backblaze, ou `rsync` pra outro host).
+Alternativas: AWS S3 (`aws s3 sync`), Backblaze B2 (`rclone sync`), Wasabi, ou qualquer destino com SSH.
 
 ---
 
