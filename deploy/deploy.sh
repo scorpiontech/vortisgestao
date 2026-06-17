@@ -57,6 +57,20 @@ fi
 echo "[2/5] Usando Node $("$NODE_BIN" -v) ✓"
 
 # 2. Instalar dependências do projeto
+# Aviso: backend self-hosted vs Lovable Cloud
+if [ -f .env ] && grep -q "^VITE_SUPABASE_URL=" .env; then
+    SUPA_URL=$(grep "^VITE_SUPABASE_URL=" .env | head -1 | cut -d= -f2- | tr -d '"')
+    case "$SUPA_URL" in
+        *supabase.co*)
+            echo "  ⚠  .env aponta para Lovable Cloud ($SUPA_URL)."
+            echo "     Se você instalou o Supabase self-hosted, edite .env antes do build."
+            ;;
+        *)
+            echo "  ℹ  Backend self-hosted detectado: $SUPA_URL"
+            ;;
+    esac
+fi
+
 echo "[3/5] Instalando dependências do projeto..."
 npm install
 
