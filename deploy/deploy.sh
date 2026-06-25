@@ -66,9 +66,27 @@ npm run build
 
 # 4. Copiar arquivos para o diretório do Nginx
 echo "[5/5] Configurando Nginx..."
+
+# Validar que o build gerou index.html antes de apagar o diretório atual
+if [ ! -f "dist/index.html" ]; then
+    echo "❌ ERRO: dist/index.html não encontrado. O build falhou."
+    echo "   Verifique a saída de 'npm run build' acima."
+    exit 1
+fi
+
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR"
-cp -r dist/* "$APP_DIR/"
+cp -r dist/. "$APP_DIR/"
+
+# Permissões para o Nginx (www-data) conseguir ler os arquivos.
+# Sem isso, o Nginx retorna 403 Forbidden mesmo com a config correta.
+chown -R www-data:www-data "$APP_DIR"
+find "$APP_DIR" -type d -exec chmod 755 {} \;
+find "$APP_DIR" -type f -exec chmod 644 {} \;
+
+# Garantir que os diretórios pai sejam atravessáveis pelo www-data
+chmod o+x /var/www 2>/dev/null || true
+
 
 # Copiar config do Nginx APENAS na primeira instalação.
 # Se já existir (provavelmente já modificada pelo Certbot com o bloco HTTPS),
