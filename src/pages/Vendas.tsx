@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, Loader2, Lock, CheckCircle2 } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 interface SaleItem {
@@ -72,6 +74,8 @@ const Vendas = () => {
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const sellerName = useSellerName();
+  const { canEmitNFCe } = usePlanFeatures();
+  const [nfceStatus, setNfceStatus] = useState<null | { state: "idle" | "loading" | "ok" | "error"; message?: string; doc?: any }>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
