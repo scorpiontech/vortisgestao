@@ -521,10 +521,43 @@ const Vendas = () => {
 
           {showReceipt && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <Button onClick={printReceipt}><Printer className="h-4 w-4 mr-2" />Imprimir Cupom</Button>
+
+                {canEmitNFCe ? (
+                  <Button
+                    onClick={emitNFCe}
+                    disabled={nfceStatus?.state === "loading" || nfceStatus?.state === "ok"}
+                    variant="secondary"
+                  >
+                    {nfceStatus?.state === "loading" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
+                     nfceStatus?.state === "ok" ? <CheckCircle2 className="h-4 w-4 mr-2" /> :
+                     <FileText className="h-4 w-4 mr-2" />}
+                    {nfceStatus?.state === "ok" ? "NFC-e Emitida" : "Emitir NFC-e"}
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" className="border-dashed">
+                    <Link to="/planos"><Lock className="h-4 w-4 mr-2" />Emitir NFC-e <span className="ml-2 text-xs text-primary">PRO</span></Link>
+                  </Button>
+                )}
+
                 <Button onClick={newSale} variant="outline">Nova Venda</Button>
               </div>
+
+              {nfceStatus?.message && (
+                <div className={`text-sm rounded-md border p-3 ${
+                  nfceStatus.state === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200" :
+                  nfceStatus.state === "error" ? "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/30 dark:text-red-200" :
+                  "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
+                }`}>
+                  {nfceStatus.message}
+                  {nfceStatus.doc?.danfce_url && (
+                    <a href={nfceStatus.doc.danfce_url} target="_blank" rel="noreferrer" className="ml-2 underline">
+                      Ver DANFCE
+                    </a>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
         </div>
