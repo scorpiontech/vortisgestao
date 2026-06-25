@@ -224,7 +224,44 @@ const Vendas = () => {
     setDiscount("0");
     setDiscountType("percent");
     setInstallments("1");
+    setNfceStatus(null);
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
+  };
+
+  const emitNFCe = async () => {
+    if (!saleId) return;
+    setNfceStatus({ state: "loading" });
+    try {
+      const { data, error } = await supabase.functions.invoke("nfce-emit", { body: { sale_id: saleId } });
+      if (error) throw error;
+      const d: any = data;
+      if (d?.error) throw new Error(d.error);
+      if (d?.status === "authorized") {
+        setNfceStatus({ state: "ok", doc: d, message: `NFC-e ${d.numero}/${d.serie} autorizada` });
+        toast({ title: "NFC-e autorizada!", description: `Nº ${d.numero}` });
+      } else if (d?.status === "processing" || d?.status === "pending") {
+        setNfceStatus({ state: "loading", doc: d, message: "Aguardando autorização SEFAZ..." });
+        // Polling
+        const poll = setInterval(async () => {
+          const { data: s } = await supabase.functions.invoke("nfce-status", { body: { id: d.id } });
+          const sd: any = s;
+          if (sd?.status === "authorized") {
+            clearInterval(poll);
+            setNfceStatus({ state: "ok", doc: sd, message: `NFC-e autorizada` });
+            toast({ title: "NFC-e autorizada!" });
+          } else if (sd?.status === "rejected") {
+            clearInterval(poll);
+            setNfceStatus({ state: "error", message: sd.motivo_rejeicao || "Rejeitada pela SEFAZ" });
+          }
+        }, 3000);
+        setTimeout(() => clearInterval(poll), 60_000);
+      } else {
+        setNfceStatus({ state: "error", message: d?.motivo_rejeicao || "Falha ao emitir" });
+      }
+    } catch (e: any) {
+      setNfceStatus({ state: "error", message: e.message || "Erro inesperado" });
+      toast({ title: "Erro na emissão", description: e.message, variant: "destructive" });
+    }
   };
 
   const now = new Date();
