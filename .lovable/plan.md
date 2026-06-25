@@ -1,118 +1,103 @@
 
-# Migrar Vortis para Supabase self-hosted (mesmo servidor, banco zerado)
-
 ## Objetivo
-Substituir o Lovable Cloud por uma instalação **Supabase self-hosted** rodando em Docker no servidor Proxmox/Ubuntu que já hospeda o app. O sistema continua usando o mesmo SDK (`@supabase/supabase-js`), as mesmas RLS, as mesmas edge functions — só muda a URL e as chaves. Sem migrar dados — começa do zero.
+Mudar o modelo de negócio: Free dá acesso aos módulos básicos (Clientes, Estoque, Financeiro, OS, Relatórios + PDV sem nota). Pro libera o módulo de **NFC-e** com emissão real via provedor fiscal.
 
----
+## 1. Reorganização dos planos (reaproveitando o que existe)
 
-## Visão geral
+Hoje há 6 planos. Vou consolidar em **2 tiers** mantendo `subscription_plans` e `client_accounts.plan_id`:
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│  Servidor Ubuntu (Proxmox)                               │
-│                                                          │
-│   Nginx ──► /var/www/vortis    (SPA React, já existe)    │
-│     │                                                    │
-│     └─► proxy /supabase/* ──► Kong (porta 8000)          │
-│                                  │                       │
-│                                  ├─► GoTrue (Auth)       │
-│                                  ├─► PostgREST (Data)    │
-│                                  ├─► Storage             │
-│                                  ├─► Realtime            │
-│                                  └─► Edge Runtime (Deno) │
-│                                                          │
-│   Postgres 15 (container, volume persistente)            │
-└──────────────────────────────────────────────────────────┘
-```
+| Plano | Valor | tier | nfe_quota | Inclui |
+|---|---|---|---|---|
+| **Free** | R$ 0,00 | `free` | 0 | Clientes, Estoque, Financeiro, OS, Relatórios, PDV (cupom não-fiscal) |
+| **Pro** | R$ 79,90 | `pro` | NULL (ilimitado) | Tudo do Free + emissão NFC-e |
 
-Tudo em containers Docker, isolado do app, com Nginx fazendo proxy reverso HTTPS.
+- Migration: adicionar valores `'free'` e `'pro'` ao enum de tier; inserir os 2 planos novos; marcar os 6 antigos como `active=false` (mantém histórico de faturas); migrar `client_accounts` existentes para o `Free` por padrão (todos novos cadastros também). Master que já paga continua até a próxima fatura, depois cai no Free se não der upgrade.
+- Coluna nova `subscription_plans.features jsonb` (ex.: `{"nfce": true, "max_users": 5}`) — fonte da verdade pra gates de UI.
 
----
+## 2. Gate de feature no frontend
 
-## Etapas
+Criar `src/hooks/usePlanFeatures.ts`:
+- Lê `client_accounts` → `subscription_plans.features` + `tier`.
+- Retorna `{ tier, isPro, isFree, canEmitNFCe, loading }`.
+- Cache em React Query para evitar refetch a cada navegação.
 
-### 1. Preparar o servidor
-- Instalar Docker + docker-compose-plugin (se ainda não tiver).
-- Reservar um subdomínio: `supabase.vortisgestao.com.br` apontando pro mesmo IP do `app.vortisgestao.com.br`.
-- Liberar nada de portas externas novas — só 80/443 já abertos. Kong fica em `127.0.0.1:8000`, Nginx faz o proxy.
+Componente `<ProGate feature="nfce">` que envolve botões/cards e mostra CTA "Faça upgrade para emitir nota fiscal" no Free.
 
-### 2. Subir a stack do Supabase
-- Clonar `https://github.com/supabase/supabase` em `/opt/supabase`.
-- Copiar `docker/.env.example` → `docker/.env` e gerar:
-  - `POSTGRES_PASSWORD` (senha forte)
-  - `JWT_SECRET` (32+ chars aleatórios)
-  - `ANON_KEY` e `SERVICE_ROLE_KEY` (gerados a partir do JWT_SECRET via supabase/cli ou jwt.io)
-  - `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD` (Studio)
-  - `SITE_URL=https://app.vortisgestao.com.br`
-  - `SMTP_*` (provider de e-mail — Resend, Brevo, Amazon SES, ou um Gmail SMTP pra começar)
-- `docker compose up -d` em `/opt/supabase/docker`.
-- Validar: `curl http://127.0.0.1:8000/rest/v1/` deve responder.
+Aplicação:
+- **PDV / Vendas**: continua aberto no Free. Botão "Finalizar venda" funciona normal (registra venda + cupom não-fiscal 80mm). Botão **"Emitir NFC-e"** aparece com cadeado no Free; clicar abre modal de upgrade.
+- **Sidebar**: item "Configurações Fiscais" e a futura "Notas Fiscais" mostram badge "Pro" no Free, com link que leva à página de planos quando clicado.
+- **`/configuracoes-fiscais`**: já existe — adicionar guard no topo: se Free, mostra hero "Disponível no plano Pro" + botão upgrade, esconde o form.
 
-### 3. Nginx — expor Supabase com HTTPS
-Adicionar um server block em `/etc/nginx/sites-available/supabase`:
-- `server_name supabase.vortisgestao.com.br`
-- `proxy_pass http://127.0.0.1:8000`
-- Headers: `Host`, `X-Real-IP`, `X-Forwarded-Proto`, `Upgrade`/`Connection` (Realtime usa WebSocket).
-- `sudo certbot --nginx -d supabase.vortisgestao.com.br` pra emitir o certificado.
-- O Studio fica em `https://supabase.vortisgestao.com.br/` (com basic-auth do Kong).
+## 3. Página de Upgrade
+Reaproveitar fluxo atual de `request-plan-upgrade` (Mercado Pago). Tela `/planos` simples: card Free (atual) vs card Pro (R$ 79,90/mês) com lista de recursos e botão "Fazer upgrade" → chama a edge function existente.
 
-### 4. Recriar o schema do Vortis no novo Postgres
-Como vamos zerar, é só rodar **todas as migrações que hoje existem no Lovable Cloud** no novo banco:
-- Tabelas: `profiles`, `company_members`, `user_roles`, `products`, `categories`, `units`, `customers`, `suppliers`, `transactions`, `bills`, `sales`, `sale_items`, `quotes`, `quote_items`, `service_orders`, `service_order_materials`, `cash_registers`, `audit_logs`, `client_accounts`, `subscription_invoices`, `subscription_plans`, `fiscal_settings`, `fiscal_quota_usage`, `invoice_generation_logs`, `barcode_scan_logs`, `barcode_scan_log_settings`, `company_registrations`.
-- Funções: `get_effective_user_id`, `get_member_role`, `is_client_blocked`, `has_role`, `handle_new_user`, `handle_new_client_account`, `update_updated_at_column`, `cleanup_old_barcode_scan_logs`, `check_nfce_quota`.
-- Triggers de `updated_at` e auto-criação de profile/client_account em `auth.users`.
-- Todas as RLS policies + GRANTs.
-- Bucket de storage `fiscal-certificates` (privado).
+## 4. Módulo NFC-e (novo)
 
-Forma prática: extrair o SQL consolidado a partir do projeto Lovable Cloud atual (eu posso gerar um único `schema.sql` no momento da execução) e rodar via `psql` dentro do container do Postgres.
+### 4a. Banco
+Tabela `nfce_documents`:
+- `owner_id`, `sale_id` (FK → sales, nullable se manual), `provider` (focusnfe/plugnotas), `provider_ref` (id retornado), `status` (`pending`, `authorized`, `rejected`, `cancelled`, `contingency`), `numero`, `serie`, `chave` (44 dígitos), `protocolo`, `xml_url`, `danfce_url`, `qrcode_url`, `motivo_rejeicao`, `valor_total`, `emitted_at`.
+- RLS: owner-scoped (Master e vendedores via `get_effective_user_id`).
+- Trigger: ao inserir authorized → incrementa `fiscal_quota_usage` (já existe, embora Pro seja ilimitado, mantém histórico).
 
-### 5. Edge Functions
-Copiar `supabase/functions/*` para o servidor e deployar com o CLI do Supabase apontando pro self-hosted:
-- `mp-webhook`, `mp-create-invoice`, `generate-recurring-invoices`, `check-overdue-subscriptions`, `admin-create-user`, `create-company-user`, `fiscal-validate-certificate`, `request-plan-upgrade`.
-- Configurar as secrets no `.env` do edge-runtime: `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `LOVABLE_API_KEY` (se quiser manter a IA da Lovable) ou trocar por OpenAI/Anthropic direto.
-- Atualizar o webhook do Mercado Pago pra apontar pra `https://supabase.vortisgestao.com.br/functions/v1/mp-webhook`.
+### 4b. Edge functions
+1. **`nfce-emit`** (verify_jwt=true)
+   - Input: `{ sale_id }` ou payload manual.
+   - Checa: `tier='pro'`, certificado válido em `fiscal_settings`, dados completos.
+   - Monta payload no formato do provedor (`fiscal_settings.provider`).
+   - POST autenticado ao provedor (Focus NFe: `https://api.focusnfe.com.br/v2/nfce`; PlugNotas: `https://api.plugnotas.com.br/nfce`).
+   - Persiste resposta em `nfce_documents` com status `pending` e `provider_ref`.
+   - Retorna `provider_ref` + status inicial.
+2. **`nfce-status`** (verify_jwt=true)
+   - Consulta status no provedor pelo `provider_ref`, atualiza linha.
+   - Chamada pela UI em polling curto (2s × 30s) após emit.
+3. **`nfce-cancel`** (verify_jwt=true)
+   - Cancela nota autorizada (até 30 min Focus / regra estadual).
+4. **`nfce-webhook`** (verify_jwt=false)
+   - Recebe callback de autorização do provedor (quando suportado), atualiza status assincronamente.
 
-### 6. Apontar o app pra nova URL
-No `.env` do build do Vortis (no servidor, antes de rodar `deploy.sh`):
-```
-VITE_SUPABASE_URL=https://supabase.vortisgestao.com.br
-VITE_SUPABASE_PUBLISHABLE_KEY=<ANON_KEY gerado no passo 2>
-VITE_SUPABASE_PROJECT_ID=self-hosted
-```
-Rebuild + reload Nginx. O `src/integrations/supabase/client.ts` não muda — ele lê do `.env`.
+Secret novo necessário: nada extra — `provider_token` já fica em `fiscal_settings` por owner (não centralizado).
 
-### 7. Validação
-- Criar o primeiro usuário Master via Studio (ou signup pela tela do app).
-- Inserir em `user_roles` o role `admin` pra esse user pra acessar `/admin/*`.
-- Smoke test: login, criar produto, abrir caixa, lançar venda, gerar PDF de orçamento.
+### 4c. UI
 
-### 8. Backup
-- Cron diário: `docker exec supabase-db pg_dump -U postgres postgres | gzip > /backup/vortis-$(date +%F).sql.gz`.
-- Reter 14 dias e mandar 1 cópia semanal pra storage externo (S3/Backblaze/rsync pra outro host).
-- Backup do volume de storage também.
+- **Botão "Emitir NFC-e" no PDV**: após finalizar venda, se Pro + config fiscal OK, fica habilitado. Clica → chama `nfce-emit`, mostra spinner com polling, ao autorizar abre modal com QR Code + botão "Imprimir DANFCE 80mm" e "Baixar XML".
+- **Nova página `/notas-fiscais`** (Master/vendedor): tabela com status, número, data, valor, chave, link XML/DANFCE, botões reemitir/cancelar. Filtros por status e período.
+- **Impressão DANFCE 80mm**: novo template em `src/lib/printDanfce.ts` (cabeçalho do emitente, itens, totais, QR Code, chave formatada 4-em-4, mensagem "Consulte pela chave de acesso").
 
----
+### 4d. Contingência
+Se `nfce-emit` falhar (provedor offline / sem internet), salvar com status `contingency` e permitir retry manual. Não bloqueia a venda no PDV.
 
-## Detalhes técnicos / pontos de atenção
+## 5. Configurações fiscais — ajuste mínimo
+A tela já existe e está completa (CNPJ, IE, CSC, certificado A1, provider, token). Apenas adicionar guard de plano Pro no topo.
 
-| Tema | Observação |
-|---|---|
-| **JWT compatibility** | A chave anon/service-role do self-hosted é assinada com **outro `JWT_SECRET`**. Todos os usuários terão de fazer login novamente (mas como vamos zerar, ok). |
-| **SMTP** | Sem SMTP configurado, signup com confirmação de e-mail e reset de senha **não funcionam**. Precisa decidir o provider antes do go-live. |
-| **Recursos do servidor** | Stack completa do Supabase usa ~2GB de RAM em idle. Confirmar que a VM tem folga (recomendo 4GB+ pra app + Supabase). |
-| **Lovable AI Gateway** | Hoje algumas funções podem usar `LOVABLE_API_KEY`. Self-hosted **não tem** isso — ou mantém o secret (continua chamando a API da Lovable de fora), ou troca o provider de IA. |
-| **Lovable Cloud no projeto** | O projeto continua "conectado" ao Cloud do ponto de vista do editor Lovable, mas o app em produção ignora isso e só fala com o seu servidor. Em desenvolvimento dentro do Lovable, ele continua usando o Cloud — então **dev = Cloud, prod = self-hosted**. |
-| **Custo** | Você passa a pagar só o servidor. Some o custo do Cloud, mas ganha responsabilidade total por backup, updates de segurança do Supabase, monitoramento e SMTP. |
-| **Reversão** | Se der errado, basta reverter o `.env` no servidor pros valores antigos do Cloud e rebuildar. Sem risco de perder dados do Cloud. |
+## 6. Documentação
+Atualizar:
+- `docs/modulos.md`: nova seção "Notas Fiscais" e ajustar "PDV" sobre cupom não-fiscal.
+- `docs/manual-usuario.md`: passo a passo de upgrade + emissão.
+- `docs/edge-functions.md`: 4 novas funções NFC-e.
 
----
+## Arquivos a criar/editar
 
-## Entregáveis desta tarefa
-1. Documento `deploy/SUPABASE_SELFHOSTED.md` com passo a passo completo (comandos prontos pra copiar/colar).
-2. Script `deploy/supabase-install.sh` que automatiza passos 1–3.
-3. Arquivo `deploy/supabase-schema.sql` consolidado com todo o schema + RLS + funções + triggers do Vortis pra subir num banco vazio.
-4. Bloco Nginx pronto em `deploy/nginx-supabase.conf`.
-5. Ajuste no `deploy/deploy.sh` pra avisar quando o `.env` aponta pro self-hosted.
+**Migrations** (1):
+- Adiciona tiers `free`/`pro`, coluna `features jsonb`, planos novos, desativa antigos, cria `nfce_documents` + RLS + GRANTs.
 
-Posso aprovar e implementar?
+**Edge functions** (4 novas): `nfce-emit`, `nfce-status`, `nfce-cancel`, `nfce-webhook` (+ entrada em `supabase/config.toml` para webhook sem JWT).
+
+**Frontend**:
+- `src/hooks/usePlanFeatures.ts` (novo)
+- `src/components/ProGate.tsx` (novo)
+- `src/pages/Planos.tsx` (novo) + rota
+- `src/pages/NotasFiscais.tsx` (novo) + rota
+- `src/lib/printDanfce.ts` (novo)
+- `src/pages/Vendas.tsx` (editar — botão emitir + modal)
+- `src/pages/ConfiguracoesFiscais.tsx` (guard Pro)
+- `src/components/layout/AppSidebar.tsx` (badge "Pro" + item Notas Fiscais)
+
+## Fora do escopo (perguntar depois)
+- Emissão de **NF-e modelo 55** (B2B) — só NFC-e nesta entrega.
+- Devolução/inutilização de numeração.
+- Integração contábil (SPED).
+- Período de trial automático no Pro.
+
+## Decisões pendentes
+- Confirmar valor do Plano Pro em R$ 79,90 (ou outro)?
+- O que fazer com os 5 clientes Master que já estão em planos antigos pagos? Sugestão: manter no plano atual até o ciclo encerrar, depois migrar para Free (perguntando antes via e-mail/painel).

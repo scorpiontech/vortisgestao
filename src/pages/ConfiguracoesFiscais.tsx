@@ -9,6 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle, ShieldCheck, Upload, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePlanFeatures } from "@/hooks/usePlanFeatures";
+import { ProGate } from "@/components/ProGate";
 import { toast } from "sonner";
 import { formatCNPJ, validateCNPJ } from "@/lib/validators";
 
@@ -48,6 +50,7 @@ const empty: FiscalSettings = {
 
 export default function ConfiguracoesFiscais() {
   const { isMaster, loading: roleLoading } = useUserRole();
+  const { canEmitNFCe, loading: planLoading } = usePlanFeatures();
   const [form, setForm] = useState<FiscalSettings>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -65,7 +68,7 @@ export default function ConfiguracoesFiscais() {
     })();
   }, []);
 
-  if (roleLoading || loading) {
+  if (roleLoading || loading || planLoading) {
     return <div className="p-6"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
@@ -77,6 +80,15 @@ export default function ConfiguracoesFiscais() {
           <AlertTitle>Acesso restrito</AlertTitle>
           <AlertDescription>Apenas o usuário Master pode acessar configurações fiscais.</AlertDescription>
         </Alert>
+      </div>
+    );
+  }
+
+  if (!canEmitNFCe) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">Configurações Fiscais</h1>
+        <ProGate feature="nfce">{null}</ProGate>
       </div>
     );
   }
