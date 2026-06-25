@@ -580,101 +580,6 @@ export type Database = {
         }
         Relationships: []
       }
-      nfce_documents: {
-        Row: {
-          ambiente: string
-          cancelled_at: string | null
-          chave: string | null
-          created_at: string
-          created_by: string | null
-          customer_doc: string | null
-          customer_name: string | null
-          danfce_url: string | null
-          emitted_at: string | null
-          id: string
-          motivo_rejeicao: string | null
-          numero: string | null
-          owner_id: string
-          payload_request: Json | null
-          payload_response: Json | null
-          protocolo: string | null
-          provider: string
-          provider_ref: string | null
-          qrcode_data: string | null
-          qrcode_url: string | null
-          sale_id: string | null
-          serie: string | null
-          status: string
-          updated_at: string
-          valor_total: number
-          xml_url: string | null
-        }
-        Insert: {
-          ambiente?: string
-          cancelled_at?: string | null
-          chave?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_doc?: string | null
-          customer_name?: string | null
-          danfce_url?: string | null
-          emitted_at?: string | null
-          id?: string
-          motivo_rejeicao?: string | null
-          numero?: string | null
-          owner_id: string
-          payload_request?: Json | null
-          payload_response?: Json | null
-          protocolo?: string | null
-          provider: string
-          provider_ref?: string | null
-          qrcode_data?: string | null
-          qrcode_url?: string | null
-          sale_id?: string | null
-          serie?: string | null
-          status?: string
-          updated_at?: string
-          valor_total?: number
-          xml_url?: string | null
-        }
-        Update: {
-          ambiente?: string
-          cancelled_at?: string | null
-          chave?: string | null
-          created_at?: string
-          created_by?: string | null
-          customer_doc?: string | null
-          customer_name?: string | null
-          danfce_url?: string | null
-          emitted_at?: string | null
-          id?: string
-          motivo_rejeicao?: string | null
-          numero?: string | null
-          owner_id?: string
-          payload_request?: Json | null
-          payload_response?: Json | null
-          protocolo?: string | null
-          provider?: string
-          provider_ref?: string | null
-          qrcode_data?: string | null
-          qrcode_url?: string | null
-          sale_id?: string | null
-          serie?: string | null
-          status?: string
-          updated_at?: string
-          valor_total?: number
-          xml_url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "nfce_documents_sale_id_fkey"
-            columns: ["sale_id"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       products: {
         Row: {
           category: string
@@ -1311,7 +1216,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_emit_nfce: { Args: { _owner_id: string }; Returns: boolean }
       check_nfce_quota: { Args: { _owner_id: string }; Returns: Json }
       cleanup_old_barcode_scan_logs: { Args: never; Returns: number }
       get_effective_user_id: { Args: { _user_id: string }; Returns: string }

@@ -36,8 +36,6 @@ import AdminLogsFaturas from "./pages/AdminLogsFaturas";
 import AdminFaturasAutomaticas from "./pages/AdminFaturasAutomaticas";
 import ConfiguracoesFiscais from "./pages/ConfiguracoesFiscais";
 import Orcamentos from "./pages/Orcamentos";
-import Planos from "./pages/Planos";
-import NotasFiscais from "./pages/NotasFiscais";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -76,8 +74,6 @@ const App = () => (
               <Route path="/logs-leituras" element={<LogsLeituras />} />
               <Route path="/configuracoes-fiscais" element={<ConfiguracoesFiscais />} />
               <Route path="/orcamentos" element={<Orcamentos />} />
-              <Route path="/planos" element={<Planos />} />
-              <Route path="/notas-fiscais" element={<NotasFiscais />} />
             </Route>
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />

@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, Loader2, Lock, CheckCircle2 } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
-import { usePlanFeatures } from "@/hooks/usePlanFeatures";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 interface SaleItem {
@@ -74,8 +72,6 @@ const Vendas = () => {
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const sellerName = useSellerName();
-  const { canEmitNFCe } = usePlanFeatures();
-  const [nfceStatus, setNfceStatus] = useState<null | { state: "idle" | "loading" | "ok" | "error"; message?: string; doc?: any }>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -224,44 +220,7 @@ const Vendas = () => {
     setDiscount("0");
     setDiscountType("percent");
     setInstallments("1");
-    setNfceStatus(null);
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
-  };
-
-  const emitNFCe = async () => {
-    if (!saleId) return;
-    setNfceStatus({ state: "loading" });
-    try {
-      const { data, error } = await supabase.functions.invoke("nfce-emit", { body: { sale_id: saleId } });
-      if (error) throw error;
-      const d: any = data;
-      if (d?.error) throw new Error(d.error);
-      if (d?.status === "authorized") {
-        setNfceStatus({ state: "ok", doc: d, message: `NFC-e ${d.numero}/${d.serie} autorizada` });
-        toast({ title: "NFC-e autorizada!", description: `Nº ${d.numero}` });
-      } else if (d?.status === "processing" || d?.status === "pending") {
-        setNfceStatus({ state: "loading", doc: d, message: "Aguardando autorização SEFAZ..." });
-        // Polling
-        const poll = setInterval(async () => {
-          const { data: s } = await supabase.functions.invoke("nfce-status", { body: { id: d.id } });
-          const sd: any = s;
-          if (sd?.status === "authorized") {
-            clearInterval(poll);
-            setNfceStatus({ state: "ok", doc: sd, message: `NFC-e autorizada` });
-            toast({ title: "NFC-e autorizada!" });
-          } else if (sd?.status === "rejected") {
-            clearInterval(poll);
-            setNfceStatus({ state: "error", message: sd.motivo_rejeicao || "Rejeitada pela SEFAZ" });
-          }
-        }, 3000);
-        setTimeout(() => clearInterval(poll), 60_000);
-      } else {
-        setNfceStatus({ state: "error", message: d?.motivo_rejeicao || "Falha ao emitir" });
-      }
-    } catch (e: any) {
-      setNfceStatus({ state: "error", message: e.message || "Erro inesperado" });
-      toast({ title: "Erro na emissão", description: e.message, variant: "destructive" });
-    }
   };
 
   const now = new Date();
@@ -521,43 +480,10 @@ const Vendas = () => {
 
           {showReceipt && (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-4">
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-3">
                 <Button onClick={printReceipt}><Printer className="h-4 w-4 mr-2" />Imprimir Cupom</Button>
-
-                {canEmitNFCe ? (
-                  <Button
-                    onClick={emitNFCe}
-                    disabled={nfceStatus?.state === "loading" || nfceStatus?.state === "ok"}
-                    variant="secondary"
-                  >
-                    {nfceStatus?.state === "loading" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
-                     nfceStatus?.state === "ok" ? <CheckCircle2 className="h-4 w-4 mr-2" /> :
-                     <FileText className="h-4 w-4 mr-2" />}
-                    {nfceStatus?.state === "ok" ? "NFC-e Emitida" : "Emitir NFC-e"}
-                  </Button>
-                ) : (
-                  <Button asChild variant="outline" className="border-dashed">
-                    <Link to="/planos"><Lock className="h-4 w-4 mr-2" />Emitir NFC-e <span className="ml-2 text-xs text-primary">PRO</span></Link>
-                  </Button>
-                )}
-
                 <Button onClick={newSale} variant="outline">Nova Venda</Button>
               </div>
-
-              {nfceStatus?.message && (
-                <div className={`text-sm rounded-md border p-3 ${
-                  nfceStatus.state === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200" :
-                  nfceStatus.state === "error" ? "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/30 dark:text-red-200" :
-                  "bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:text-blue-200"
-                }`}>
-                  {nfceStatus.message}
-                  {nfceStatus.doc?.danfce_url && (
-                    <a href={nfceStatus.doc.danfce_url} target="_blank" rel="noreferrer" className="ml-2 underline">
-                      Ver DANFCE
-                    </a>
-                  )}
-                </div>
-              )}
             </motion.div>
           )}
         </div>

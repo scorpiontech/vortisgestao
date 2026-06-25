@@ -20,7 +20,6 @@ import {
   ScrollText,
   ScanBarcode,
   FileText,
-  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -69,9 +68,7 @@ const allMenuItems: MenuItem[] = [
     { title: "PDV", url: "/vendas", icon: Receipt },
   ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
-  { title: "Notas Fiscais", url: "/notas-fiscais", icon: FileText, masterOnly: true },
   { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList, masterOnly: true },
-  { title: "Planos", url: "/planos", icon: Sparkles, masterOnly: true },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3, masterOnly: true },
   { title: "Configurações", url: "/configuracoes", icon: Settings, masterOnly: true, children: [
     { title: "Auditoria", url: "/auditoria", icon: ScrollText },
