@@ -332,6 +332,35 @@ const Vendas = () => {
         <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
       </div>
 
+      {pending && !showReceipt && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm">
+            <FileText className="h-4 w-4 text-primary" />
+            <span>
+              Finalizando <strong>{pending.sourceLabel || (pending.source === "quote" ? "orçamento" : "ordem de serviço")}</strong>.
+              Os itens, cliente e desconto foram pré-carregados.
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              clearPdvPending();
+              setPending(null);
+              setItems([]);
+              setCustomerName("");
+              setSelectedCustomerId("");
+              setDiscount("0");
+              setDiscountType("percent");
+              setInstallments("1");
+              toast({ title: "Pré-venda descartada", description: "Você pode iniciar uma nova venda do zero." });
+            }}
+          >
+            <X className="h-3.5 w-3.5 mr-1" /> Descartar
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           {!showReceipt && (
