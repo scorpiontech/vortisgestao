@@ -130,7 +130,7 @@ const Vendas = () => {
     if (existing) {
       setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + qty, total: (i.quantity + qty) * i.unitPrice } : i));
     } else {
-      setItems([...items, { productId: product.id, productName: product.name, quantity: qty, unitPrice: product.price, total: qty * product.price }]);
+      setItems([...items, { productId: product.id, realProductId: product.id, productName: product.name, quantity: qty, unitPrice: product.price, total: qty * product.price }]);
     }
     setQuantity("1");
     setProductSearch("");
