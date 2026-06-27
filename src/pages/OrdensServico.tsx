@@ -298,37 +298,70 @@ export default function OrdensServico() {
   };
 
   const handlePay = async () => {
-    if (!payingOrder || !payMethod) { toast.error("Selecione a forma de pagamento"); return; }
+    if (!payingOrder) return;
     const discount = Math.max(0, Number(payDiscount) || 0);
     if (discount > payingOrder.budget_total) {
       toast.error("O desconto não pode ser maior que o valor do orçamento");
       return;
     }
     const finalAmount = Number((payingOrder.budget_total - discount).toFixed(2));
+    if (finalAmount <= 0) {
+      toast.error("Total a receber inválido");
+      return;
+    }
 
-    const { error } = await supabase.from("service_orders").update({
-      paid: true,
-      paid_at: new Date().toISOString(),
-      payment_method: payMethod,
-      discount,
-    }).eq("id", payingOrder.id);
-    if (error) { toast.error("Erro ao registrar pagamento"); return; }
+    // Load materials to send to PDV
+    const { data: mats } = await supabase
+      .from("service_order_materials")
+      .select("*")
+      .eq("service_order_id", payingOrder.id);
 
-    // Registrar entrada na movimentação financeira
-    await supabase.from("transactions").insert({
-      user_id: effectiveUserId!,
-      type: "entrada",
-      description: `OS - ${payingOrder.customer_name} - ${payingOrder.service_type}${discount > 0 ? ` (desc. R$ ${discount.toFixed(2)})` : ""}`,
-      amount: finalAmount,
-      category: "Ordem de Serviço",
-      payment_method: payMethod,
+    const matItems = (mats || []).map((m: any) => ({
+      productId: m.product_id || null,
+      productName: m.product_name,
+      quantity: Math.max(1, Math.floor(Number(m.quantity))),
+      unitPrice: Number(m.unit_price),
+      total: Number(m.total),
+    }));
+    const matsTotal = matItems.reduce((s, i) => s + i.total, 0);
+    const laborTotal = Number((Number(payingOrder.budget_total) - matsTotal).toFixed(2));
+    if (laborTotal > 0.009) {
+      matItems.push({
+        productId: null,
+        productName: `Serviço — ${payingOrder.service_type || "OS"}`,
+        quantity: 1,
+        unitPrice: laborTotal,
+        total: laborTotal,
+      });
+    }
+    if (matItems.length === 0) {
+      toast.error("OS sem itens nem valor de serviço para enviar ao PDV");
+      return;
+    }
+
+    setPdvPending({
+      source: "service_order",
+      sourceId: payingOrder.id,
+      sourceLabel: `OS — ${payingOrder.customer_name}`,
+      customerId: payingOrder.customer_id || null,
+      customerName: payingOrder.customer_name || "",
+      items: matItems,
+      discountValue: discount,
+      note: `Pagamento da OS de ${payingOrder.customer_name}`,
     });
 
-    toast.success("Pagamento registrado!");
-    logAudit({ action: "payment", entity: "service_order", entityId: payingOrder.id, details: { amount: finalAmount, discount, payment_method: payMethod } });
+    logAudit({
+      action: "send_to_pdv",
+      entity: "service_order",
+      entityId: payingOrder.id,
+      details: { amount: finalAmount, discount },
+    });
+    toast.success("OS enviada ao PDV — finalize a venda para registrar o pagamento.");
     setPayDialogOpen(false);
-    fetchAll();
+    navigate("/vendas");
   };
+
+
 
   const handleFinalize = async (order: ServiceOrder) => {
     if (!order.paid) { toast.error("É necessário realizar o pagamento antes de finalizar a OS"); return; }
