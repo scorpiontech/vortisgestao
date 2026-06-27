@@ -15,7 +15,8 @@ import { getPdvPending, clearPdvPending, type PdvPending } from "@/lib/pdvPendin
 import { motion } from "framer-motion";
 
 interface SaleItem {
-  productId: string;
+  productId: string;            // React key (real product id or synthetic)
+  realProductId: string | null; // FK to products (null for service/labor lines)
   productName: string;
   quantity: number;
   unitPrice: number;
