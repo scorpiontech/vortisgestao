@@ -84,6 +84,7 @@ export default function OrdensServico() {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
   const sellerName = useSellerName();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
