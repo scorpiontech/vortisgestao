@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { setPdvPending } from "@/lib/pdvPending";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -72,6 +74,7 @@ export default function Orcamentos() {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -359,7 +362,7 @@ export default function Orcamentos() {
     if (!cr || cr.length === 0) {
       toast({
         title: "Caixa fechado",
-        description: "Abra o caixa antes de aprovar/converter o orçamento em venda.",
+        description: "Abra o caixa antes de aprovar o orçamento e enviá-lo ao PDV.",
         variant: "destructive",
       });
       return;
@@ -371,62 +374,44 @@ export default function Orcamentos() {
       return;
     }
 
-    const inst = Math.max(1, Number(q.installments) || 1);
-    const { data: sale, error: sErr } = await supabase.from("sales").insert({
-      user_id: effectiveUserId!,
-      customer_name: q.customer_name,
-      payment_method: q.payment_method || "Dinheiro",
-      total: Number(q.total),
-      discount: Number(q.discount),
-      installments: inst,
-    } as any).select().single();
-    if (sErr || !sale) { toast({ title: "Erro ao gerar venda", description: sErr?.message, variant: "destructive" }); return; }
-
-    const saleItems = qItems.map((it: any) => ({
-      sale_id: (sale as any).id,
-      product_id: it.product_id,
-      product_name: it.product_name,
-      quantity: Math.max(1, Math.floor(Number(it.quantity))),
-      unit_price: Number(it.unit_price),
-      total: Number(it.total),
-    }));
-    await supabase.from("sale_items").insert(saleItems);
-
-    await supabase.from("transactions").insert({
-      user_id: effectiveUserId!,
-      type: "entrada",
-      description: `Venda (Orçamento) #${(sale as any).id.slice(0, 8)}${q.customer_name ? ` - ${q.customer_name}` : ""}`,
-      amount: Number(q.total),
-      category: "Vendas",
-      payment_method: (q.payment_method || "Dinheiro") + (inst > 1 ? ` ${inst}x` : ""),
-    });
-
-    // Stock deduction
-    for (const it of qItems as any[]) {
-      if (!it.product_id) continue;
-      const prod = products.find(p => p.id === it.product_id);
-      if (prod) {
-        await supabase.from("products").update({
-          stock: Math.max(0, prod.stock - Math.floor(Number(it.quantity))),
-        }).eq("id", it.product_id);
-      }
+    // Persist quote as "aprovado" — finalization (status convertido + sale) happens in the PDV.
+    const { error: updErr } = await supabase.from("quotes").update({
+      status: "aprovado",
+      negotiation_log: logSoFar as any,
+    }).eq("id", q.id);
+    if (updErr) {
+      toast({ title: "Erro ao aprovar orçamento", description: updErr.message, variant: "destructive" });
+      return;
     }
 
-    await supabase.from("quotes").update({
-      status: "convertido",
-      converted_sale_id: (sale as any).id,
-      negotiation_log: [...logSoFar, {
-        at: new Date().toISOString(), from: "aprovado", to: "convertido",
-        note: `Venda #${(sale as any).id.slice(0, 8)} gerada automaticamente`,
-        by: user?.email,
-      }] as any,
-    }).eq("id", q.id);
+    // Hand off the cart to the PDV (Vendas). PDV will create the sale,
+    // deduct stock, register the financial entry and mark the quote as "convertido".
+    setPdvPending({
+      source: "quote",
+      sourceId: q.id,
+      sourceLabel: `Orçamento #${q.id.slice(0, 8)}`,
+      customerId: q.customer_id || null,
+      customerName: q.customer_name || "",
+      items: (qItems as any[]).map((it) => ({
+        productId: it.product_id || null,
+        productName: it.product_name,
+        quantity: Math.max(1, Math.floor(Number(it.quantity))),
+        unitPrice: Number(it.unit_price),
+        total: Number(it.total),
+      })),
+      paymentMethod: q.payment_method || "Dinheiro",
+      installments: Math.max(1, Number(q.installments) || 1),
+      discountValue: Number(q.discount) || 0,
+      note: `Aprovado a partir do orçamento #${q.id.slice(0, 8)}`,
+    });
 
-    logAudit({ action: "convert_to_sale", entity: "quote", entityId: q.id, details: { sale_id: (sale as any).id, total: q.total } });
-    toast({ title: "Orçamento aprovado e convertido em venda!", description: `Venda: ${fmt(Number(q.total))}` });
+    logAudit({ action: "send_to_pdv", entity: "quote", entityId: q.id, details: { total: q.total } });
+    toast({ title: "Orçamento aprovado!", description: "Finalize a venda no PDV." });
     setStatusOpen(false);
-    loadAll();
+    navigate("/vendas");
   };
+
+
 
   const showHistory = (q: Quote) => { setHistoryQuote(q); setHistoryOpen(true); };
 
@@ -671,7 +656,7 @@ export default function Orcamentos() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="enviado"><Send className="inline h-3.5 w-3.5 mr-1" />Enviado</SelectItem>
-                  <SelectItem value="aprovado"><CheckCircle2 className="inline h-3.5 w-3.5 mr-1" />Aprovado (gera venda)</SelectItem>
+                  <SelectItem value="aprovado"><CheckCircle2 className="inline h-3.5 w-3.5 mr-1" />Aprovado (enviar ao PDV)</SelectItem>
                   <SelectItem value="recusado"><XCircle className="inline h-3.5 w-3.5 mr-1" />Recusado</SelectItem>
                   <SelectItem value="expirado">Expirado</SelectItem>
                   <SelectItem value="rascunho">Voltar para rascunho</SelectItem>
@@ -684,7 +669,7 @@ export default function Orcamentos() {
             </div>
             {newStatus === "aprovado" && (
               <div className="text-xs bg-primary/10 text-primary rounded-md p-2 border border-primary/20">
-                Ao aprovar, será gerada automaticamente uma venda no PDV com baixa de estoque e lançamento financeiro. Exige caixa aberto.
+                Ao aprovar, os itens serão enviados ao PDV para você finalizar a venda (com baixa de estoque e lançamento financeiro). Exige caixa aberto.
               </div>
             )}
           </div>

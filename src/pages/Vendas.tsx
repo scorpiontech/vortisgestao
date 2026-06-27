@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
+import { getPdvPending, clearPdvPending, type PdvPending } from "@/lib/pdvPending";
 import { motion } from "framer-motion";
 
 interface SaleItem {
-  productId: string;
+  productId: string;            // React key (real product id or synthetic)
+  realProductId: string | null; // FK to products (null for service/labor lines)
   productName: string;
   quantity: number;
   unitPrice: number;
@@ -71,6 +73,7 @@ const Vendas = () => {
   const [installments, setInstallments] = useState("1");
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+  const [pending, setPending] = useState<PdvPending | null>(null);
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -89,6 +92,30 @@ const Vendas = () => {
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
       if (data) setCompanyInfo(data as CompanyInfo);
     });
+
+    // Pre-load cart if PDV was opened from Orçamento or Ordem de Serviço
+    const p = getPdvPending();
+    if (p) {
+      setPending(p);
+      setItems(
+        p.items.map((it, idx) => ({
+          productId: it.productId ?? `pending-${idx}-${Date.now()}`,
+          realProductId: it.productId ?? null,
+          productName: it.productName,
+          quantity: Math.max(1, Math.floor(Number(it.quantity))),
+          unitPrice: Number(it.unitPrice),
+          total: Number(it.total),
+        }))
+      );
+      if (p.customerId) setSelectedCustomerId(p.customerId);
+      if (p.customerName) setCustomerName(p.customerName);
+      if (p.paymentMethod) setPaymentMethod(p.paymentMethod);
+      if (p.installments && p.installments > 1) setInstallments(String(p.installments));
+      if (p.discountValue && p.discountValue > 0) {
+        setDiscountType("value");
+        setDiscount(String(p.discountValue));
+      }
+    }
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -128,7 +155,7 @@ const Vendas = () => {
     if (existing) {
       setItems(items.map(i => i.productId === product.id ? { ...i, quantity: i.quantity + qty, total: (i.quantity + qty) * i.unitPrice } : i));
     } else {
-      setItems([...items, { productId: product.id, productName: product.name, quantity: qty, unitPrice: product.price, total: qty * product.price }]);
+      setItems([...items, { productId: product.id, realProductId: product.id, productName: product.name, quantity: qty, unitPrice: product.price, total: qty * product.price }]);
     }
     setQuantity("1");
     setProductSearch("");
@@ -179,7 +206,7 @@ const Vendas = () => {
 
     const saleItems = items.map(i => ({
       sale_id: (sale as any).id,
-      product_id: i.productId,
+      product_id: i.realProductId,
       product_name: i.productName,
       quantity: i.quantity,
       unit_price: i.unitPrice,
@@ -187,20 +214,70 @@ const Vendas = () => {
     }));
     await supabase.from("sale_items").insert(saleItems);
 
+    const txDescription = pending
+      ? `${pending.source === "quote" ? "Venda (Orçamento)" : "Venda (OS)"} #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`
+      : `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`;
+
     await supabase.from("transactions").insert({
       user_id: effectiveUserId!,
       type: "entrada",
-      description: `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`,
+      description: txDescription,
       amount: total,
-      category: "Vendas",
+      category: pending?.source === "service_order" ? "Ordem de Serviço" : "Vendas",
       payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
     });
 
     for (const item of items) {
-      const prod = products.find(p => p.id === item.productId);
+      if (!item.realProductId) continue;
+      const prod = products.find(p => p.id === item.realProductId);
       if (prod) {
-        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.productId);
+        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.realProductId);
       }
+    }
+
+    // If sale originated from a quote or service order, update the source record now.
+    if (pending) {
+      try {
+        if (pending.source === "quote") {
+          const { data: qNow } = await supabase
+            .from("quotes")
+            .select("negotiation_log")
+            .eq("id", pending.sourceId)
+            .maybeSingle();
+          const prevLog = Array.isArray((qNow as any)?.negotiation_log) ? (qNow as any).negotiation_log : [];
+          await supabase.from("quotes").update({
+            status: "convertido",
+            converted_sale_id: (sale as any).id,
+            negotiation_log: [
+              ...prevLog,
+              {
+                at: new Date().toISOString(),
+                from: "aprovado",
+                to: "convertido",
+                note: `Finalizado no PDV — Venda #${(sale as any).id.slice(0, 8)}`,
+                by: user?.email,
+              },
+            ] as any,
+          }).eq("id", pending.sourceId);
+        } else if (pending.source === "service_order") {
+          await supabase.from("service_orders").update({
+            paid: true,
+            paid_at: new Date().toISOString(),
+            payment_method: paymentMethod,
+            discount: discountValue,
+          }).eq("id", pending.sourceId);
+        }
+        logAudit({
+          action: "pdv_finalize_from_source",
+          entity: pending.source,
+          entityId: pending.sourceId,
+          details: { sale_id: (sale as any).id, total },
+        });
+      } catch (e) {
+        console.error("Falha ao atualizar origem da venda", e);
+      }
+      clearPdvPending();
+      setPending(null);
     }
 
     setSaleId((sale as any).id);
@@ -208,6 +285,7 @@ const Vendas = () => {
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
     logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
   };
+
 
   const printReceipt = () => window.print();
 
@@ -253,6 +331,35 @@ const Vendas = () => {
         <h1 className="text-2xl font-bold">PDV</h1>
         <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
       </div>
+
+      {pending && !showReceipt && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm">
+            <FileText className="h-4 w-4 text-primary" />
+            <span>
+              Finalizando <strong>{pending.sourceLabel || (pending.source === "quote" ? "orçamento" : "ordem de serviço")}</strong>.
+              Os itens, cliente e desconto foram pré-carregados.
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              clearPdvPending();
+              setPending(null);
+              setItems([]);
+              setCustomerName("");
+              setSelectedCustomerId("");
+              setDiscount("0");
+              setDiscountType("percent");
+              setInstallments("1");
+              toast({ title: "Pré-venda descartada", description: "Você pode iniciar uma nova venda do zero." });
+            }}
+          >
+            <X className="h-3.5 w-3.5 mr-1" /> Descartar
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
