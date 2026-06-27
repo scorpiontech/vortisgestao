@@ -27,21 +27,21 @@ interface Plan {
 }
 
 const TIERS = [
-  { value: "basico",     label: "Básico (sem NF-e)" },
-  { value: "pro_6",      label: "Pro 6 (até 6 NF-e/mês)" },
-  { value: "pro_12",     label: "Pro 12 (até 12 NF-e/mês)" },
-  { value: "pro_20",     label: "Pro 20 (até 20 NF-e/mês)" },
+  { value: "free",       label: "Free (sem Nota Fiscal)" },
+  { value: "pro_6",      label: "Pro 6 (até 6 NFC-e/mês — R$ 59,90)" },
+  { value: "pro_10",     label: "Pro 10 (até 10 NFC-e/mês — R$ 89,90)" },
+  { value: "pro_20",     label: "Pro 20 (até 20 NFC-e/mês — R$ 159,90)" },
   { value: "pro_custom", label: "Pro+ (negociado)" },
 ];
 
 const emptyForm = {
   name: "",
   description: "",
-  monthly_value: 99.90,
+  monthly_value: 0,
   active: true,
-  tier: "basico",
+  tier: "free",
   nfe_quota: null as number | null,
-  features: { nfe: false } as { nfe: boolean },
+  features: { nfe: false, nfce: false } as { nfe: boolean; nfce: boolean },
 };
 
 export default function AdminPlanos() {

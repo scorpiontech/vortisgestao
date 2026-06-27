@@ -1,3 +1,5 @@
+import { isNumericCNPJ, cleanCNPJ } from "@/lib/validators";
+
 export interface CnpjData {
   name: string;
   email: string;
@@ -25,8 +27,16 @@ function formatPhoneStr(ddd: string, num: string) {
 }
 
 export async function fetchCnpjData(cnpj: string): Promise<CnpjData> {
-  const clean = cnpj.replace(/\D/g, "");
-  if (clean.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
+  const clean = cleanCNPJ(cnpj);
+  if (clean.length !== 14) throw new Error("CNPJ deve ter 14 caracteres");
+
+  // CNPJ alfanumérico (vigência jul/2026) ainda não é suportado pelas
+  // APIs públicas (BrasilAPI/ReceitaWS). Avisa e deixa preenchimento manual.
+  if (!isNumericCNPJ(clean)) {
+    throw new Error(
+      "Consulta automática ainda não disponível para CNPJ alfanumérico. Preencha os dados manualmente."
+    );
+  }
 
   // BrasilAPI (primary)
   try {
@@ -36,9 +46,7 @@ export async function fetchCnpjData(cnpj: string): Promise<CnpjData> {
       return {
         name: d.razao_social || d.nome_fantasia || "",
         email: d.email || "",
-        phone: d.ddd_telefone_1
-          ? formatPhoneStr("", d.ddd_telefone_1)
-          : "",
+        phone: d.ddd_telefone_1 ? formatPhoneStr("", d.ddd_telefone_1) : "",
         zip_code: formatCepStr(d.cep || ""),
         street: d.logradouro || "",
         number: d.numero || "",
