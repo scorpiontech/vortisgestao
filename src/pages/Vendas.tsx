@@ -73,6 +73,7 @@ const Vendas = () => {
   const [installments, setInstallments] = useState("1");
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+  const [pending, setPending] = useState<PdvPending | null>(null);
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
