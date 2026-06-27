@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
 import { getPdvPending, clearPdvPending, type PdvPending } from "@/lib/pdvPending";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 interface SaleItem {
