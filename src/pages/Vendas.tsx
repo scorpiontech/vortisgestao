@@ -5,13 +5,15 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench } from "lucide-react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
 import { getPdvPending, clearPdvPending, type PdvPending } from "@/lib/pdvPending";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 interface SaleItem {
@@ -333,31 +335,69 @@ const Vendas = () => {
       </div>
 
       {pending && !showReceipt && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm">
-            <FileText className="h-4 w-4 text-primary" />
-            <span>
-              Finalizando <strong>{pending.sourceLabel || (pending.source === "quote" ? "orçamento" : "ordem de serviço")}</strong>.
-              Os itens, cliente e desconto foram pré-carregados.
-            </span>
+        <div
+          className={cn(
+            "relative overflow-hidden rounded-lg border px-4 py-3 shadow-elevated",
+            pending.source === "quote"
+              ? "border-l-4 border-l-primary bg-primary/5 border-primary/20"
+              : "border-l-4 border-l-amber-500 bg-amber-500/5 border-amber-500/20"
+          )}
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                  pending.source === "quote" ? "bg-primary/15 text-primary" : "bg-amber-500/15 text-amber-600"
+                )}
+              >
+                {pending.source === "quote" ? <ClipboardList className="h-5 w-5" /> : <Wrench className="h-5 w-5" />}
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold">
+                    Finalizando {pending.source === "quote" ? "Orçamento" : "Ordem de Serviço"}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs font-medium",
+                      pending.source === "quote"
+                        ? "border-primary/30 text-primary bg-primary/10"
+                        : "border-amber-500/40 text-amber-700 bg-amber-500/10"
+                    )}
+                  >
+                    {pending.source === "quote" ? "Pré-venda" : "OS pendente"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {pending.sourceLabel
+                    ? pending.sourceLabel
+                    : pending.source === "quote"
+                      ? "Os itens, cliente e desconto do orçamento aprovado foram pré-carregados."
+                      : "Os itens, cliente e desconto da ordem de serviço foram pré-carregados."}
+                  {" "}Finalize no caixa após conferência.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                clearPdvPending();
+                setPending(null);
+                setItems([]);
+                setCustomerName("");
+                setSelectedCustomerId("");
+                setDiscount("0");
+                setDiscountType("percent");
+                setInstallments("1");
+                toast({ title: "Pré-venda descartada", description: "Você pode iniciar uma nova venda do zero." });
+              }}
+            >
+              <X className="h-3.5 w-3.5 mr-1" /> Descartar
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              clearPdvPending();
-              setPending(null);
-              setItems([]);
-              setCustomerName("");
-              setSelectedCustomerId("");
-              setDiscount("0");
-              setDiscountType("percent");
-              setInstallments("1");
-              toast({ title: "Pré-venda descartada", description: "Você pode iniciar uma nova venda do zero." });
-            }}
-          >
-            <X className="h-3.5 w-3.5 mr-1" /> Descartar
-          </Button>
         </div>
       )}
 
