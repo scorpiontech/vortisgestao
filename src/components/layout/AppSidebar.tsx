@@ -68,6 +68,7 @@ const allMenuItems: MenuItem[] = [
     { title: "PDV", url: "/vendas", icon: Receipt },
   ]},
   { title: "Fornecedores", url: "/fornecedores", icon: Truck },
+  { title: "Notas Fiscais", url: "/notas-fiscais", icon: FileText, masterOnly: true },
   { title: "Ordens de Serviço", url: "/ordens-servico", icon: ClipboardList, masterOnly: true },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3, masterOnly: true },
   { title: "Configurações", url: "/configuracoes", icon: Settings, masterOnly: true, children: [
