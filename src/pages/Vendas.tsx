@@ -206,7 +206,7 @@ const Vendas = () => {
 
     const saleItems = items.map(i => ({
       sale_id: (sale as any).id,
-      product_id: i.productId,
+      product_id: i.realProductId,
       product_name: i.productName,
       quantity: i.quantity,
       unit_price: i.unitPrice,
@@ -214,20 +214,70 @@ const Vendas = () => {
     }));
     await supabase.from("sale_items").insert(saleItems);
 
+    const txDescription = pending
+      ? `${pending.source === "quote" ? "Venda (Orçamento)" : "Venda (OS)"} #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`
+      : `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`;
+
     await supabase.from("transactions").insert({
       user_id: effectiveUserId!,
       type: "entrada",
-      description: `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`,
+      description: txDescription,
       amount: total,
-      category: "Vendas",
+      category: pending?.source === "service_order" ? "Ordem de Serviço" : "Vendas",
       payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
     });
 
     for (const item of items) {
-      const prod = products.find(p => p.id === item.productId);
+      if (!item.realProductId) continue;
+      const prod = products.find(p => p.id === item.realProductId);
       if (prod) {
-        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.productId);
+        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.realProductId);
       }
+    }
+
+    // If sale originated from a quote or service order, update the source record now.
+    if (pending) {
+      try {
+        if (pending.source === "quote") {
+          const { data: qNow } = await supabase
+            .from("quotes")
+            .select("negotiation_log")
+            .eq("id", pending.sourceId)
+            .maybeSingle();
+          const prevLog = Array.isArray((qNow as any)?.negotiation_log) ? (qNow as any).negotiation_log : [];
+          await supabase.from("quotes").update({
+            status: "convertido",
+            converted_sale_id: (sale as any).id,
+            negotiation_log: [
+              ...prevLog,
+              {
+                at: new Date().toISOString(),
+                from: "aprovado",
+                to: "convertido",
+                note: `Finalizado no PDV — Venda #${(sale as any).id.slice(0, 8)}`,
+                by: user?.email,
+              },
+            ] as any,
+          }).eq("id", pending.sourceId);
+        } else if (pending.source === "service_order") {
+          await supabase.from("service_orders").update({
+            paid: true,
+            paid_at: new Date().toISOString(),
+            payment_method: paymentMethod,
+            discount: discountValue,
+          }).eq("id", pending.sourceId);
+        }
+        logAudit({
+          action: "pdv_finalize_from_source",
+          entity: pending.source,
+          entityId: pending.sourceId,
+          details: { sale_id: (sale as any).id, total },
+        });
+      } catch (e) {
+        console.error("Falha ao atualizar origem da venda", e);
+      }
+      clearPdvPending();
+      setPending(null);
     }
 
     setSaleId((sale as any).id);
@@ -235,6 +285,7 @@ const Vendas = () => {
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
     logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
   };
+
 
   const printReceipt = () => window.print();
 
