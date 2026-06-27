@@ -74,6 +74,7 @@ export default function Orcamentos() {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
