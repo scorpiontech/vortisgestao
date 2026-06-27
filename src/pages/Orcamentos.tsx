@@ -669,7 +669,7 @@ export default function Orcamentos() {
             </div>
             {newStatus === "aprovado" && (
               <div className="text-xs bg-primary/10 text-primary rounded-md p-2 border border-primary/20">
-                Ao aprovar, será gerada automaticamente uma venda no PDV com baixa de estoque e lançamento financeiro. Exige caixa aberto.
+                Ao aprovar, os itens serão enviados ao PDV para você finalizar a venda (com baixa de estoque e lançamento financeiro). Exige caixa aberto.
               </div>
             )}
           </div>
