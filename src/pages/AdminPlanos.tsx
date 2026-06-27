@@ -73,15 +73,15 @@ export default function AdminPlanos() {
       description: p.description,
       monthly_value: Number(p.monthly_value),
       active: p.active,
-      tier: p.tier ?? "basico",
+      tier: p.tier ?? "free",
       nfe_quota: p.nfe_quota,
-      features: (p.features ?? { nfe: false }) as { nfe: boolean },
+      features: { nfe: !!(p.features?.nfe), nfce: !!(p.features?.nfce) },
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.name.trim() || form.monthly_value <= 0) {
+    if (!form.name.trim() || form.monthly_value < 0) {
       toast.error("Preencha o nome e um valor válido");
       return;
     }

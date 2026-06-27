@@ -26,11 +26,11 @@ interface Plan {
 
 interface NfceDoc {
   id: string;
-  number: string | null;
+  numero: string | null;
   status: string;
   customer_name: string | null;
-  total_value: number | null;
-  issued_at: string | null;
+  valor_total: number | null;
+  emitted_at: string | null;
   created_at: string;
 }
 
@@ -70,7 +70,7 @@ const NotasFiscais = () => {
       // Notas emitidas (se houver)
       const { data: nf } = await supabase
         .from("nfce_documents")
-        .select("id, number, status, customer_name, total_value, issued_at, created_at")
+        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
       setDocs((nf || []) as NfceDoc[]);
