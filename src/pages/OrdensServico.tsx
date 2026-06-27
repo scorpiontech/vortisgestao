@@ -703,12 +703,15 @@ export default function OrdensServico() {
       {/* Payment Dialog */}
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Registrar Pagamento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Enviar para PDV</DialogTitle></DialogHeader>
           {payingOrder && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Valor do orçamento: <strong className="text-foreground">R$ {Number(payingOrder.budget_total).toFixed(2)}</strong></p>
+              <p className="text-sm text-muted-foreground">
+                Os itens da OS serão carregados no PDV para você finalizar a venda (escolher forma de pagamento, imprimir cupom e baixar estoque).
+              </p>
+              <p className="text-sm">Valor do orçamento: <strong>R$ {Number(payingOrder.budget_total).toFixed(2)}</strong></p>
               <div className="space-y-2">
-                <Label>Desconto (R$)</Label>
+                <Label>Desconto (R$) — opcional</Label>
                 <Input
                   type="number"
                   min={0}
@@ -723,20 +726,7 @@ export default function OrdensServico() {
                 <span className="text-muted-foreground">Total a receber:</span>
                 <strong>R$ {Math.max(0, payingOrder.budget_total - (Number(payDiscount) || 0)).toFixed(2)}</strong>
               </div>
-              <div className="space-y-2">
-                <Label>Forma de Pagamento *</Label>
-                <Select value={payMethod} onValueChange={setPayMethod}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
-                    <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
-                    <SelectItem value="PIX">PIX</SelectItem>
-                    <SelectItem value="Transferência">Transferência</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handlePay} className="w-full">Confirmar Pagamento</Button>
+              <Button onClick={handlePay} className="w-full">Enviar para PDV</Button>
             </div>
           )}
         </DialogContent>
