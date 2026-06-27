@@ -254,12 +254,12 @@ const NotasFiscais = () => {
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
               ) : docs.map(d => (
                 <TableRow key={d.id}>
-                  <TableCell className="font-mono text-xs">{d.number || "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{d.numero || "—"}</TableCell>
                   <TableCell>{d.customer_name || "Consumidor"}</TableCell>
-                  <TableCell>{Number(d.total_value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
+                  <TableCell>{Number(d.valor_total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
                   <TableCell>{statusBadge(d.status)}</TableCell>
                   <TableCell className="text-xs">
-                    {(d.issued_at || d.created_at) ? new Date(d.issued_at || d.created_at).toLocaleString("pt-BR") : "—"}
+                    {(d.emitted_at || d.created_at) ? new Date(d.emitted_at || d.created_at).toLocaleString("pt-BR") : "—"}
                   </TableCell>
                 </TableRow>
               ))}
