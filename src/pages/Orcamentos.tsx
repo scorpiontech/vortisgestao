@@ -656,7 +656,7 @@ export default function Orcamentos() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="enviado"><Send className="inline h-3.5 w-3.5 mr-1" />Enviado</SelectItem>
-                  <SelectItem value="aprovado"><CheckCircle2 className="inline h-3.5 w-3.5 mr-1" />Aprovado (gera venda)</SelectItem>
+                  <SelectItem value="aprovado"><CheckCircle2 className="inline h-3.5 w-3.5 mr-1" />Aprovado (enviar ao PDV)</SelectItem>
                   <SelectItem value="recusado"><XCircle className="inline h-3.5 w-3.5 mr-1" />Recusado</SelectItem>
                   <SelectItem value="expirado">Expirado</SelectItem>
                   <SelectItem value="rascunho">Voltar para rascunho</SelectItem>
