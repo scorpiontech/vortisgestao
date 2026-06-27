@@ -92,6 +92,30 @@ const Vendas = () => {
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
       if (data) setCompanyInfo(data as CompanyInfo);
     });
+
+    // Pre-load cart if PDV was opened from Orçamento or Ordem de Serviço
+    const p = getPdvPending();
+    if (p) {
+      setPending(p);
+      setItems(
+        p.items.map((it, idx) => ({
+          productId: it.productId ?? `pending-${idx}-${Date.now()}`,
+          realProductId: it.productId ?? null,
+          productName: it.productName,
+          quantity: Math.max(1, Math.floor(Number(it.quantity))),
+          unitPrice: Number(it.unitPrice),
+          total: Number(it.total),
+        }))
+      );
+      if (p.customerId) setSelectedCustomerId(p.customerId);
+      if (p.customerName) setCustomerName(p.customerName);
+      if (p.paymentMethod) setPaymentMethod(p.paymentMethod);
+      if (p.installments && p.installments > 1) setInstallments(String(p.installments));
+      if (p.discountValue && p.discountValue > 0) {
+        setDiscountType("value");
+        setDiscount(String(p.discountValue));
+      }
+    }
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
