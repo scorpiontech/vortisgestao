@@ -307,6 +307,10 @@ export default function MovimentacaoEstoque() {
                 <SelectItem value="ajuste">Ajustes</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExportCSV} title="Exportar CSV"><FileDown className="w-4 h-4 mr-1" /> CSV</Button>
+              <Button variant="outline" onClick={handleExportPDF} title="Exportar PDF"><FileText className="w-4 h-4 mr-1" /> PDF</Button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
