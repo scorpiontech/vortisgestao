@@ -57,8 +57,33 @@ fi
 echo "[2/5] Usando Node $("$NODE_BIN" -v) ✓"
 
 # 2. Instalar dependências do projeto
+# Tenta a instalação normal; se falhar por conflito de peer dependency
+# (ex.: versão incorreta do Vite num node_modules antigo), limpa
+# node_modules e package-lock.json e reinstala com --legacy-peer-deps.
+# Para forçar a limpeza manualmente: sudo FORCE_CLEAN_INSTALL=1 bash deploy.sh
 echo "[3/5] Instalando dependências do projeto..."
-npm install
+
+install_deps() {
+    if [ "$FORCE_CLEAN_INSTALL" = "1" ]; then
+        echo "  Modo forçado (FORCE_CLEAN_INSTALL=1): limpando node_modules e package-lock.json..."
+        rm -rf node_modules package-lock.json
+        npm install --legacy-peer-deps
+        return
+    fi
+
+    if npm install; then
+        echo "  Dependências instaladas ✓"
+    else
+        echo ""
+        echo "  ⚠️  Instalação normal falhou — possível conflito de peer dependency."
+        echo "  Limpando node_modules e package-lock.json..."
+        rm -rf node_modules package-lock.json
+        echo "  Reinstalando com --legacy-peer-deps..."
+        npm install --legacy-peer-deps
+    fi
+}
+
+install_deps
 
 # 3. Gerar build de produção
 echo "[4/5] Gerando build de produção..."
