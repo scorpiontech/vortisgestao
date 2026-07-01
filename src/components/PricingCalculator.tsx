@@ -45,13 +45,13 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 p-3 max-h-[min(80vh,520px)] overflow-y-auto"
+        className="w-80 p-0 flex flex-col max-h-[min(85vh,540px)]"
         align="end"
         side="bottom"
         sideOffset={6}
-        collisionPadding={12}
+        collisionPadding={16}
       >
-        <div className="space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
           <div>
             <h4 className="font-semibold text-sm">Calcular Preço de Venda</h4>
             <p className="text-xs text-muted-foreground">custo ÷ (1 − impostos − lucro)</p>
@@ -97,7 +97,9 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
               <span className="text-base font-bold text-primary tabular-nums">{fmt(price)}</span>
             </div>
           </div>
+        </div>
 
+        <div className="p-3 border-t bg-background shrink-0">
           <Button
             type="button"
             className="w-full"
