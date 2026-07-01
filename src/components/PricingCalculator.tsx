@@ -44,8 +44,14 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
           Calcular
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
-        <div className="space-y-3">
+      <PopoverContent
+        className="w-80 p-3 max-h-[min(80vh,520px)] overflow-y-auto"
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        collisionPadding={12}
+      >
+        <div className="space-y-2">
           <div>
             <h4 className="font-semibold text-sm">Calcular Preço de Venda</h4>
             <p className="text-xs text-muted-foreground">custo ÷ (1 − impostos − lucro)</p>
@@ -54,27 +60,27 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Custo (R$)</Label>
-              <Input type="number" step="0.01" value={localCost} onChange={e => setLocalCost(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={localCost} onChange={e => setLocalCost(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Frete (R$)</Label>
-              <Input type="number" step="0.01" value={freight} onChange={e => setFreight(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={freight} onChange={e => setFreight(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Impostos (%)</Label>
-              <Input type="number" step="0.01" value={taxes} onChange={e => setTaxes(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={taxes} onChange={e => setTaxes(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Lucro (%)</Label>
-              <Input type="number" step="0.01" value={profit} onChange={e => setProfit(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={profit} onChange={e => setProfit(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1 col-span-2">
               <Label className="text-xs">Despesas operacionais (%)</Label>
-              <Input type="number" step="0.01" value={expenses} onChange={e => setExpenses(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={expenses} onChange={e => setExpenses(Number(e.target.value))} className="h-8" />
             </div>
           </div>
 
-          <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
+          <div className="rounded-md border bg-muted/40 p-2 space-y-1">
             {!valid && divisor <= 0 && (
               <p className="text-xs text-destructive">Soma de impostos + lucro + despesas deve ser menor que 100%.</p>
             )}
