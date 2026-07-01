@@ -1066,6 +1066,56 @@ export type Database = {
           },
         ]
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string
+          product_id: string
+          quantity: number
+          reason: string
+          reference: string
+          type: string
+          unit_cost: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string
+          product_id: string
+          quantity: number
+          reason?: string
+          reference?: string
+          type: string
+          unit_cost?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string
+          product_id?: string
+          quantity?: number
+          reason?: string
+          reference?: string
+          type?: string
+          unit_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_invoices: {
         Row: {
           amount: number
