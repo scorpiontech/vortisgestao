@@ -45,42 +45,42 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 p-0 flex flex-col max-h-[min(85vh,540px)]"
-        align="end"
+        className="w-72 p-0 flex flex-col max-h-[min(75vh,420px)] overflow-hidden"
+        align="start"
         side="bottom"
         sideOffset={6}
-        collisionPadding={16}
+        collisionPadding={20}
       >
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5">
           <div>
             <h4 className="font-semibold text-sm">Calcular Preço de Venda</h4>
             <p className="text-xs text-muted-foreground">custo ÷ (1 − impostos − lucro)</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <Label className="text-xs">Custo (R$)</Label>
-              <Input type="number" step="0.01" value={localCost} onChange={e => setLocalCost(Number(e.target.value))} className="h-8" />
+              <Input type="number" step="0.01" value={localCost} onChange={e => setLocalCost(Number(e.target.value))} className="h-7 text-xs" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <Label className="text-xs">Frete (R$)</Label>
-              <Input type="number" step="0.01" value={freight} onChange={e => setFreight(Number(e.target.value))} className="h-8" />
+              <Input type="number" step="0.01" value={freight} onChange={e => setFreight(Number(e.target.value))} className="h-7 text-xs" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <Label className="text-xs">Impostos (%)</Label>
-              <Input type="number" step="0.01" value={taxes} onChange={e => setTaxes(Number(e.target.value))} className="h-8" />
+              <Input type="number" step="0.01" value={taxes} onChange={e => setTaxes(Number(e.target.value))} className="h-7 text-xs" />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <Label className="text-xs">Lucro (%)</Label>
-              <Input type="number" step="0.01" value={profit} onChange={e => setProfit(Number(e.target.value))} className="h-8" />
+              <Input type="number" step="0.01" value={profit} onChange={e => setProfit(Number(e.target.value))} className="h-7 text-xs" />
             </div>
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-0.5 col-span-2">
               <Label className="text-xs">Despesas operacionais (%)</Label>
-              <Input type="number" step="0.01" value={expenses} onChange={e => setExpenses(Number(e.target.value))} className="h-8" />
+              <Input type="number" step="0.01" value={expenses} onChange={e => setExpenses(Number(e.target.value))} className="h-7 text-xs" />
             </div>
           </div>
 
-          <div className="rounded-md border bg-muted/40 p-2 space-y-1">
+          <div className="rounded-md border bg-muted/40 p-2 space-y-0.5">
             {!valid && divisor <= 0 && (
               <p className="text-xs text-destructive">Soma de impostos + lucro + despesas deve ser menor que 100%.</p>
             )}
@@ -92,14 +92,14 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
               <span className="text-muted-foreground">Margem sobre venda</span>
               <span className="tabular-nums">{margin.toFixed(2)}%</span>
             </div>
-            <div className="flex items-center justify-between pt-1 border-t">
+            <div className="flex items-center justify-between pt-0.5 border-t">
               <span className="text-sm font-medium">Preço sugerido</span>
               <span className="text-base font-bold text-primary tabular-nums">{fmt(price)}</span>
             </div>
           </div>
         </div>
 
-        <div className="p-3 border-t bg-background shrink-0">
+        <div className="p-3 pt-2 border-t bg-background shrink-0">
           <Button
             type="button"
             className="w-full"
