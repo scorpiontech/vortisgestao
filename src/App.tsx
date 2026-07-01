@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Estoque from "./pages/Estoque";
+import MovimentacaoEstoque from "./pages/MovimentacaoEstoque";
 import Financeiro from "./pages/Financeiro";
 import Vendas from "./pages/Vendas";
 import Relatorios from "./pages/Relatorios";
