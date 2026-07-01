@@ -180,7 +180,16 @@ const Estoque = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Preço Venda</Label><Input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>Preço Venda</Label>
+                    <PricingCalculator
+                      cost={Number(form.cost) || 0}
+                      onApply={(price) => setForm({ ...form, price: price.toFixed(2) })}
+                    />
+                  </div>
+                  <Input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+                </div>
                 <div className="space-y-1.5"><Label>Custo</Label><Input type="number" step="0.01" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
