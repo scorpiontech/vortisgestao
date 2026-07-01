@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
+import { PricingCalculator } from "@/components/PricingCalculator";
 
 interface Product {
   id: string;
