@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Search, ArrowDownCircle, ArrowUpCircle, Sliders, Trash2 } from "lucide-react";
+import { Plus, Search, ArrowDownCircle, ArrowUpCircle, Sliders, Trash2, FileDown, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Product { id: string; name: string; sku: string; stock: number; unit: string; cost: number; }
 interface Movement {
