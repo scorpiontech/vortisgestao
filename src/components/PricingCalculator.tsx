@@ -80,7 +80,7 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
             </div>
           </div>
 
-          <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
+          <div className="rounded-md border bg-muted/40 p-2 space-y-1">
             {!valid && divisor <= 0 && (
               <p className="text-xs text-destructive">Soma de impostos + lucro + despesas deve ser menor que 100%.</p>
             )}
