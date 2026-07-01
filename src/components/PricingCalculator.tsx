@@ -60,23 +60,23 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label className="text-xs">Custo (R$)</Label>
-              <Input type="number" step="0.01" value={localCost} onChange={e => setLocalCost(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={localCost} onChange={e => setLocalCost(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Frete (R$)</Label>
-              <Input type="number" step="0.01" value={freight} onChange={e => setFreight(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={freight} onChange={e => setFreight(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Impostos (%)</Label>
-              <Input type="number" step="0.01" value={taxes} onChange={e => setTaxes(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={taxes} onChange={e => setTaxes(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Lucro (%)</Label>
-              <Input type="number" step="0.01" value={profit} onChange={e => setProfit(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={profit} onChange={e => setProfit(Number(e.target.value))} className="h-8" />
             </div>
             <div className="space-y-1 col-span-2">
               <Label className="text-xs">Despesas operacionais (%)</Label>
-              <Input type="number" step="0.01" value={expenses} onChange={e => setExpenses(Number(e.target.value))} className="h-9" />
+              <Input type="number" step="0.01" value={expenses} onChange={e => setExpenses(Number(e.target.value))} className="h-8" />
             </div>
           </div>
 
