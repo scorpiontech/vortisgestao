@@ -148,6 +148,65 @@ export default function MovimentacaoEstoque() {
     return { entradas, saidas, ajustes };
   }, [movements]);
 
+  const exportRows = () => filtered.map(m => ({
+    data: new Date(m.created_at).toLocaleString("pt-BR"),
+    tipo: typeLabels[m.type].label,
+    produto: m.products?.name || "",
+    sku: m.products?.sku || "",
+    quantidade: Number(m.quantity),
+    unidade: m.products?.unit || "",
+    custo_unit: Number(m.unit_cost).toFixed(2),
+    total: (Number(m.quantity) * Number(m.unit_cost)).toFixed(2),
+    motivo: m.reason || "",
+    referencia: m.reference || "",
+    observacoes: m.notes || "",
+  }));
+
+  const handleExportCSV = () => {
+    const rows = exportRows();
+    if (rows.length === 0) return toast({ title: "Nada para exportar", variant: "destructive" });
+    const headers = ["Data","Tipo","Produto","SKU","Quantidade","Unidade","Custo Unit.","Total","Motivo","Referência","Observações"];
+    const escape = (v: any) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [
+      headers.join(";"),
+      ...rows.map(r => [r.data, r.tipo, r.produto, r.sku, r.quantidade, r.unidade, r.custo_unit, r.total, r.motivo, r.referencia, r.observacoes].map(escape).join(";"))
+    ].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `movimentacoes-estoque-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "CSV exportado", description: `${rows.length} registro(s).` });
+  };
+
+  const handleExportPDF = () => {
+    const rows = exportRows();
+    if (rows.length === 0) return toast({ title: "Nada para exportar", variant: "destructive" });
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(14);
+    doc.text("Movimentações de Estoque", 14, 14);
+    doc.setFontSize(9);
+    const filtros = [
+      filterType !== "all" ? `Tipo: ${typeLabels[filterType]?.label || filterType}` : "Tipo: Todos",
+      search ? `Busca: "${search}"` : null,
+      `Gerado em: ${new Date().toLocaleString("pt-BR")}`,
+    ].filter(Boolean).join("   •   ");
+    doc.text(filtros, 14, 20);
+
+    autoTable(doc, {
+      startY: 25,
+      head: [["Data","Tipo","Produto","SKU","Qtd","Un.","Custo","Total","Motivo","Ref."]],
+      body: rows.map(r => [r.data, r.tipo, r.produto, r.sku, r.quantidade, r.unidade, `R$ ${r.custo_unit}`, `R$ ${r.total}`, r.motivo, r.referencia]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
+    });
+
+    doc.save(`movimentacoes-estoque-${new Date().toISOString().slice(0,10)}.pdf`);
+    toast({ title: "PDF exportado", description: `${rows.length} registro(s).` });
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
