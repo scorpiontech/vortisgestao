@@ -56,6 +56,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Histórico Cliente", url: "/historico-cliente", icon: History },
   ]},
   { title: "Estoque", url: "/estoque", icon: Package, children: [
+    { title: "Movimentação de Estoque", url: "/movimentacao-estoque", icon: ArrowLeftRight },
     { title: "Categorias", url: "/categorias", icon: Tags, masterOnly: true },
     { title: "Unidades de Medida", url: "/unidades", icon: Ruler, masterOnly: true },
   ]},
