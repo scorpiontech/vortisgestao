@@ -779,6 +779,77 @@ const Vendas = () => {
         onClose={() => setScannerOpen(false)}
         onScan={handleBarcodeScan}
       />
+
+      <Dialog open={quotesDialogOpen} onOpenChange={setQuotesDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Pré-vendas aprovadas
+            </DialogTitle>
+            <DialogDescription>
+              Selecione um orçamento aprovado para carregar no PDV. Busque pelo nome do cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome do cliente..."
+                value={quoteSearch}
+                onChange={e => setQuoteSearch(e.target.value)}
+                className="pl-9"
+                autoFocus
+              />
+            </div>
+            <div className="border rounded-lg overflow-hidden max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-muted/50">
+                  <tr className="border-b">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Cliente</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Orçamento</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Data</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total</th>
+                    <th className="px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {approvedQuotes
+                    .filter(q => {
+                      const s = quoteSearch.trim().toLowerCase();
+                      if (!s) return true;
+                      return (q.customer_name || "").toLowerCase().includes(s);
+                    })
+                    .map(q => (
+                      <tr
+                        key={q.id}
+                        className="hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => loadQuoteIntoPdv(q.id)}
+                      >
+                        <td className="px-3 py-2 font-medium">{q.customer_name || "Consumidor"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">#{q.id.slice(0, 8)}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{new Date(q.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2 text-right font-semibold">{formatCurrency(Number(q.total))}</td>
+                        <td className="px-2 py-2">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); loadQuoteIntoPdv(q.id); }}>
+                            Carregar
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  {approvedQuotes.filter(q => {
+                    const s = quoteSearch.trim().toLowerCase();
+                    if (!s) return true;
+                    return (q.customer_name || "").toLowerCase().includes(s);
+                  }).length === 0 && (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Nenhuma pré-venda encontrada</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
