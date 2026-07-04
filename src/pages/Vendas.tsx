@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
@@ -76,6 +77,9 @@ const Vendas = () => {
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
+  const [approvedQuotes, setApprovedQuotes] = useState<Array<{ id: string; customer_id: string | null; customer_name: string | null; total: number; created_at: string; payment_method: string | null; installments: number | null; discount: number | null }>>([]);
+  const [quotesDialogOpen, setQuotesDialogOpen] = useState(false);
+  const [quoteSearch, setQuoteSearch] = useState("");
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -84,6 +88,75 @@ const Vendas = () => {
     p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
     p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
+
+  const fetchApprovedQuotes = async () => {
+    const { data } = await supabase
+      .from("quotes")
+      .select("id, customer_id, customer_name, total, created_at, payment_method, installments, discount")
+      .eq("status", "aprovado")
+      .is("converted_sale_id", null)
+      .order("created_at", { ascending: false });
+    setApprovedQuotes((data as any) || []);
+  };
+
+  const applyPending = (p: PdvPending) => {
+    setPending(p);
+    setItems(
+      p.items.map((it, idx) => ({
+        productId: it.productId ?? `pending-${idx}-${Date.now()}`,
+        realProductId: it.productId ?? null,
+        productName: it.productName,
+        quantity: Math.max(1, Math.floor(Number(it.quantity))),
+        unitPrice: Number(it.unitPrice),
+        total: Number(it.total),
+      }))
+    );
+    setSelectedCustomerId(p.customerId || "");
+    setCustomerName(p.customerName || "");
+    setPaymentMethod(p.paymentMethod || "Dinheiro");
+    setInstallments(p.installments && p.installments > 1 ? String(p.installments) : "1");
+    if (p.discountValue && p.discountValue > 0) {
+      setDiscountType("value");
+      setDiscount(String(p.discountValue));
+    } else {
+      setDiscountType("percent");
+      setDiscount("0");
+    }
+  };
+
+  const loadQuoteIntoPdv = async (quoteId: string) => {
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("id, customer_id, customer_name, total, discount, payment_method, installments")
+      .eq("id", quoteId)
+      .maybeSingle();
+    if (!q) { toast({ title: "Orçamento não encontrado", variant: "destructive" }); return; }
+    const { data: qi } = await supabase
+      .from("quote_items")
+      .select("product_id, product_name, quantity, unit_price, total")
+      .eq("quote_id", quoteId);
+    const p: PdvPending = {
+      source: "quote",
+      sourceId: (q as any).id,
+      sourceLabel: `Orçamento #${(q as any).id.slice(0, 8)}${(q as any).customer_name ? ` — ${(q as any).customer_name}` : ""}`,
+      customerId: (q as any).customer_id,
+      customerName: (q as any).customer_name,
+      paymentMethod: (q as any).payment_method,
+      installments: (q as any).installments,
+      discountValue: Number((q as any).discount || 0),
+      items: (qi || []).map((it: any) => ({
+        productId: it.product_id,
+        productName: it.product_name,
+        quantity: Number(it.quantity),
+        unitPrice: Number(it.unit_price),
+        total: Number(it.total),
+      })),
+    };
+    applyPending(p);
+    setQuotesDialogOpen(false);
+    setQuoteSearch("");
+    toast({ title: "Pré-venda carregada", description: p.sourceLabel });
+  };
 
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
@@ -94,30 +167,11 @@ const Vendas = () => {
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
       if (data) setCompanyInfo(data as CompanyInfo);
     });
+    fetchApprovedQuotes();
 
     // Pre-load cart if PDV was opened from Orçamento or Ordem de Serviço
     const p = getPdvPending();
-    if (p) {
-      setPending(p);
-      setItems(
-        p.items.map((it, idx) => ({
-          productId: it.productId ?? `pending-${idx}-${Date.now()}`,
-          realProductId: it.productId ?? null,
-          productName: it.productName,
-          quantity: Math.max(1, Math.floor(Number(it.quantity))),
-          unitPrice: Number(it.unitPrice),
-          total: Number(it.total),
-        }))
-      );
-      if (p.customerId) setSelectedCustomerId(p.customerId);
-      if (p.customerName) setCustomerName(p.customerName);
-      if (p.paymentMethod) setPaymentMethod(p.paymentMethod);
-      if (p.installments && p.installments > 1) setInstallments(String(p.installments));
-      if (p.discountValue && p.discountValue > 0) {
-        setDiscountType("value");
-        setDiscount(String(p.discountValue));
-      }
-    }
+    if (p) applyPending(p);
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -286,6 +340,7 @@ const Vendas = () => {
     setShowReceipt(true);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
     logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
+    fetchApprovedQuotes();
   };
 
 
@@ -301,6 +356,7 @@ const Vendas = () => {
     setDiscountType("percent");
     setInstallments("1");
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
+    fetchApprovedQuotes();
   };
 
   const now = new Date();
@@ -329,9 +385,18 @@ const Vendas = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">PDV</h1>
-        <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">PDV</h1>
+          <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
+        </div>
+        {approvedQuotes.length > 0 && !showReceipt && (
+          <Button variant="outline" onClick={() => setQuotesDialogOpen(true)} className="gap-2">
+            <ListChecks className="h-4 w-4" />
+            Pré-vendas aprovadas
+            <Badge variant="secondary" className="ml-1">{approvedQuotes.length}</Badge>
+          </Button>
+        )}
       </div>
 
       {pending && !showReceipt && (
@@ -714,6 +779,77 @@ const Vendas = () => {
         onClose={() => setScannerOpen(false)}
         onScan={handleBarcodeScan}
       />
+
+      <Dialog open={quotesDialogOpen} onOpenChange={setQuotesDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Pré-vendas aprovadas
+            </DialogTitle>
+            <DialogDescription>
+              Selecione um orçamento aprovado para carregar no PDV. Busque pelo nome do cliente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome do cliente..."
+                value={quoteSearch}
+                onChange={e => setQuoteSearch(e.target.value)}
+                className="pl-9"
+                autoFocus
+              />
+            </div>
+            <div className="border rounded-lg overflow-hidden max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-muted/50">
+                  <tr className="border-b">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Cliente</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Orçamento</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Data</th>
+                    <th className="text-right px-3 py-2 font-medium text-muted-foreground">Total</th>
+                    <th className="px-2 py-2"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {approvedQuotes
+                    .filter(q => {
+                      const s = quoteSearch.trim().toLowerCase();
+                      if (!s) return true;
+                      return (q.customer_name || "").toLowerCase().includes(s);
+                    })
+                    .map(q => (
+                      <tr
+                        key={q.id}
+                        className="hover:bg-muted/30 cursor-pointer transition-colors"
+                        onClick={() => loadQuoteIntoPdv(q.id)}
+                      >
+                        <td className="px-3 py-2 font-medium">{q.customer_name || "Consumidor"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">#{q.id.slice(0, 8)}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{new Date(q.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="px-3 py-2 text-right font-semibold">{formatCurrency(Number(q.total))}</td>
+                        <td className="px-2 py-2">
+                          <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); loadQuoteIntoPdv(q.id); }}>
+                            Carregar
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  {approvedQuotes.filter(q => {
+                    const s = quoteSearch.trim().toLowerCase();
+                    if (!s) return true;
+                    return (q.customer_name || "").toLowerCase().includes(s);
+                  }).length === 0 && (
+                    <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Nenhuma pré-venda encontrada</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
