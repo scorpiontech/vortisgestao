@@ -89,6 +89,75 @@ const Vendas = () => {
     p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
+  const fetchApprovedQuotes = async () => {
+    const { data } = await supabase
+      .from("quotes")
+      .select("id, customer_id, customer_name, total, created_at, payment_method, installments, discount")
+      .eq("status", "aprovado")
+      .is("converted_sale_id", null)
+      .order("created_at", { ascending: false });
+    setApprovedQuotes((data as any) || []);
+  };
+
+  const applyPending = (p: PdvPending) => {
+    setPending(p);
+    setItems(
+      p.items.map((it, idx) => ({
+        productId: it.productId ?? `pending-${idx}-${Date.now()}`,
+        realProductId: it.productId ?? null,
+        productName: it.productName,
+        quantity: Math.max(1, Math.floor(Number(it.quantity))),
+        unitPrice: Number(it.unitPrice),
+        total: Number(it.total),
+      }))
+    );
+    setSelectedCustomerId(p.customerId || "");
+    setCustomerName(p.customerName || "");
+    setPaymentMethod(p.paymentMethod || "Dinheiro");
+    setInstallments(p.installments && p.installments > 1 ? String(p.installments) : "1");
+    if (p.discountValue && p.discountValue > 0) {
+      setDiscountType("value");
+      setDiscount(String(p.discountValue));
+    } else {
+      setDiscountType("percent");
+      setDiscount("0");
+    }
+  };
+
+  const loadQuoteIntoPdv = async (quoteId: string) => {
+    const { data: q } = await supabase
+      .from("quotes")
+      .select("id, customer_id, customer_name, total, discount, payment_method, installments")
+      .eq("id", quoteId)
+      .maybeSingle();
+    if (!q) { toast({ title: "Orçamento não encontrado", variant: "destructive" }); return; }
+    const { data: qi } = await supabase
+      .from("quote_items")
+      .select("product_id, product_name, quantity, unit_price, total")
+      .eq("quote_id", quoteId);
+    const p: PdvPending = {
+      source: "quote",
+      sourceId: (q as any).id,
+      sourceLabel: `Orçamento #${(q as any).id.slice(0, 8)}${(q as any).customer_name ? ` — ${(q as any).customer_name}` : ""}`,
+      customerId: (q as any).customer_id,
+      customerName: (q as any).customer_name,
+      paymentMethod: (q as any).payment_method,
+      installments: (q as any).installments,
+      discountValue: Number((q as any).discount || 0),
+      items: (qi || []).map((it: any) => ({
+        productId: it.product_id,
+        productName: it.product_name,
+        quantity: Number(it.quantity),
+        unitPrice: Number(it.unit_price),
+        total: Number(it.total),
+      })),
+    };
+    applyPending(p);
+    setQuotesDialogOpen(false);
+    setQuoteSearch("");
+    toast({ title: "Pré-venda carregada", description: p.sourceLabel });
+  };
+
   useEffect(() => {
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     supabase.from("customers").select("id, name, document, document_type, phone").order("name").then(({ data }) => setCustomers(data || []));
@@ -98,30 +167,11 @@ const Vendas = () => {
     supabase.from("company_registrations").select("name, document, person_type, phone, street, number, complement, neighborhood, city, state, zip_code").limit(1).single().then(({ data }) => {
       if (data) setCompanyInfo(data as CompanyInfo);
     });
+    fetchApprovedQuotes();
 
     // Pre-load cart if PDV was opened from Orçamento or Ordem de Serviço
     const p = getPdvPending();
-    if (p) {
-      setPending(p);
-      setItems(
-        p.items.map((it, idx) => ({
-          productId: it.productId ?? `pending-${idx}-${Date.now()}`,
-          realProductId: it.productId ?? null,
-          productName: it.productName,
-          quantity: Math.max(1, Math.floor(Number(it.quantity))),
-          unitPrice: Number(it.unitPrice),
-          total: Number(it.total),
-        }))
-      );
-      if (p.customerId) setSelectedCustomerId(p.customerId);
-      if (p.customerName) setCustomerName(p.customerName);
-      if (p.paymentMethod) setPaymentMethod(p.paymentMethod);
-      if (p.installments && p.installments > 1) setInstallments(String(p.installments));
-      if (p.discountValue && p.discountValue > 0) {
-        setDiscountType("value");
-        setDiscount(String(p.discountValue));
-      }
-    }
+    if (p) applyPending(p);
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
