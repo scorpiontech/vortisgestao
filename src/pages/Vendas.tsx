@@ -383,9 +383,18 @@ const Vendas = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">PDV</h1>
-        <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">PDV</h1>
+          <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
+        </div>
+        {approvedQuotes.length > 0 && !showReceipt && (
+          <Button variant="outline" onClick={() => setQuotesDialogOpen(true)} className="gap-2">
+            <ListChecks className="h-4 w-4" />
+            Pré-vendas aprovadas
+            <Badge variant="secondary" className="ml-1">{approvedQuotes.length}</Badge>
+          </Button>
+        )}
       </div>
 
       {pending && !showReceipt && (
