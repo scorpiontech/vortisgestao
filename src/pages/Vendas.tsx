@@ -77,6 +77,9 @@ const Vendas = () => {
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
+  const [approvedQuotes, setApprovedQuotes] = useState<Array<{ id: string; customer_id: string | null; customer_name: string | null; total: number; created_at: string; payment_method: string | null; installments: number | null; discount: number | null }>>([]);
+  const [quotesDialogOpen, setQuotesDialogOpen] = useState(false);
+  const [quoteSearch, setQuoteSearch] = useState("");
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
