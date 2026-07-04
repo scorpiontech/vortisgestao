@@ -340,6 +340,7 @@ const Vendas = () => {
     setShowReceipt(true);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
     logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
+    fetchApprovedQuotes();
   };
 
 
@@ -355,6 +356,7 @@ const Vendas = () => {
     setDiscountType("percent");
     setInstallments("1");
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
+    fetchApprovedQuotes();
   };
 
   const now = new Date();
