@@ -1,14 +1,19 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Rotas permitidas mesmo quando a conta está bloqueada por inadimplência
+const ALLOWED_WHEN_BLOCKED = ["/cobrancas"];
+
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
   const [checking, setChecking] = useState(true);
-  const [blocked, setBlocked] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
+  const [accountBlocked, setAccountBlocked] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -17,29 +22,43 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       return;
     }
 
-    const checkActive = async () => {
-      // Check if this user is a company member (vendedor) and if they're inactive
-      const { data } = await supabase
+    const check = async () => {
+      // 1) Vendedor desativado pelo master => desloga
+      const { data: member } = await supabase
         .from("company_members")
-        .select("active, role")
+        .select("active, role, owner_id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // If user is a company member and is inactive, block access
-      if (data && !data.active) {
-        setBlocked(true);
+      if (member && !member.active) {
+        setSignedOut(true);
         toast({
           title: "Acesso bloqueado",
           description: "Sua conta foi desativada pelo administrador. Entre em contato com o responsável.",
           variant: "destructive",
         });
         await signOut();
+        setChecking(false);
+        return;
       }
+
+      // 2) Conta da empresa bloqueada por inadimplência
+      const effectiveOwnerId = member?.role === "vendedor" ? member.owner_id : user.id;
+      const { data: account } = await supabase
+        .from("client_accounts")
+        .select("blocked")
+        .eq("user_id", effectiveOwnerId)
+        .maybeSingle();
+
+      if (account?.blocked) {
+        setAccountBlocked(true);
+      }
+
       setChecking(false);
     };
 
-    checkActive();
-  }, [user, loading]);
+    check();
+  }, [user, loading, location.pathname]);
 
   if (loading || checking) {
     return (
@@ -49,7 +68,11 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user || blocked) return <Navigate to="/" replace />;
+  if (!user || signedOut) return <Navigate to="/" replace />;
+
+  if (accountBlocked && !ALLOWED_WHEN_BLOCKED.includes(location.pathname)) {
+    return <Navigate to="/cobrancas" replace state={{ blockedRedirect: true }} />;
+  }
 
   return <>{children}</>;
 }
