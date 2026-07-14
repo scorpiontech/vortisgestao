@@ -237,12 +237,12 @@ export default function Orcamentos() {
     const existing = items.find(i => i.product_id === p.id);
     if (existing) {
       setItems(items.map(i => i.product_id === p.id
-        ? { ...i, quantity: i.quantity + q, total: (i.quantity + q) * i.unit_price }
+        ? { ...i, quantity: i.quantity + q, total: Math.round((i.quantity + q) * i.unit_price * 100) / 100 }
         : i));
     } else {
       setItems([...items, {
         product_id: p.id, product_name: p.name,
-        quantity: q, unit_price: p.price, total: q * p.price,
+        quantity: q, unit_price: p.price, total: Math.round(q * p.price * 100) / 100,
       }]);
     }
     setProductSearch("");
