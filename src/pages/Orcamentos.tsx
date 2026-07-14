@@ -588,7 +588,17 @@ export default function Orcamentos() {
                           <Input type="number" min="1" className="h-8 text-center" value={i.quantity}
                             onChange={e => updateItemQty(i.product_id, Math.max(1, Number(e.target.value) || 1))} />
                         </td>
-                        <td className="px-3 py-2 text-right">{fmt(i.unit_price)}</td>
+                        <td className="px-3 py-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="h-8 text-right w-28 ml-auto"
+                            value={i.unit_price}
+                            onChange={e => updateItemPrice(i.product_id, Number(e.target.value) || 0)}
+                            aria-label={`Editar valor unitário de ${i.product_name}`}
+                          />
+                        </td>
                         <td className="px-3 py-2 text-right font-medium">{fmt(i.total)}</td>
                         <td className="px-2"><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
                       </tr>
