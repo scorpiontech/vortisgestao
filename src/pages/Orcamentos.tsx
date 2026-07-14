@@ -253,11 +253,21 @@ export default function Orcamentos() {
       : i));
   };
 
+  const MAX_UNIT_PRICE = 9_999_999.99;
   const updateItemPrice = (pid: string, price: number) => {
-    const p = Math.max(0, price);
+    if (!Number.isFinite(price) || price < 0) return;
+    // Máx 2 casas decimais e teto de segurança
+    const p = Math.min(Math.round(price * 100) / 100, MAX_UNIT_PRICE);
     setItems(items.map(i => i.product_id === pid
       ? { ...i, unit_price: p, total: i.quantity * p }
       : i));
+  };
+
+  // Input de moeda: usuário digita apenas dígitos, formatamos como BRL
+  const handlePriceInput = (pid: string, raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 9); // até 9 dígitos = 9.999.999,99
+    const value = digits ? Number(digits) / 100 : 0;
+    updateItemPrice(pid, value);
   };
 
   const removeItem = (pid: string) => setItems(items.filter(i => i.product_id !== pid));
@@ -592,12 +602,12 @@ export default function Orcamentos() {
                         <td className="px-3 py-2">
                           {canEditPrice ? (
                             <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              className="h-8 text-right w-28 ml-auto"
-                              value={i.unit_price}
-                              onChange={e => updateItemPrice(i.product_id, Number(e.target.value) || 0)}
+                              type="text"
+                              inputMode="numeric"
+                              className="h-8 text-right w-32 ml-auto"
+                              value={fmt(i.unit_price)}
+                              onChange={e => handlePriceInput(i.product_id, e.target.value)}
+                              onFocus={e => e.target.select()}
                               aria-label={`Editar valor unitário de ${i.product_name}`}
                             />
                           ) : (
