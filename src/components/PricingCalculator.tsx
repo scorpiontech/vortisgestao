@@ -37,19 +37,26 @@ export function PricingCalculator({ cost, onApply }: PricingCalculatorProps) {
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs gap-1"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(o => !o); }}
+        >
           <Calculator className="h-3 w-3" />
           Calcular
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-80 max-w-[calc(100vw-2rem)] max-h-[min(520px,var(--radix-popover-content-available-height))] overflow-y-auto p-4"
+        className="w-80 max-w-[calc(100vw-2rem)] max-h-[min(520px,var(--radix-popover-content-available-height))] overflow-y-auto p-4 z-[100]"
         align="start"
         side="bottom"
         sideOffset={8}
         collisionPadding={12}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="space-y-3">
           <div>
