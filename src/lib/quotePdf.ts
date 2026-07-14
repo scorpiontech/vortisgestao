@@ -60,8 +60,9 @@ const STATUS_LABEL: Record<string, string> = {
   convertido: "Convertido em Venda",
 };
 
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 const fmt = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  round2(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const fmtDate = (d?: string | null) => {
   if (!d) return "—";
