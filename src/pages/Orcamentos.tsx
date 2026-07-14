@@ -252,6 +252,13 @@ export default function Orcamentos() {
       : i));
   };
 
+  const updateItemPrice = (pid: string, price: number) => {
+    const p = Math.max(0, price);
+    setItems(items.map(i => i.product_id === pid
+      ? { ...i, unit_price: p, total: i.quantity * p }
+      : i));
+  };
+
   const removeItem = (pid: string) => setItems(items.filter(i => i.product_id !== pid));
 
   const handleSelectCustomer = (id: string) => {
