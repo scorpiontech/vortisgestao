@@ -72,7 +72,8 @@ const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 
 export default function Orcamentos() {
   const { user } = useAuth();
-  const { effectiveUserId } = useUserRole();
+  const { effectiveUserId, isMaster } = useUserRole();
+  const canEditPrice = isMaster;
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -589,15 +590,25 @@ export default function Orcamentos() {
                             onChange={e => updateItemQty(i.product_id, Math.max(1, Number(e.target.value) || 1))} />
                         </td>
                         <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            className="h-8 text-right w-28 ml-auto"
-                            value={i.unit_price}
-                            onChange={e => updateItemPrice(i.product_id, Number(e.target.value) || 0)}
-                            aria-label={`Editar valor unitário de ${i.product_name}`}
-                          />
+                          {canEditPrice ? (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="h-8 text-right w-28 ml-auto"
+                              value={i.unit_price}
+                              onChange={e => updateItemPrice(i.product_id, Number(e.target.value) || 0)}
+                              aria-label={`Editar valor unitário de ${i.product_name}`}
+                            />
+                          ) : (
+                            <div
+                              className="h-8 flex items-center justify-end w-28 ml-auto text-right text-muted-foreground"
+                              title="Somente o perfil Master pode editar o valor unitário"
+                              aria-label={`Valor unitário de ${i.product_name} (somente leitura)`}
+                            >
+                              {fmt(i.unit_price)}
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-2 text-right font-medium">{fmt(i.total)}</td>
                         <td className="px-2"><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(i.product_id)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
