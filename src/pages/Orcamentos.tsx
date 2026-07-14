@@ -171,9 +171,11 @@ export default function Orcamentos() {
   };
 
 
-  const subtotal = items.reduce((s, i) => s + i.total, 0);
-  const discNum = Math.min(Math.max(Number(discount) || 0, 0), subtotal);
-  const total = Math.max(0, subtotal - discNum);
+  // Padroniza o arredondamento em 2 casas (mesma precisão do valor unitário)
+  const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+  const subtotal = round2(items.reduce((s, i) => s + round2(i.total), 0));
+  const discNum = round2(Math.min(Math.max(Number(discount) || 0, 0), subtotal));
+  const total = round2(Math.max(0, subtotal - discNum));
 
   const filteredProducts = productSearch
     ? products.filter(p =>
@@ -235,12 +237,12 @@ export default function Orcamentos() {
     const existing = items.find(i => i.product_id === p.id);
     if (existing) {
       setItems(items.map(i => i.product_id === p.id
-        ? { ...i, quantity: i.quantity + q, total: (i.quantity + q) * i.unit_price }
+        ? { ...i, quantity: i.quantity + q, total: Math.round((i.quantity + q) * i.unit_price * 100) / 100 }
         : i));
     } else {
       setItems([...items, {
         product_id: p.id, product_name: p.name,
-        quantity: q, unit_price: p.price, total: q * p.price,
+        quantity: q, unit_price: p.price, total: Math.round(q * p.price * 100) / 100,
       }]);
     }
     setProductSearch("");
@@ -249,7 +251,7 @@ export default function Orcamentos() {
 
   const updateItemQty = (pid: string, q: number) => {
     setItems(items.map(i => i.product_id === pid
-      ? { ...i, quantity: q, total: q * i.unit_price }
+      ? { ...i, quantity: q, total: Math.round(q * i.unit_price * 100) / 100 }
       : i));
   };
 
@@ -259,7 +261,7 @@ export default function Orcamentos() {
     // Máx 2 casas decimais e teto de segurança
     const p = Math.min(Math.round(price * 100) / 100, MAX_UNIT_PRICE);
     setItems(items.map(i => i.product_id === pid
-      ? { ...i, unit_price: p, total: i.quantity * p }
+      ? { ...i, unit_price: p, total: Math.round(i.quantity * p * 100) / 100 }
       : i));
   };
 
