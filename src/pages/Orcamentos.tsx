@@ -68,7 +68,8 @@ const STATUS_COLOR: Record<Status, string> = {
   convertido: "bg-primary/15 text-primary",
 };
 
-const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+const fmt = (v: number) => round2(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function Orcamentos() {
   const { user } = useAuth();
@@ -171,8 +172,7 @@ export default function Orcamentos() {
   };
 
 
-  // Padroniza o arredondamento em 2 casas (mesma precisão do valor unitário)
-  const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+  // Todos os cálculos monetários passam pelo mesmo round2 do módulo
   const subtotal = round2(items.reduce((s, i) => s + round2(i.total), 0));
   const discNum = round2(Math.min(Math.max(Number(discount) || 0, 0), subtotal));
   const total = round2(Math.max(0, subtotal - discNum));
@@ -217,18 +217,22 @@ export default function Orcamentos() {
     setCustomerName(q.customer_name || "");
     setPaymentMethod(q.payment_method || "Dinheiro");
     setInstallments(String(q.installments || 1));
-    setDiscount(String(q.discount || 0));
+    setDiscount(String(round2(Number(q.discount) || 0)));
     setValidUntil(q.valid_until || "");
     setNotes(q.notes || "");
     const { data } = await supabase.from("quote_items").select("*").eq("quote_id", q.id);
-    setItems((data || []).map((it: any) => ({
-      id: it.id,
-      product_id: it.product_id,
-      product_name: it.product_name,
-      quantity: Number(it.quantity),
-      unit_price: Number(it.unit_price),
-      total: Number(it.total),
-    })));
+    setItems((data || []).map((it: any) => {
+      const up = round2(Number(it.unit_price));
+      const qn = Number(it.quantity);
+      return {
+        id: it.id,
+        product_id: it.product_id,
+        product_name: it.product_name,
+        quantity: qn,
+        unit_price: up,
+        total: round2(qn * up),
+      };
+    }));
     setEditorOpen(true);
   };
 
@@ -308,14 +312,17 @@ export default function Orcamentos() {
       quoteId = (data as any).id;
     }
 
-    const rows = items.map(i => ({
-      quote_id: quoteId!,
-      product_id: i.product_id,
-      product_name: i.product_name,
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-      total: i.total,
-    }));
+    const rows = items.map(i => {
+      const up = round2(i.unit_price);
+      return {
+        quote_id: quoteId!,
+        product_id: i.product_id,
+        product_name: i.product_name,
+        quantity: i.quantity,
+        unit_price: up,
+        total: round2(i.quantity * up),
+      };
+    });
     await supabase.from("quote_items").insert(rows);
 
     logAudit({ action: editing ? "update" : "create", entity: "quote", entityId: quoteId, details: { total } });
@@ -651,7 +658,18 @@ export default function Orcamentos() {
               </div>
               <div className="space-y-1.5">
                 <Label>Desconto (R$)</Label>
-                <Input type="number" min="0" value={discount} onChange={e => setDiscount(e.target.value)} />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={fmt(Math.min(Number(discount) || 0, subtotal))}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    const value = digits ? Number(digits) / 100 : 0;
+                    setDiscount(String(Math.min(round2(value), subtotal)));
+                  }}
+                  onFocus={e => e.target.select()}
+                  aria-label="Desconto em reais"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Validade</Label>
