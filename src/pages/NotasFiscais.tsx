@@ -29,6 +29,7 @@ interface Plan {
 interface NfceDoc {
   id: string;
   numero: string | null;
+  modelo: string | null;
   status: string;
   customer_name: string | null;
   valor_total: number | null;
@@ -37,6 +38,9 @@ interface NfceDoc {
   danfce_url: string | null;
   xml_url: string | null;
 }
+
+type SortField = "created_at" | "numero" | "valor_total" | "customer_name";
+type SortDir = "asc" | "desc";
 
 const NotasFiscais = () => {
   const { effectiveUserId } = useUserRole();
