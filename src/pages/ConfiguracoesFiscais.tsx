@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { formatCNPJ, validateCNPJ } from "@/lib/validators";
+import ServerTimeDriftAlert from "@/components/fiscal/ServerTimeDriftAlert";
 
 interface FiscalSettings {
   cnpj: string;
@@ -237,6 +238,10 @@ export default function ConfiguracoesFiscais() {
           {readyToEmit ? "Pronto para emitir" : "Configuração pendente"}
         </Badge>
       </div>
+
+      <ServerTimeDriftAlert />
+
+
 
       {!readyToEmit && missing.length > 0 && (
         <Alert>

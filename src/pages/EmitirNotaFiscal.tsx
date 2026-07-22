@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import NfeSettingsDialog from "@/components/fiscal/NfeSettingsDialog";
+import ServerTimeDriftAlert from "@/components/fiscal/ServerTimeDriftAlert";
 
 // ---- Types ----
 type Modelo = "55" | "65";
@@ -325,6 +326,10 @@ export default function EmitirNotaFiscal() {
         </div>
         <Button variant="outline" size="sm" onClick={() => setModelo(null)}>Trocar modelo</Button>
       </div>
+
+      <ServerTimeDriftAlert onlyWhenIssue />
+
+
 
       {/* Emissão settings summary */}
       <div className="flex items-center gap-4 text-sm flex-wrap">
