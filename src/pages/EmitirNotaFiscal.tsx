@@ -809,6 +809,62 @@ export default function EmitirNotaFiscal() {
         ownerId={effectiveUserId}
         onSaved={loadSettings}
       />
+
+      {/* Preview DANFE Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização da {modelo === "55" ? "NF-e" : "NFC-e"}</DialogTitle>
+            <DialogDescription>
+              Confira os dados antes de enviar para a SEFAZ. Nenhum envio foi realizado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm max-h-[60vh] overflow-auto">
+            <div className="grid grid-cols-2 gap-2">
+              <div><span className="text-muted-foreground">Número: </span><strong>{previewData?.numero ?? "—"}</strong></div>
+              <div><span className="text-muted-foreground">Série: </span><strong>{serie}</strong></div>
+              <div><span className="text-muted-foreground">Natureza: </span>{naturezaOperacao}</div>
+              <div><span className="text-muted-foreground">Destinatário: </span>{destinatario?.nome || "Consumidor não identificado"}</div>
+            </div>
+            <div className="border rounded overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Unit.</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell>{i.descricao}</TableCell>
+                      <TableCell className="text-right">{i.quantidade}</TableCell>
+                      <TableCell className="text-right">{fmt(i.valor_unitario)}</TableCell>
+                      <TableCell className="text-right">{fmt(i.quantidade * i.valor_unitario)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-between font-semibold border-t pt-2">
+              <span>Total da nota</span>
+              <span className="text-primary">{fmt(totalNota)}</span>
+            </div>
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Ver payload técnico</summary>
+              <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-64">{JSON.stringify(previewData?.payload ?? {}, null, 2)}</pre>
+            </details>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Fechar</Button>
+            <Button onClick={() => { setPreviewOpen(false); handleEmit(); }} disabled={!canEmit}>
+              <Send className="h-4 w-4 mr-1" /> Emitir agora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
