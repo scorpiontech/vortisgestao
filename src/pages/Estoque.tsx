@@ -198,15 +198,27 @@ const Estoque = () => {
                 <div className="space-y-1.5"><Label>Estoque Atual</Label><Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Fornecedor</Label>
-                <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um fornecedor (opcional)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— Sem fornecedor —</SelectItem>
-                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Fornecedor</Label>
+                  <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Sem fornecedor —</SelectItem>
+                      {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>NCM</Label>
+                  <Input
+                    inputMode="numeric"
+                    maxLength={8}
+                    placeholder="00000000"
+                    value={form.ncm}
+                    onChange={e => setForm({ ...form, ncm: e.target.value.replace(/\D/g, "").slice(0, 8) })}
+                  />
+                </div>
               </div>
               <Button onClick={handleSave} className="w-full">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
             </div>
