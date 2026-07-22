@@ -13,6 +13,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { formatCNPJ, validateCNPJ } from "@/lib/validators";
 import ServerTimeDriftAlert from "@/components/fiscal/ServerTimeDriftAlert";
+import {
+  CSOSN_CODES,
+  CST_CODES,
+  defaultTributacaoCode,
+  isSimplesRegime,
+  validateTributacaoForRegime,
+} from "@/lib/fiscalCst";
 
 interface FiscalSettings {
   cnpj: string;
