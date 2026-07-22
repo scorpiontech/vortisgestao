@@ -210,7 +210,12 @@ Deno.serve(async (req) => {
 
     // Corrige desvio de relógio do servidor consultando fonte externa antes de montar a data
     const driftMs = await getServerDriftMs();
-    const { payload, total_nota } = buildFocusPayload(doc, settings, numero, driftMs);
+    let payload: any; let total_nota = 0;
+    try {
+      ({ payload, total_nota } = buildFocusPayload(doc, settings, numero, driftMs));
+    } catch (buildErr) {
+      return json(400, { error: buildErr instanceof Error ? buildErr.message : String(buildErr) });
+    }
 
     if (preview) {
       return json(200, { preview: true, numero, payload });
