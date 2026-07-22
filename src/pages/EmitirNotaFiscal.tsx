@@ -148,7 +148,7 @@ export default function EmitirNotaFiscal() {
     (async () => {
       const [{ data: cs }, { data: ps }] = await Promise.all([
         supabase.from("customers").select("id, name, document, email, phone, street, number, neighborhood, city, state, zip_code").order("name"),
-        supabase.from("products").select("id, name, sku, price").order("name"),
+        supabase.from("products").select("id, name, sku, price, ncm").order("name"),
       ]);
       setCustomers(cs || []);
       setProducts(ps || []);
@@ -771,7 +771,7 @@ export default function EmitirNotaFiscal() {
                           onClick={() => {
                             setEditingItem({
                               ...editingItem!, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
-                              descricao: p.name, ncm: editingItem!.ncm || "00000000", valor_unitario: Number(p.price || 0),
+                              descricao: p.name, ncm: (p.ncm ? String(p.ncm).replace(/\D/g, "").slice(0, 8).padStart(8, "0") : (editingItem!.ncm || "00000000")), valor_unitario: Number(p.price || 0),
                             });
                             setItemSearch("");
                           }}
