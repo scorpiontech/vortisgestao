@@ -110,6 +110,35 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
             </div>
 
             <div className="pt-2 border-t">
+              <p className="text-sm font-medium mb-2">ICMS / PIS / COFINS (padrões do item)</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Alíquota ICMS (%)</Label>
+                  <Input type="number" step="0.01" value={icmsAliq} onChange={(e) => setIcmsAliq(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">CST PIS</Label>
+                  <Input value={pisCst} onChange={(e) => setPisCst(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Alíquota PIS (%)</Label>
+                  <Input type="number" step="0.01" value={pisAliq} onChange={(e) => setPisAliq(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">CST COFINS</Label>
+                  <Input value={cofinsCst} onChange={(e) => setCofinsCst(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Alíquota COFINS (%)</Label>
+                  <Input type="number" step="0.01" value={cofinsAliq} onChange={(e) => setCofinsAliq(e.target.value)} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Simples Nacional: use CST 49 (sem tributação) para PIS/COFINS. Lucro Presumido/Real: normalmente CST 01 com alíquotas 0,65% (PIS) e 3% (COFINS).
+              </p>
+            </div>
+
+            <div className="pt-2 border-t">
               <p className="text-sm font-medium mb-2">Configurações IBS e CBS (Reforma Tributária)</p>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
