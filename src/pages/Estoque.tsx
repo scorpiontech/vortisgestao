@@ -58,7 +58,7 @@ const Estoque = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [units, setUnits] = useState<UnitItem[]>([]);
-  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
+  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "" });
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("products").select("*").order("name");
