@@ -191,7 +191,9 @@ Deno.serve(async (req) => {
     const modelo = doc.modelo === "55" ? "55" : "65";
     const numero = modelo === "55" ? Number(settings.proximo_numero_nfe) : Number(settings.proximo_numero_nfce);
 
-    const { payload, total_nota } = buildFocusPayload(doc, settings, numero);
+    // Corrige desvio de relógio do servidor consultando fonte externa antes de montar a data
+    const driftMs = await getServerDriftMs();
+    const { payload, total_nota } = buildFocusPayload(doc, settings, numero, driftMs);
 
     if (preview) {
       return json(200, { preview: true, numero, payload });
