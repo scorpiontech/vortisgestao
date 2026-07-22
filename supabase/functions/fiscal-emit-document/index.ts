@@ -68,11 +68,33 @@ async function getServerDriftMs(): Promise<number> {
   return 0;
 }
 
+const SIMPLES_REGIMES = new Set(["simples_nacional", "simples_excesso"]);
+const CSOSN_SET = new Set(["101","102","103","201","202","203","300","400","500","900"]);
+const CST_SET = new Set(["00","10","20","30","40","41","50","51","60","70","90"]);
+
+function resolveIcmsCode(itemCode: string | undefined, settings: any): { code: string; error?: string } {
+  const simples = SIMPLES_REGIMES.has(settings.regime_tributario);
+  const raw = (itemCode ?? settings.csosn_default ?? (simples ? "102" : "00")).toString().trim();
+  if (simples) {
+    if (CST_SET.has(raw) && !CSOSN_SET.has(raw)) {
+      return { code: raw, error: `Código ${raw} é CST e não pode ser usado no Simples Nacional. Configure um CSOSN (ex.: 102) nas Configurações Fiscais.` };
+    }
+    return { code: CSOSN_SET.has(raw) ? raw : "102" };
+  }
+  if (CSOSN_SET.has(raw) && !CST_SET.has(raw)) {
+    return { code: raw, error: `Código ${raw} é CSOSN e só vale para Simples Nacional. Configure um CST de ICMS (ex.: 00) nas Configurações Fiscais, pois o regime informado é ${settings.regime_tributario}.` };
+  }
+  return { code: CST_SET.has(raw) ? raw : "00" };
+}
+
 // Build Focus NFe payload — same shape works for NF-e (55) and NFC-e (65)
 function buildFocusPayload(doc: any, settings: any, numero: number, driftMs = 0) {
   const modelo = doc.modelo === "55" ? "55" : "65";
   const serie = modelo === "55" ? settings.serie_nfe : settings.serie_nfce;
-  const items = (doc.items || []).map((it: any, idx: number) => ({
+  const items = (doc.items || []).map((it: any, idx: number) => {
+    const icms = resolveIcmsCode(it.cst || it.csosn, settings);
+    if (icms.error) throw new Error(icms.error);
+    return {
     numero_item: idx + 1,
     codigo_produto: it.codigo || it.product_id || String(idx + 1),
     descricao: it.descricao || it.name || "Item",
@@ -86,8 +108,9 @@ function buildFocusPayload(doc: any, settings: any, numero: number, driftMs = 0)
     quantidade_tributavel: Number(it.quantidade || 1),
     valor_bruto: Number(it.quantidade || 1) * Number(it.valor_unitario || 0),
     icms_origem: "0",
-    icms_situacao_tributaria: settings.csosn_default || "102",
-  }));
+    icms_situacao_tributaria: icms.code,
+    };
+  });
 
   const dest = doc.destinatario || null;
   const total_produtos = Number(doc.total_produtos || 0);
