@@ -133,12 +133,6 @@ const NotasFiscais = () => {
 
   const hasFilters = filterModelo !== "all" || filterStatus !== "all" || filterFrom !== "" || filterTo !== "";
 
-        .order("created_at", { ascending: false })
-        .limit(50);
-      setDocs((nf || []) as NfceDoc[]);
-      setLoading(false);
-    })();
-  }, [effectiveUserId]);
 
   const handleUpgrade = async (planId: string) => {
     setUpgrading(planId);
