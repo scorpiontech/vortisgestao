@@ -148,7 +148,7 @@ export default function EmitirNotaFiscal() {
     (async () => {
       const [{ data: cs }, { data: ps }] = await Promise.all([
         supabase.from("customers").select("id, name, document, email, phone, street, number, neighborhood, city, state, zip_code").order("name"),
-        supabase.from("products").select("id, name, sku, price").order("name"),
+        supabase.from("products").select("id, name, sku, price, ncm").order("name"),
       ]);
       setCustomers(cs || []);
       setProducts(ps || []);
