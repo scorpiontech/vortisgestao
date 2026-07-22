@@ -11,41 +11,30 @@ function json(status: number, body: unknown) {
   });
 }
 
-// Tenta obter horário oficial de uma fonte confiável.
-// Ordem: worldtimeapi (America/Sao_Paulo) → timeapi.io → header Date do Google.
+// Tenta obter horário oficial usando NTP.br como referência principal.
+// Evita APIs de horário com cache/instabilidade que podem retornar minutos de diferença.
 async function fetchReferenceTime(): Promise<{ source: string; utcMs: number } | null> {
-  const attempts: Array<() => Promise<{ source: string; utcMs: number } | null>> = [
-    async () => {
-      const r = await fetch("https://worldtimeapi.org/api/timezone/America/Sao_Paulo", {
-        signal: AbortSignal.timeout(4000),
-      });
-      if (!r.ok) return null;
-      const j = await r.json();
-      return { source: "worldtimeapi", utcMs: new Date(j.utc_datetime).getTime() };
-    },
-    async () => {
-      const r = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=UTC", {
-        signal: AbortSignal.timeout(4000),
-      });
-      if (!r.ok) return null;
-      const j = await r.json();
-      return { source: "timeapi.io", utcMs: new Date(j.dateTime + "Z").getTime() };
-    },
-    async () => {
-      const r = await fetch("https://www.google.com", {
-        method: "HEAD",
-        signal: AbortSignal.timeout(4000),
-      });
-      const d = r.headers.get("date");
-      if (!d) return null;
-      return { source: "google-date-header", utcMs: new Date(d).getTime() };
-    },
-  ];
+  const attempts = ["https://ntp.br", "https://www.ntp.br"];
 
-  for (const a of attempts) {
+  for (const url of attempts) {
     try {
-      const res = await a();
-      if (res && Number.isFinite(res.utcMs)) return res;
+      const startedAt = Date.now();
+      const r = await fetch(`${url}?_=${startedAt}`, {
+        method: "HEAD",
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        signal: AbortSignal.timeout(4000),
+      });
+      const finishedAt = Date.now();
+      const dateHeader = r.headers.get("date");
+      if (!r.ok || !dateHeader) continue;
+
+      const headerMs = new Date(dateHeader).getTime();
+      if (!Number.isFinite(headerMs)) continue;
+
+      // O header Date tem precisão de segundos. Ajusta pela metade da latência para
+      // não criar falso desvio em conexões lentas, sem depender de APIs JSON externas.
+      const latencyMs = Math.max(0, finishedAt - startedAt);
+      return { source: "ntp.br", utcMs: headerMs + Math.round(latencyMs / 2) };
     } catch (_) {
       // try next
     }
