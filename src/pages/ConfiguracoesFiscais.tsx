@@ -255,8 +255,11 @@ export default function ConfiguracoesFiscais() {
           {form.certificate_valid && (
             <Alert className={certExpired ? "border-destructive" : certExpiringSoon ? "border-yellow-500" : "border-green-500"}>
               {certExpired ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-              <AlertTitle>
-                {certExpired ? "Certificado vencido" : certExpiringSoon ? "Certificado próximo do vencimento" : "Certificado ativo"}
+              <AlertTitle className="flex items-center justify-between gap-2">
+                <span>{certExpired ? "Certificado vencido" : certExpiringSoon ? "Certificado próximo do vencimento" : "Certificado ativo"}</span>
+                <Button type="button" size="sm" variant="outline" onClick={handleRemoveCertificate} className="gap-1">
+                  <Trash2 className="h-3.5 w-3.5" /> Remover
+                </Button>
               </AlertTitle>
               <AlertDescription>
                 <div><strong>Titular:</strong> {form.certificate_subject}</div>
