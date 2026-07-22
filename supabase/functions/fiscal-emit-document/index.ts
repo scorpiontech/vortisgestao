@@ -26,9 +26,10 @@ function focusBaseUrl(ambiente: string) {
 // Data/hora de emissão no formato exigido pela SEFAZ (horário de Brasília com offset -03:00).
 // Enviar em UTC (sufixo Z) faz a SEFAZ interpretar a emissão 3h no futuro em relação ao
 // horário de recebimento, gerando a rejeição "Data-Hora de Emissão posterior ao horário de recebimento".
-function brtEmissionDateTime(input?: string) {
-  // Base: se veio uma data do cliente respeita, senão usa "agora" menos 60s de margem
-  const base = input ? new Date(input) : new Date(Date.now() - 60_000);
+function brtEmissionDateTime(input?: string, driftMs = 0) {
+  // Base: se veio uma data do cliente respeita, senão usa "agora" corrigido pelo desvio
+  // do servidor menos 60s de margem para evitar rejeição por relógio adiantado.
+  const base = input ? new Date(input) : new Date(Date.now() - driftMs - 60_000);
   // Converte para horário de Brasília (UTC-3, sem horário de verão desde 2019)
   const brt = new Date(base.getTime() - 3 * 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -39,6 +40,38 @@ function brtEmissionDateTime(input?: string) {
   const mi = pad(brt.getUTCMinutes());
   const s = pad(brt.getUTCSeconds());
   return `${y}-${mo}-${d}T${h}:${mi}:${s}-03:00`;
+}
+
+// Consulta fontes externas confiáveis para calcular o desvio do relógio do servidor.
+// driftMs = serverNow - referenceNow (positivo = servidor adiantado). Retorna 0 se falhar.
+async function getServerDriftMs(): Promise<number> {
+  const attempts: Array<() => Promise<number | null>> = [
+    async () => {
+      const r = await fetch("https://worldtimeapi.org/api/timezone/America/Sao_Paulo", { signal: AbortSignal.timeout(3000) });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return Date.now() - new Date(j.utc_datetime).getTime();
+    },
+    async () => {
+      const r = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=UTC", { signal: AbortSignal.timeout(3000) });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return Date.now() - new Date(j.dateTime + "Z").getTime();
+    },
+    async () => {
+      const r = await fetch("https://www.google.com", { method: "HEAD", signal: AbortSignal.timeout(3000) });
+      const d = r.headers.get("date");
+      if (!d) return null;
+      return Date.now() - new Date(d).getTime();
+    },
+  ];
+  for (const a of attempts) {
+    try {
+      const res = await a();
+      if (res !== null && Number.isFinite(res)) return res;
+    } catch (_) { /* try next */ }
+  }
+  return 0;
 }
 
 // Build Focus NFe payload — same shape works for NF-e (55) and NFC-e (65)
