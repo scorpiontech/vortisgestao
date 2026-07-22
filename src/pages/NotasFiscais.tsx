@@ -212,9 +212,14 @@ const NotasFiscais = () => {
             <p className="text-sm text-muted-foreground">NFC-e emitidas pela sua empresa.</p>
           </div>
         </div>
-        <Button asChild variant="outline">
-          <Link to="/configuracoes-fiscais">Configurações fiscais</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link to="/configuracoes-fiscais">Configurações fiscais</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/notas-fiscais/emitir"><Rocket className="h-4 w-4 mr-1" /> Emitir nota</Link>
+          </Button>
+        </div>
       </div>
 
       {quota && !quotaLoading && (
