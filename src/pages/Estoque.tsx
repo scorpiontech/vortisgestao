@@ -26,6 +26,7 @@ interface Product {
   min_stock: number;
   unit: string;
   supplier_id: string | null;
+  ncm: string | null;
 }
 
 interface Supplier {
