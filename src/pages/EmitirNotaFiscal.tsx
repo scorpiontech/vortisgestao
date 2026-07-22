@@ -119,6 +119,13 @@ export default function EmitirNotaFiscal() {
   const [infoComplementares, setInfoComplementares] = useState("");
   const [infoFisco, setInfoFisco] = useState("");
   const [emitting, setEmitting] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewData, setPreviewData] = useState<any | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Search filters
+  const [destSearch, setDestSearch] = useState("");
+  const [itemSearch, setItemSearch] = useState("");
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
