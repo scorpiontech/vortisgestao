@@ -771,7 +771,7 @@ export default function EmitirNotaFiscal() {
                           onClick={() => {
                             setEditingItem({
                               ...editingItem!, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
-                              descricao: p.name, ncm: editingItem!.ncm || "00000000", valor_unitario: Number(p.price || 0),
+                              descricao: p.name, ncm: (String(p.ncm || "").replace(/\D/g, "").padStart(8, "0").slice(0, 8)) || editingItem!.ncm || "00000000", valor_unitario: Number(p.price || 0),
                             });
                             setItemSearch("");
                           }}
