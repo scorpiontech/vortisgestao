@@ -15,6 +15,7 @@ interface ParsedProduct {
   cost: number;
   unit: string;
   quantity: number;
+  ncm: string;
   selected: boolean;
 }
 
