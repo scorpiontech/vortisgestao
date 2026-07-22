@@ -298,25 +298,79 @@ const NotasFiscais = () => {
       )}
 
       <Card>
-        <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle>Histórico</CardTitle>
+            <div className="text-xs text-muted-foreground">
+              {filteredDocs.length} de {docs.length} nota(s)
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 pt-3">
+            <Select value={filterModelo} onValueChange={setFilterModelo}>
+              <SelectTrigger><SelectValue placeholder="Modelo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os modelos</SelectItem>
+                <SelectItem value="55">NF-e (55)</SelectItem>
+                <SelectItem value="65">NFC-e (65)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="authorized">Autorizada</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="rejected">Rejeitada</SelectItem>
+                <SelectItem value="cancelled">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} aria-label="Data inicial" />
+            <Input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} aria-label="Data final" />
+            <Button variant="outline" onClick={clearFilters} disabled={!hasFilters}>
+              <X className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Valor</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("numero")}>
+                    Número <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
+                <TableHead>Modelo</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("customer_name")}>
+                    Cliente <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("valor_total")}>
+                    Valor <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Emissão</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("created_at")}>
+                    Emissão <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {docs.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
-              ) : docs.map(d => (
+              {filteredDocs.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  {docs.length === 0 ? "Nenhuma nota emitida ainda." : "Nenhuma nota corresponde aos filtros."}
+                </TableCell></TableRow>
+              ) : filteredDocs.map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-mono text-xs">{d.numero || "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {d.modelo === "55" ? "NF-e" : d.modelo === "65" ? "NFC-e" : "—"}
+                  </TableCell>
                   <TableCell>{d.customer_name || "Consumidor"}</TableCell>
                   <TableCell>{Number(d.valor_total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
                   <TableCell>{statusBadge(d.status)}</TableCell>
