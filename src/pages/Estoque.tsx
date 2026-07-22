@@ -106,6 +106,7 @@ const Estoque = () => {
       min_stock: Number(form.min_stock) || 0,
       unit: form.unit,
       supplier_id: form.supplier_id || null,
+      ncm: form.ncm.replace(/\D/g, "") || null,
       user_id: effectiveUserId!,
     };
 
