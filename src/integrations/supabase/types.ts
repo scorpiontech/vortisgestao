@@ -481,6 +481,8 @@ export type Database = {
           certificate_valid: boolean
           cfop_default: string
           cnpj: string
+          cofins_aliquota: number | null
+          cofins_cst_default: string | null
           created_at: string
           csc_id: string
           csc_token: string
@@ -488,10 +490,14 @@ export type Database = {
           enviar_email_destinatario_default: boolean
           ibs_aliquota: number
           ibs_cst: string
+          icms_aliquota: number | null
+          icms_modalidade_base_calculo: string | null
           id: string
           ie: string
           informacoes_fisco: string
           owner_id: string
+          pis_aliquota: number | null
+          pis_cst_default: string | null
           provider: string
           provider_token: string
           proximo_numero_nfce: number
@@ -512,6 +518,8 @@ export type Database = {
           certificate_valid?: boolean
           cfop_default?: string
           cnpj?: string
+          cofins_aliquota?: number | null
+          cofins_cst_default?: string | null
           created_at?: string
           csc_id?: string
           csc_token?: string
@@ -519,10 +527,14 @@ export type Database = {
           enviar_email_destinatario_default?: boolean
           ibs_aliquota?: number
           ibs_cst?: string
+          icms_aliquota?: number | null
+          icms_modalidade_base_calculo?: string | null
           id?: string
           ie?: string
           informacoes_fisco?: string
           owner_id: string
+          pis_aliquota?: number | null
+          pis_cst_default?: string | null
           provider?: string
           provider_token?: string
           proximo_numero_nfce?: number
@@ -543,6 +555,8 @@ export type Database = {
           certificate_valid?: boolean
           cfop_default?: string
           cnpj?: string
+          cofins_aliquota?: number | null
+          cofins_cst_default?: string | null
           created_at?: string
           csc_id?: string
           csc_token?: string
@@ -550,10 +564,14 @@ export type Database = {
           enviar_email_destinatario_default?: boolean
           ibs_aliquota?: number
           ibs_cst?: string
+          icms_aliquota?: number | null
+          icms_modalidade_base_calculo?: string | null
           id?: string
           ie?: string
           informacoes_fisco?: string
           owner_id?: string
+          pis_aliquota?: number | null
+          pis_cst_default?: string | null
           provider?: string
           provider_token?: string
           proximo_numero_nfce?: number
