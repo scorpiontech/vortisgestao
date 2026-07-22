@@ -23,6 +23,24 @@ function focusBaseUrl(ambiente: string) {
     : "https://homologacao.focusnfe.com.br";
 }
 
+// Data/hora de emissão no formato exigido pela SEFAZ (horário de Brasília com offset -03:00).
+// Enviar em UTC (sufixo Z) faz a SEFAZ interpretar a emissão 3h no futuro em relação ao
+// horário de recebimento, gerando a rejeição "Data-Hora de Emissão posterior ao horário de recebimento".
+function brtEmissionDateTime(input?: string) {
+  // Base: se veio uma data do cliente respeita, senão usa "agora" menos 60s de margem
+  const base = input ? new Date(input) : new Date(Date.now() - 60_000);
+  // Converte para horário de Brasília (UTC-3, sem horário de verão desde 2019)
+  const brt = new Date(base.getTime() - 3 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const y = brt.getUTCFullYear();
+  const mo = pad(brt.getUTCMonth() + 1);
+  const d = pad(brt.getUTCDate());
+  const h = pad(brt.getUTCHours());
+  const mi = pad(brt.getUTCMinutes());
+  const s = pad(brt.getUTCSeconds());
+  return `${y}-${mo}-${d}T${h}:${mi}:${s}-03:00`;
+}
+
 // Build Focus NFe payload — same shape works for NF-e (55) and NFC-e (65)
 function buildFocusPayload(doc: any, settings: any, numero: number) {
   const modelo = doc.modelo === "55" ? "55" : "65";
@@ -53,7 +71,7 @@ function buildFocusPayload(doc: any, settings: any, numero: number) {
 
   const payload: any = {
     natureza_operacao: doc.natureza_operacao || "Venda",
-    data_emissao: doc.data_emissao || new Date().toISOString(),
+    data_emissao: brtEmissionDateTime(doc.data_emissao),
     tipo_documento: doc.tipo_documento || "1",
     finalidade_emissao: doc.finalidade || "1",
     consumidor_final: doc.consumidor_final || "1",
@@ -163,7 +181,7 @@ Deno.serve(async (req) => {
       tipo_documento: doc.tipo_documento || "1",
       consumidor_final: doc.consumidor_final || "1",
       indicador_presenca: doc.indicador_presenca || "0",
-      data_emissao: doc.data_emissao || new Date().toISOString(),
+      data_emissao: brtEmissionDateTime(doc.data_emissao),
       data_saida: doc.data_saida || null,
       movimenta_estoque: !!doc.movimenta_estoque,
       enviar_email: !!doc.enviar_email,
