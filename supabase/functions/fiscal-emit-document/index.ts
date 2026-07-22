@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
       tipo_documento: doc.tipo_documento || "1",
       consumidor_final: doc.consumidor_final || "1",
       indicador_presenca: doc.indicador_presenca || "0",
-      data_emissao: doc.data_emissao || new Date().toISOString(),
+      data_emissao: brtEmissionDateTime(doc.data_emissao),
       data_saida: doc.data_saida || null,
       movimenta_estoque: !!doc.movimenta_estoque,
       enviar_email: !!doc.enviar_email,
