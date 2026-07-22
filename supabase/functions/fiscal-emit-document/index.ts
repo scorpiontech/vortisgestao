@@ -71,6 +71,12 @@ async function getServerDriftMs(): Promise<number> {
 const SIMPLES_REGIMES = new Set(["simples_nacional", "simples_excesso"]);
 const CSOSN_SET = new Set(["101","102","103","201","202","203","300","400","500","900"]);
 const CST_SET = new Set(["00","10","20","30","40","41","50","51","60","70","90"]);
+// CSTs de ICMS que exigem cálculo (base + alíquota + valor)
+const CST_ICMS_TRIBUTADO = new Set(["00","10","20","70","90"]);
+// CSOSN que geram crédito no Simples e exigem alíquota de crédito
+const CSOSN_COM_CREDITO = new Set(["101","201"]);
+// CSTs de PIS/COFINS que exigem base e alíquota
+const CST_PIS_COFINS_TRIBUTADO = new Set(["01","02","05"]);
 
 function resolveIcmsCode(itemCode: string | undefined, settings: any): { code: string; error?: string } {
   const simples = SIMPLES_REGIMES.has(settings.regime_tributario);
@@ -87,28 +93,86 @@ function resolveIcmsCode(itemCode: string | undefined, settings: any): { code: s
   return { code: CST_SET.has(raw) ? raw : "00" };
 }
 
+function round2(v: number) { return Math.round(v * 100) / 100; }
+
+// Monta bloco fiscal do item conforme regime tributário e CST/CSOSN
+function buildItemTaxes(it: any, settings: any, valorBruto: number) {
+  const simples = SIMPLES_REGIMES.has(settings.regime_tributario);
+  const icms = resolveIcmsCode(it.cst || it.csosn, settings);
+  if (icms.error) throw new Error(icms.error);
+
+  const taxes: Record<string, any> = {
+    icms_origem: String(it.icms_origem ?? "0"),
+    icms_situacao_tributaria: icms.code,
+  };
+
+  const icmsAliq = Number(it.icms_aliquota ?? settings.icms_aliquota ?? 0);
+  const modBc = String(it.icms_modalidade_base_calculo ?? settings.icms_modalidade_base_calculo ?? "3");
+
+  if (simples) {
+    if (CSOSN_COM_CREDITO.has(icms.code) && icmsAliq > 0) {
+      taxes.icms_aliquota_credito_simples = icmsAliq;
+      taxes.icms_valor_credito_simples = round2(valorBruto * icmsAliq / 100);
+    }
+    // CSOSN 102, 103, 300, 400, 500, 900 → sem campos de base/alíquota
+  } else {
+    if (CST_ICMS_TRIBUTADO.has(icms.code)) {
+      const base = round2(valorBruto);
+      taxes.icms_modalidade_base_calculo = modBc;
+      taxes.icms_base_calculo = base;
+      taxes.icms_aliquota = icmsAliq;
+      taxes.icms_valor = round2(base * icmsAliq / 100);
+    }
+    // CST 40/41/50/60 → apenas origem e situação
+  }
+
+  // PIS / COFINS — obrigatórios em todos os regimes
+  const pisCst = String(it.pis_cst ?? settings.pis_cst_default ?? (simples ? "49" : "01"));
+  const cofinsCst = String(it.cofins_cst ?? settings.cofins_cst_default ?? (simples ? "49" : "01"));
+  const pisAliq = Number(it.pis_aliquota ?? settings.pis_aliquota ?? 0);
+  const cofinsAliq = Number(it.cofins_aliquota ?? settings.cofins_aliquota ?? 0);
+
+  taxes.pis_situacao_tributaria = pisCst;
+  if (CST_PIS_COFINS_TRIBUTADO.has(pisCst)) {
+    const base = round2(valorBruto);
+    taxes.pis_base_calculo = base;
+    taxes.pis_aliquota_porcentual = pisAliq;
+    taxes.pis_valor = round2(base * pisAliq / 100);
+  }
+
+  taxes.cofins_situacao_tributaria = cofinsCst;
+  if (CST_PIS_COFINS_TRIBUTADO.has(cofinsCst)) {
+    const base = round2(valorBruto);
+    taxes.cofins_base_calculo = base;
+    taxes.cofins_aliquota_porcentual = cofinsAliq;
+    taxes.cofins_valor = round2(base * cofinsAliq / 100);
+  }
+
+  return taxes;
+}
+
 // Build Focus NFe payload — same shape works for NF-e (55) and NFC-e (65)
 function buildFocusPayload(doc: any, settings: any, numero: number, driftMs = 0) {
   const modelo = doc.modelo === "55" ? "55" : "65";
   const serie = modelo === "55" ? settings.serie_nfe : settings.serie_nfce;
   const items = (doc.items || []).map((it: any, idx: number) => {
-    const icms = resolveIcmsCode(it.cst || it.csosn, settings);
-    if (icms.error) throw new Error(icms.error);
+    const qtd = Number(it.quantidade || 1);
+    const vun = Number(it.valor_unitario || 0);
+    const valorBruto = round2(qtd * vun);
     return {
-    numero_item: idx + 1,
-    codigo_produto: it.codigo || it.product_id || String(idx + 1),
-    descricao: it.descricao || it.name || "Item",
-    cfop: it.cfop || settings.cfop_default || "5102",
-    unidade_comercial: it.unidade || "UN",
-    quantidade_comercial: Number(it.quantidade || 1),
-    valor_unitario_comercial: Number(it.valor_unitario || 0),
-    valor_unitario_tributavel: Number(it.valor_unitario || 0),
-    unidade_tributavel: it.unidade || "UN",
-    codigo_ncm: it.ncm || "00000000",
-    quantidade_tributavel: Number(it.quantidade || 1),
-    valor_bruto: Number(it.quantidade || 1) * Number(it.valor_unitario || 0),
-    icms_origem: "0",
-    icms_situacao_tributaria: icms.code,
+      numero_item: idx + 1,
+      codigo_produto: it.codigo || it.product_id || String(idx + 1),
+      descricao: it.descricao || it.name || "Item",
+      cfop: it.cfop || settings.cfop_default || "5102",
+      unidade_comercial: it.unidade || "UN",
+      quantidade_comercial: qtd,
+      valor_unitario_comercial: vun,
+      valor_unitario_tributavel: vun,
+      unidade_tributavel: it.unidade || "UN",
+      codigo_ncm: it.ncm || "00000000",
+      quantidade_tributavel: qtd,
+      valor_bruto: valorBruto,
+      ...buildItemTaxes(it, settings, valorBruto),
     };
   });
 
