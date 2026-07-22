@@ -104,7 +104,7 @@ function buildFocusPayload(doc: any, settings: any, numero: number, driftMs = 0)
 
   const payload: any = {
     natureza_operacao: doc.natureza_operacao || "Venda",
-    data_emissao: brtEmissionDateTime(doc.data_emissao),
+    data_emissao: brtEmissionDateTime(doc.data_emissao, driftMs),
     tipo_documento: doc.tipo_documento || "1",
     finalidade_emissao: doc.finalidade || "1",
     consumidor_final: doc.consumidor_final || "1",
