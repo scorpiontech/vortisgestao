@@ -254,11 +254,12 @@ const NotasFiscais = () => {
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Emissão</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {docs.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
               ) : docs.map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-mono text-xs">{d.numero || "—"}</TableCell>
@@ -268,8 +269,33 @@ const NotasFiscais = () => {
                   <TableCell className="text-xs">
                     {(d.emitted_at || d.created_at) ? new Date(d.emitted_at || d.created_at).toLocaleString("pt-BR") : "—"}
                   </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      {d.status === "authorized" && d.danfce_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(d.danfce_url!, "_blank")}
+                          title="Reimprimir DANFE (documento já autorizado, sem novo envio à SEFAZ)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1" /> DANFE
+                        </Button>
+                      )}
+                      {d.status === "authorized" && d.xml_url && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => window.open(d.xml_url!, "_blank")}
+                          title="Baixar XML autorizado"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
+            </TableBody>
             </TableBody>
           </Table>
         </CardContent>
