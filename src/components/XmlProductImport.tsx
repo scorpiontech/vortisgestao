@@ -49,9 +49,10 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
       const cost = parseFloat(prod.querySelector("vUnCom")?.textContent || "0");
       const unit = prod.querySelector("uCom")?.textContent || "un";
       const quantity = parseFloat(prod.querySelector("qCom")?.textContent || "0");
+      const ncm = (prod.querySelector("NCM")?.textContent || "").replace(/\D/g, "").slice(0, 8);
 
       if (name) {
-        parsed.push({ name, sku: sku === "SEM GTIN" ? "" : sku, price, cost, unit: unit.toLowerCase(), quantity: Math.round(quantity), selected: true });
+        parsed.push({ name, sku: sku === "SEM GTIN" ? "" : sku, price, cost, unit: unit.toLowerCase(), quantity: Math.round(quantity), ncm, selected: true });
       }
     });
 
