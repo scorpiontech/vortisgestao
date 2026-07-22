@@ -86,7 +86,53 @@ const NotasFiscais = () => {
       // Notas emitidas (se houver)
       const { data: nf } = await supabase
         .from("nfce_documents")
-        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at, danfce_url, xml_url")
+        .select("id, numero, modelo, status, customer_name, valor_total, emitted_at, created_at, danfce_url, xml_url")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      setDocs((nf || []) as NfceDoc[]);
+      setLoading(false);
+    })();
+  }, [effectiveUserId]);
+
+  const filteredDocs = (() => {
+    let list = [...docs];
+    if (filterModelo !== "all") list = list.filter(d => (d.modelo || "") === filterModelo);
+    if (filterStatus !== "all") list = list.filter(d => d.status === filterStatus);
+    if (filterFrom) {
+      const from = new Date(filterFrom + "T00:00:00").getTime();
+      list = list.filter(d => new Date(d.emitted_at || d.created_at).getTime() >= from);
+    }
+    if (filterTo) {
+      const to = new Date(filterTo + "T23:59:59").getTime();
+      list = list.filter(d => new Date(d.emitted_at || d.created_at).getTime() <= to);
+    }
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      let av: any; let bv: any;
+      switch (sortField) {
+        case "numero": av = Number(a.numero || 0); bv = Number(b.numero || 0); break;
+        case "valor_total": av = Number(a.valor_total || 0); bv = Number(b.valor_total || 0); break;
+        case "customer_name": av = (a.customer_name || "").toLowerCase(); bv = (b.customer_name || "").toLowerCase(); break;
+        default: av = new Date(a.emitted_at || a.created_at).getTime(); bv = new Date(b.emitted_at || b.created_at).getTime();
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return list;
+  })();
+
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("desc"); }
+  };
+
+  const clearFilters = () => {
+    setFilterModelo("all"); setFilterStatus("all"); setFilterFrom(""); setFilterTo("");
+  };
+
+  const hasFilters = filterModelo !== "all" || filterStatus !== "all" || filterFrom !== "" || filterTo !== "";
+
         .order("created_at", { ascending: false })
         .limit(50);
       setDocs((nf || []) as NfceDoc[]);
