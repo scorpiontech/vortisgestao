@@ -32,6 +32,8 @@ interface NfceDoc {
   valor_total: number | null;
   emitted_at: string | null;
   created_at: string;
+  danfce_url: string | null;
+  xml_url: string | null;
 }
 
 const NotasFiscais = () => {
