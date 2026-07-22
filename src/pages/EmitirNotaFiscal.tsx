@@ -706,7 +706,7 @@ export default function EmitirNotaFiscal() {
                     const p = products.find((x) => x.id === v);
                     if (p) setEditingItem({
                       ...editingItem, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
-                      descricao: p.name, ncm: p.ncm || "00000000", valor_unitario: Number(p.price || 0),
+                      descricao: p.name, ncm: "00000000", valor_unitario: Number(p.price || 0),
                     });
                   }}
                 >
