@@ -72,7 +72,7 @@ const NotasFiscais = () => {
       // Notas emitidas (se houver)
       const { data: nf } = await supabase
         .from("nfce_documents")
-        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at")
+        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at, danfce_url, xml_url")
         .order("created_at", { ascending: false })
         .limit(50);
       setDocs((nf || []) as NfceDoc[]);
