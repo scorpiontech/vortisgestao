@@ -296,7 +296,6 @@ const NotasFiscais = () => {
                 </TableRow>
               ))}
             </TableBody>
-            </TableBody>
           </Table>
         </CardContent>
       </Card>
