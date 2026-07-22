@@ -26,6 +26,7 @@ interface Product {
   min_stock: number;
   unit: string;
   supplier_id: string | null;
+  ncm: string | null;
 }
 
 interface Supplier {
@@ -57,7 +58,7 @@ const Estoque = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [units, setUnits] = useState<UnitItem[]>([]);
-  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
+  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "" });
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("products").select("*").order("name");
@@ -80,13 +81,13 @@ const Estoque = () => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "" });
+    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditProduct(p);
-    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit, supplier_id: p.supplier_id || "" });
+    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit, supplier_id: p.supplier_id || "", ncm: p.ncm || "" });
     setDialogOpen(true);
   };
 
@@ -105,6 +106,7 @@ const Estoque = () => {
       min_stock: Number(form.min_stock) || 0,
       unit: form.unit,
       supplier_id: form.supplier_id || null,
+      ncm: form.ncm.replace(/\D/g, "") || null,
       user_id: effectiveUserId!,
     };
 
@@ -196,15 +198,27 @@ const Estoque = () => {
                 <div className="space-y-1.5"><Label>Estoque Atual</Label><Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Fornecedor</Label>
-                <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione um fornecedor (opcional)" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— Sem fornecedor —</SelectItem>
-                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Fornecedor</Label>
+                  <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Sem fornecedor —</SelectItem>
+                      {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>NCM</Label>
+                  <Input
+                    inputMode="numeric"
+                    maxLength={8}
+                    placeholder="00000000"
+                    value={form.ncm}
+                    onChange={e => setForm({ ...form, ncm: e.target.value.replace(/\D/g, "").slice(0, 8) })}
+                  />
+                </div>
               </div>
               <Button onClick={handleSave} className="w-full">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
             </div>

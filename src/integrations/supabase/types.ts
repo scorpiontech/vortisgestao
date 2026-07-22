@@ -782,6 +782,7 @@ export type Database = {
           id: string
           min_stock: number
           name: string
+          ncm: string | null
           price: number
           sku: string
           stock: number
@@ -797,6 +798,7 @@ export type Database = {
           id?: string
           min_stock?: number
           name: string
+          ncm?: string | null
           price?: number
           sku: string
           stock?: number
@@ -812,6 +814,7 @@ export type Database = {
           id?: string
           min_stock?: number
           name?: string
+          ncm?: string | null
           price?: number
           sku?: string
           stock?: number
