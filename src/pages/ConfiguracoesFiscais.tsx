@@ -310,7 +310,21 @@ export default function ConfiguracoesFiscais() {
           </div>
           <div className="space-y-2">
             <Label>Regime Tributário</Label>
-            <Select value={form.regime_tributario} onValueChange={(v) => setForm({ ...form, regime_tributario: v })}>
+            <Select
+              value={form.regime_tributario}
+              onValueChange={(v) => {
+                setForm((f) => {
+                  const wasSimples = isSimplesRegime(f.regime_tributario);
+                  const nowSimples = isSimplesRegime(v);
+                  const shouldReset = wasSimples !== nowSimples;
+                  return {
+                    ...f,
+                    regime_tributario: v,
+                    csosn_default: shouldReset ? defaultTributacaoCode(v) : f.csosn_default,
+                  };
+                });
+              }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
