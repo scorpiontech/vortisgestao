@@ -106,6 +106,12 @@ export default function ConfiguracoesFiscais() {
       toast.error("CNPJ inválido");
       return;
     }
+    const cstErr = validateTributacaoForRegime(form.csosn_default, form.regime_tributario);
+    if (cstErr) {
+      toast.error(cstErr);
+      return;
+    }
+
 
     setSaving(true);
     try {
