@@ -52,6 +52,14 @@ const NotasFiscais = () => {
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Filtros e ordenação
+  const [filterModelo, setFilterModelo] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterFrom, setFilterFrom] = useState<string>("");
+  const [filterTo, setFilterTo] = useState<string>("");
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
   const canEmit = currentPlan?.features?.nfce === true;
 
   useEffect(() => {
