@@ -42,33 +42,27 @@ function brtEmissionDateTime(input?: string, driftMs = 0) {
   return `${y}-${mo}-${d}T${h}:${mi}:${s}-03:00`;
 }
 
-// Consulta fontes externas confiáveis para calcular o desvio do relógio do servidor.
+// Consulta NTP.br para calcular o desvio do relógio do runtime da função.
 // driftMs = serverNow - referenceNow (positivo = servidor adiantado). Retorna 0 se falhar.
 async function getServerDriftMs(): Promise<number> {
-  const attempts: Array<() => Promise<number | null>> = [
-    async () => {
-      const r = await fetch("https://worldtimeapi.org/api/timezone/America/Sao_Paulo", { signal: AbortSignal.timeout(3000) });
-      if (!r.ok) return null;
-      const j = await r.json();
-      return Date.now() - new Date(j.utc_datetime).getTime();
-    },
-    async () => {
-      const r = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=UTC", { signal: AbortSignal.timeout(3000) });
-      if (!r.ok) return null;
-      const j = await r.json();
-      return Date.now() - new Date(j.dateTime + "Z").getTime();
-    },
-    async () => {
-      const r = await fetch("https://www.google.com", { method: "HEAD", signal: AbortSignal.timeout(3000) });
-      const d = r.headers.get("date");
-      if (!d) return null;
-      return Date.now() - new Date(d).getTime();
-    },
-  ];
-  for (const a of attempts) {
+  const attempts = ["https://ntp.br", "https://www.ntp.br"];
+  for (const url of attempts) {
     try {
-      const res = await a();
-      if (res !== null && Number.isFinite(res)) return res;
+      const startedAt = Date.now();
+      const r = await fetch(`${url}?_=${startedAt}`, {
+        method: "HEAD",
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        signal: AbortSignal.timeout(3000),
+      });
+      const finishedAt = Date.now();
+      const dateHeader = r.headers.get("date");
+      if (!r.ok || !dateHeader) continue;
+
+      const headerMs = new Date(dateHeader).getTime();
+      if (!Number.isFinite(headerMs)) continue;
+
+      const referenceMs = headerMs + Math.round(Math.max(0, finishedAt - startedAt) / 2);
+      return Date.now() - referenceMs;
     } catch (_) { /* try next */ }
   }
   return 0;
