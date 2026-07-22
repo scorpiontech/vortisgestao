@@ -140,7 +140,7 @@ export default function EmitirNotaFiscal() {
     if (!effectiveUserId) return;
     (async () => {
       const [{ data: cs }, { data: ps }] = await Promise.all([
-        supabase.from("customers").select("id, name, document, email, phone, address, city, state, zip_code, neighborhood").order("name"),
+        supabase.from("customers").select("id, name, document, email, phone, street, number, neighborhood, city, state, zip_code").order("name"),
         supabase.from("products").select("id, name, sku, price, ncm").order("name"),
       ]);
       setCustomers(cs || []);
@@ -674,7 +674,8 @@ export default function EmitirNotaFiscal() {
                           nome: c.name,
                           email: c.email,
                           telefone: c.phone,
-                          logradouro: c.address,
+                          logradouro: c.street,
+                          numero: c.number,
                           bairro: c.neighborhood,
                           municipio: c.city,
                           uf: c.state,
