@@ -188,8 +188,6 @@ export default function ConfiguracoesFiscais() {
   const readyToEmit =
     validateCNPJ(form.cnpj) &&
     !!form.ie &&
-    !!form.csc_id &&
-    !!form.csc_token &&
     !!form.provider_token &&
     form.certificate_valid &&
     !certExpired;
@@ -197,10 +195,35 @@ export default function ConfiguracoesFiscais() {
   const missing: string[] = [];
   if (!validateCNPJ(form.cnpj)) missing.push("CNPJ");
   if (!form.ie) missing.push("Inscrição Estadual");
-  if (!form.csc_id || !form.csc_token) missing.push("CSC (ID + Token)");
   if (!form.provider_token) missing.push("Token do provedor fiscal");
   if (!form.certificate_valid) missing.push("Certificado A1");
   if (certExpired) missing.push("Certificado vencido");
+
+  const handleRemoveCertificate = async () => {
+    if (!confirm("Remover o certificado digital atual? Você precisará enviar um novo para voltar a emitir notas.")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("fiscal_settings").update({
+      certificate_path: null,
+      certificate_filename: "",
+      certificate_subject: "",
+      certificate_expires_at: null,
+      certificate_valid: false,
+      certificate_password_encrypted: null,
+    }).eq("owner_id", user.id);
+    if (error) { toast.error("Erro ao remover: " + error.message); return; }
+    setForm((f) => ({
+      ...f,
+      certificate_filename: "",
+      certificate_subject: "",
+      certificate_expires_at: null,
+      certificate_valid: false,
+    }));
+    setCertFile(null);
+    setCertPassword("");
+    if (fileRef.current) fileRef.current.value = "";
+    toast.success("Certificado removido. Envie o novo arquivo.");
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
