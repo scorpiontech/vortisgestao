@@ -368,8 +368,23 @@ export default function ConfiguracoesFiscais() {
                 <Input value={form.cfop_default} onChange={(e) => setForm({ ...form, cfop_default: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>CSOSN/CST padrão</Label>
-                <Input value={form.csosn_default} onChange={(e) => setForm({ ...form, csosn_default: e.target.value })} />
+                <Label>{isSimplesRegime(form.regime_tributario) ? "CSOSN padrão" : "CST de ICMS padrão"}</Label>
+                <Select
+                  value={form.csosn_default}
+                  onValueChange={(v) => setForm({ ...form, csosn_default: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {(isSimplesRegime(form.regime_tributario) ? CSOSN_CODES : CST_CODES).map((c) => (
+                      <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {isSimplesRegime(form.regime_tributario)
+                    ? "Empresas do Simples Nacional devem informar CSOSN."
+                    : "Empresas fora do Simples (Lucro Presumido/Real) devem informar CST de ICMS."}
+                </p>
               </div>
             </CardContent>
           </CollapsibleContent>
