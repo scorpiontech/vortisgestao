@@ -75,7 +75,7 @@ async function getServerDriftMs(): Promise<number> {
 }
 
 // Build Focus NFe payload — same shape works for NF-e (55) and NFC-e (65)
-function buildFocusPayload(doc: any, settings: any, numero: number) {
+function buildFocusPayload(doc: any, settings: any, numero: number, driftMs = 0) {
   const modelo = doc.modelo === "55" ? "55" : "65";
   const serie = modelo === "55" ? settings.serie_nfe : settings.serie_nfce;
   const items = (doc.items || []).map((it: any, idx: number) => ({
