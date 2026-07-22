@@ -103,6 +103,7 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
       stock: p.quantity,
       min_stock: 0,
       category: "",
+      ncm: p.ncm || null,
       user_id: user!.id,
     }));
 
