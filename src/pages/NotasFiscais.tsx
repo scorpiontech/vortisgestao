@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download } from "lucide-react";
+import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download, ArrowUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
