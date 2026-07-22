@@ -475,7 +475,7 @@ export type Database = {
           certificate_expires_at: string | null
           certificate_filename: string
           certificate_password_encrypted: string
-          certificate_path: string
+          certificate_path: string | null
           certificate_subject: string
           certificate_valid: boolean
           cfop_default: string
@@ -497,7 +497,7 @@ export type Database = {
           certificate_expires_at?: string | null
           certificate_filename?: string
           certificate_password_encrypted?: string
-          certificate_path?: string
+          certificate_path?: string | null
           certificate_subject?: string
           certificate_valid?: boolean
           cfop_default?: string
@@ -519,7 +519,7 @@ export type Database = {
           certificate_expires_at?: string | null
           certificate_filename?: string
           certificate_password_encrypted?: string
-          certificate_path?: string
+          certificate_path?: string | null
           certificate_subject?: string
           certificate_valid?: boolean
           cfop_default?: string

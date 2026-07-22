@@ -1,0 +1,1 @@
+ALTER TABLE public.fiscal_settings ALTER COLUMN certificate_path DROP NOT NULL;
