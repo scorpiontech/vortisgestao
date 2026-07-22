@@ -243,45 +243,68 @@ export default function EmitirNotaFiscal() {
     if (!canEmit) return toast.error("O valor pago deve cobrir o total da nota");
     setEmitting(true);
     try {
-      const doc: any = {
-        modelo,
-        natureza_operacao: naturezaOperacao,
-        finalidade,
-        tipo_documento: tipoDocumento,
-        consumidor_final: consumidorFinal,
-        indicador_presenca: indicadorPresenca,
-        data_emissao: new Date(dataEmissao).toISOString(),
-        data_saida: dataSaida ? new Date(dataSaida).toISOString() : null,
-        movimenta_estoque: movimentaEstoque,
-        enviar_email: enviarEmail,
-        chave_referencia: informarChaveRef ? chaveReferencia : null,
-        frete_modalidade: modFrete,
-        destinatario,
-        items: items.map((i) => ({
-          product_id: i.product_id,
-          codigo: i.codigo || i.product_id,
-          descricao: i.descricao,
-          ncm: i.ncm,
-          cfop: i.cfop,
-          unidade: i.unidade,
-          quantidade: i.quantidade,
-          valor_unitario: i.valor_unitario,
-        })),
-        payments,
-        total_produtos: totalProdutos,
-        total_frete: Number(totalFrete),
-        outras_despesas: Number(outrasDespesas),
-        desconto: Number(descontoTotal),
-        total_pago: totalPago,
-        troco,
-        informacoes_complementares: infoComplementares,
-        informacoes_fisco: infoFisco,
-      };
-      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", { body: { doc } });
+  const buildDoc = () => ({
+    modelo,
+    natureza_operacao: naturezaOperacao,
+    finalidade,
+    tipo_documento: tipoDocumento,
+    consumidor_final: consumidorFinal,
+    indicador_presenca: indicadorPresenca,
+    data_emissao: new Date(dataEmissao).toISOString(),
+    data_saida: dataSaida ? new Date(dataSaida).toISOString() : null,
+    movimenta_estoque: movimentaEstoque,
+    enviar_email: enviarEmail,
+    chave_referencia: informarChaveRef ? chaveReferencia : null,
+    frete_modalidade: modFrete,
+    destinatario,
+    items: items.map((i) => ({
+      product_id: i.product_id,
+      codigo: i.codigo || i.product_id,
+      descricao: i.descricao,
+      ncm: i.ncm,
+      cfop: i.cfop,
+      unidade: i.unidade,
+      quantidade: i.quantidade,
+      valor_unitario: i.valor_unitario,
+    })),
+    payments,
+    total_produtos: totalProdutos,
+    total_frete: Number(totalFrete),
+    outras_despesas: Number(outrasDespesas),
+    desconto: Number(descontoTotal),
+    total_pago: totalPago,
+    troco,
+    informacoes_complementares: infoComplementares,
+    informacoes_fisco: infoFisco,
+  });
+
+  const handlePreview = async () => {
+    if (items.length === 0) return toast.error("Adicione pelo menos um item para pré-visualizar");
+    setPreviewing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", {
+        body: { doc: buildDoc(), preview: true },
+      });
+      if (error) throw error;
+      setPreviewData(data);
+      setPreviewOpen(true);
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao gerar pré-visualização");
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
+  const handleEmit = async () => {
+    if (!canEmit) return toast.error("O valor pago deve cobrir o total da nota");
+    setEmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", { body: { doc: buildDoc() } });
       if (error) throw error;
       const res: any = data;
       if (res?.status === "authorized") {
         toast.success(`Nota autorizada! Nº ${res.numero}`);
+        if (res.danfce_url) window.open(res.danfce_url, "_blank");
         navigate("/notas-fiscais");
       } else if (res?.status === "rejected") {
         toast.error(`Rejeitada: ${res.motivo_rejeicao || "Erro ao emitir"}`);
