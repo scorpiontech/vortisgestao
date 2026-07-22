@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
+import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -32,6 +32,8 @@ interface NfceDoc {
   valor_total: number | null;
   emitted_at: string | null;
   created_at: string;
+  danfce_url: string | null;
+  xml_url: string | null;
 }
 
 const NotasFiscais = () => {
@@ -70,7 +72,7 @@ const NotasFiscais = () => {
       // Notas emitidas (se houver)
       const { data: nf } = await supabase
         .from("nfce_documents")
-        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at")
+        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at, danfce_url, xml_url")
         .order("created_at", { ascending: false })
         .limit(50);
       setDocs((nf || []) as NfceDoc[]);
@@ -252,11 +254,12 @@ const NotasFiscais = () => {
                 <TableHead>Valor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Emissão</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {docs.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
               ) : docs.map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-mono text-xs">{d.numero || "—"}</TableCell>
@@ -265,6 +268,30 @@ const NotasFiscais = () => {
                   <TableCell>{statusBadge(d.status)}</TableCell>
                   <TableCell className="text-xs">
                     {(d.emitted_at || d.created_at) ? new Date(d.emitted_at || d.created_at).toLocaleString("pt-BR") : "—"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      {d.status === "authorized" && d.danfce_url && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(d.danfce_url!, "_blank")}
+                          title="Reimprimir DANFE (documento já autorizado, sem novo envio à SEFAZ)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1" /> DANFE
+                        </Button>
+                      )}
+                      {d.status === "authorized" && d.xml_url && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => window.open(d.xml_url!, "_blank")}
+                          title="Baixar XML autorizado"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -119,6 +119,13 @@ export default function EmitirNotaFiscal() {
   const [infoComplementares, setInfoComplementares] = useState("");
   const [infoFisco, setInfoFisco] = useState("");
   const [emitting, setEmitting] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewData, setPreviewData] = useState<any | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Search filters
+  const [destSearch, setDestSearch] = useState("");
+  const [itemSearch, setItemSearch] = useState("");
 
   // Settings modal
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -232,49 +239,68 @@ export default function EmitirNotaFiscal() {
     setPValor(0);
   };
 
+  const buildDoc = () => ({
+    modelo,
+    natureza_operacao: naturezaOperacao,
+    finalidade,
+    tipo_documento: tipoDocumento,
+    consumidor_final: consumidorFinal,
+    indicador_presenca: indicadorPresenca,
+    data_emissao: new Date(dataEmissao).toISOString(),
+    data_saida: dataSaida ? new Date(dataSaida).toISOString() : null,
+    movimenta_estoque: movimentaEstoque,
+    enviar_email: enviarEmail,
+    chave_referencia: informarChaveRef ? chaveReferencia : null,
+    frete_modalidade: modFrete,
+    destinatario,
+    items: items.map((i) => ({
+      product_id: i.product_id,
+      codigo: i.codigo || i.product_id,
+      descricao: i.descricao,
+      ncm: i.ncm,
+      cfop: i.cfop,
+      unidade: i.unidade,
+      quantidade: i.quantidade,
+      valor_unitario: i.valor_unitario,
+    })),
+    payments,
+    total_produtos: totalProdutos,
+    total_frete: Number(totalFrete),
+    outras_despesas: Number(outrasDespesas),
+    desconto: Number(descontoTotal),
+    total_pago: totalPago,
+    troco,
+    informacoes_complementares: infoComplementares,
+    informacoes_fisco: infoFisco,
+  });
+
+  const handlePreview = async () => {
+    if (items.length === 0) return toast.error("Adicione pelo menos um item para pré-visualizar");
+    setPreviewing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", {
+        body: { doc: buildDoc(), preview: true },
+      });
+      if (error) throw error;
+      setPreviewData(data);
+      setPreviewOpen(true);
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao gerar pré-visualização");
+    } finally {
+      setPreviewing(false);
+    }
+  };
+
   const handleEmit = async () => {
     if (!canEmit) return toast.error("O valor pago deve cobrir o total da nota");
     setEmitting(true);
     try {
-      const doc: any = {
-        modelo,
-        natureza_operacao: naturezaOperacao,
-        finalidade,
-        tipo_documento: tipoDocumento,
-        consumidor_final: consumidorFinal,
-        indicador_presenca: indicadorPresenca,
-        data_emissao: new Date(dataEmissao).toISOString(),
-        data_saida: dataSaida ? new Date(dataSaida).toISOString() : null,
-        movimenta_estoque: movimentaEstoque,
-        enviar_email: enviarEmail,
-        chave_referencia: informarChaveRef ? chaveReferencia : null,
-        frete_modalidade: modFrete,
-        destinatario,
-        items: items.map((i) => ({
-          product_id: i.product_id,
-          codigo: i.codigo || i.product_id,
-          descricao: i.descricao,
-          ncm: i.ncm,
-          cfop: i.cfop,
-          unidade: i.unidade,
-          quantidade: i.quantidade,
-          valor_unitario: i.valor_unitario,
-        })),
-        payments,
-        total_produtos: totalProdutos,
-        total_frete: Number(totalFrete),
-        outras_despesas: Number(outrasDespesas),
-        desconto: Number(descontoTotal),
-        total_pago: totalPago,
-        troco,
-        informacoes_complementares: infoComplementares,
-        informacoes_fisco: infoFisco,
-      };
-      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", { body: { doc } });
+      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", { body: { doc: buildDoc() } });
       if (error) throw error;
       const res: any = data;
       if (res?.status === "authorized") {
         toast.success(`Nota autorizada! Nº ${res.numero}`);
+        if (res.danfce_url) window.open(res.danfce_url, "_blank");
         navigate("/notas-fiscais");
       } else if (res?.status === "rejected") {
         toast.error(`Rejeitada: ${res.motivo_rejeicao || "Erro ao emitir"}`);
@@ -635,7 +661,10 @@ export default function EmitirNotaFiscal() {
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="outline" disabled title="Pré-visualização da DANFE fica disponível após a autorização"><FileText className="h-4 w-4 mr-1" /> Pré-visualização Da DANFE</Button>
+            <Button variant="outline" onClick={handlePreview} disabled={previewing || items.length === 0}>
+              {previewing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
+              Pré-visualizar
+            </Button>
             <Button onClick={handleEmit} disabled={emitting || !canEmit}>
               {emitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               Emitir {modelo === "55" ? "NF-e" : "NFC-e"}
@@ -645,12 +674,18 @@ export default function EmitirNotaFiscal() {
       </div>
 
       {/* Destinatário Dialog */}
-      <Dialog open={destOpen} onOpenChange={setDestOpen}>
+      <Dialog open={destOpen} onOpenChange={(v) => { setDestOpen(v); if (!v) setDestSearch(""); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Selecionar destinatário</DialogTitle>
-            <DialogDescription>Escolha um cliente cadastrado.</DialogDescription>
+            <DialogDescription>Pesquise por nome, documento ou email.</DialogDescription>
           </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="Buscar cliente..."
+            value={destSearch}
+            onChange={(e) => setDestSearch(e.target.value)}
+          />
           <div className="max-h-96 overflow-auto border rounded">
             <Table>
               <TableHeader>
@@ -661,7 +696,18 @@ export default function EmitirNotaFiscal() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((c: any) => (
+                {customers
+                  .filter((c: any) => {
+                    const q = destSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      String(c.name || "").toLowerCase().includes(q) ||
+                      String(c.document || "").toLowerCase().includes(q) ||
+                      String(c.email || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .slice(0, 100)
+                  .map((c: any) => (
                   <TableRow key={c.id}>
                     <TableCell>{c.name}</TableCell>
                     <TableCell className="font-mono text-xs">{c.document}</TableCell>
@@ -682,6 +728,7 @@ export default function EmitirNotaFiscal() {
                           cep: c.zip_code,
                         });
                         setDestOpen(false);
+                        setDestSearch("");
                       }}>Selecionar</Button>
                     </TableCell>
                   </TableRow>
@@ -693,30 +740,48 @@ export default function EmitirNotaFiscal() {
       </Dialog>
 
       {/* Item Dialog */}
-      <Dialog open={itemDialog} onOpenChange={setItemDialog}>
+      <Dialog open={itemDialog} onOpenChange={(v) => { setItemDialog(v); if (!v) setItemSearch(""); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Item da nota</DialogTitle></DialogHeader>
           {editingItem && (
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label>Produto</Label>
-                <Select
-                  value={editingItem.product_id || ""}
-                  onValueChange={(v) => {
-                    const p = products.find((x) => x.id === v);
-                    if (p) setEditingItem({
-                      ...editingItem, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
-                      descricao: p.name, ncm: "00000000", valor_unitario: Number(p.price || 0),
-                    });
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione um produto do estoque (opcional)" /></SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} · {p.sku}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="Buscar produto por nome ou código..."
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                />
+                {itemSearch.trim() && (
+                  <div className="max-h-48 overflow-auto border rounded mt-1">
+                    {products
+                      .filter((p) => {
+                        const q = itemSearch.trim().toLowerCase();
+                        return (
+                          String(p.name || "").toLowerCase().includes(q) ||
+                          String(p.sku || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .slice(0, 30)
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-b-0"
+                          onClick={() => {
+                            setEditingItem({
+                              ...editingItem!, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
+                              descricao: p.name, ncm: editingItem!.ncm || "00000000", valor_unitario: Number(p.price || 0),
+                            });
+                            setItemSearch("");
+                          }}
+                        >
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-xs text-muted-foreground">SKU: {p.sku || "—"} · {fmt(Number(p.price || 0))}</div>
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Código</Label><Input value={editingItem.codigo} onChange={(e) => setEditingItem({ ...editingItem, codigo: e.target.value })} /></div>
@@ -744,6 +809,62 @@ export default function EmitirNotaFiscal() {
         ownerId={effectiveUserId}
         onSaved={loadSettings}
       />
+
+      {/* Preview DANFE Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização da {modelo === "55" ? "NF-e" : "NFC-e"}</DialogTitle>
+            <DialogDescription>
+              Confira os dados antes de enviar para a SEFAZ. Nenhum envio foi realizado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm max-h-[60vh] overflow-auto">
+            <div className="grid grid-cols-2 gap-2">
+              <div><span className="text-muted-foreground">Número: </span><strong>{previewData?.numero ?? "—"}</strong></div>
+              <div><span className="text-muted-foreground">Série: </span><strong>{serie}</strong></div>
+              <div><span className="text-muted-foreground">Natureza: </span>{naturezaOperacao}</div>
+              <div><span className="text-muted-foreground">Destinatário: </span>{destinatario?.nome || "Consumidor não identificado"}</div>
+            </div>
+            <div className="border rounded overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Unit.</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((i) => (
+                    <TableRow key={i.id}>
+                      <TableCell>{i.descricao}</TableCell>
+                      <TableCell className="text-right">{i.quantidade}</TableCell>
+                      <TableCell className="text-right">{fmt(i.valor_unitario)}</TableCell>
+                      <TableCell className="text-right">{fmt(i.quantidade * i.valor_unitario)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex justify-between font-semibold border-t pt-2">
+              <span>Total da nota</span>
+              <span className="text-primary">{fmt(totalNota)}</span>
+            </div>
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Ver payload técnico</summary>
+              <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-64">{JSON.stringify(previewData?.payload ?? {}, null, 2)}</pre>
+            </details>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPreviewOpen(false)}>Fechar</Button>
+            <Button onClick={() => { setPreviewOpen(false); handleEmit(); }} disabled={!canEmit}>
+              <Send className="h-4 w-4 mr-1" /> Emitir agora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
