@@ -239,10 +239,6 @@ export default function EmitirNotaFiscal() {
     setPValor(0);
   };
 
-  const handleEmit = async () => {
-    if (!canEmit) return toast.error("O valor pago deve cobrir o total da nota");
-    setEmitting(true);
-    try {
   const buildDoc = () => ({
     modelo,
     natureza_operacao: naturezaOperacao,
