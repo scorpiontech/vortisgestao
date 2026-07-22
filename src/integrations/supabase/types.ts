@@ -472,6 +472,7 @@ export type Database = {
       fiscal_settings: {
         Row: {
           ambiente: string
+          cbs_aliquota: number
           certificate_expires_at: string | null
           certificate_filename: string
           certificate_password_encrypted: string
@@ -484,16 +485,25 @@ export type Database = {
           csc_id: string
           csc_token: string
           csosn_default: string
+          enviar_email_destinatario_default: boolean
+          ibs_aliquota: number
+          ibs_cst: string
           id: string
           ie: string
+          informacoes_fisco: string
           owner_id: string
           provider: string
           provider_token: string
+          proximo_numero_nfce: number
+          proximo_numero_nfe: number
           regime_tributario: string
+          serie_nfce: string
+          serie_nfe: string
           updated_at: string
         }
         Insert: {
           ambiente?: string
+          cbs_aliquota?: number
           certificate_expires_at?: string | null
           certificate_filename?: string
           certificate_password_encrypted?: string
@@ -506,16 +516,25 @@ export type Database = {
           csc_id?: string
           csc_token?: string
           csosn_default?: string
+          enviar_email_destinatario_default?: boolean
+          ibs_aliquota?: number
+          ibs_cst?: string
           id?: string
           ie?: string
+          informacoes_fisco?: string
           owner_id: string
           provider?: string
           provider_token?: string
+          proximo_numero_nfce?: number
+          proximo_numero_nfe?: number
           regime_tributario?: string
+          serie_nfce?: string
+          serie_nfe?: string
           updated_at?: string
         }
         Update: {
           ambiente?: string
+          cbs_aliquota?: number
           certificate_expires_at?: string | null
           certificate_filename?: string
           certificate_password_encrypted?: string
@@ -528,12 +547,20 @@ export type Database = {
           csc_id?: string
           csc_token?: string
           csosn_default?: string
+          enviar_email_destinatario_default?: boolean
+          ibs_aliquota?: number
+          ibs_cst?: string
           id?: string
           ie?: string
+          informacoes_fisco?: string
           owner_id?: string
           provider?: string
           provider_token?: string
+          proximo_numero_nfce?: number
+          proximo_numero_nfe?: number
           regime_tributario?: string
+          serie_nfce?: string
+          serie_nfe?: string
           updated_at?: string
         }
         Relationships: []
@@ -585,26 +612,50 @@ export type Database = {
           ambiente: string
           cancelled_at: string | null
           chave: string | null
+          chave_referencia: string | null
+          consumidor_final: string
           created_at: string
           created_by: string | null
           customer_doc: string | null
           customer_name: string | null
           danfce_url: string | null
+          data_emissao: string
+          data_saida: string | null
+          desconto: number
+          destinatario: Json | null
           emitted_at: string | null
+          enviar_email: boolean
+          finalidade: string
+          frete_modalidade: string
           id: string
+          indicador_presenca: string
+          informacoes_complementares: string | null
+          informacoes_fisco: string | null
+          items: Json
+          modelo: string
           motivo_rejeicao: string | null
+          movimenta_estoque: boolean
+          natureza_operacao: string
           numero: string | null
+          outras_despesas: number
           owner_id: string
           payload_request: Json | null
           payload_response: Json | null
+          payments: Json
           protocolo: string | null
           provider: string
           provider_ref: string | null
           qrcode_data: string | null
           qrcode_url: string | null
           sale_id: string | null
+          separar_iguais: boolean
           serie: string | null
           status: string
+          tipo_documento: string
+          total_frete: number
+          total_pago: number
+          total_produtos: number
+          troco: number
           updated_at: string
           valor_total: number
           xml_url: string | null
@@ -613,26 +664,50 @@ export type Database = {
           ambiente?: string
           cancelled_at?: string | null
           chave?: string | null
+          chave_referencia?: string | null
+          consumidor_final?: string
           created_at?: string
           created_by?: string | null
           customer_doc?: string | null
           customer_name?: string | null
           danfce_url?: string | null
+          data_emissao?: string
+          data_saida?: string | null
+          desconto?: number
+          destinatario?: Json | null
           emitted_at?: string | null
+          enviar_email?: boolean
+          finalidade?: string
+          frete_modalidade?: string
           id?: string
+          indicador_presenca?: string
+          informacoes_complementares?: string | null
+          informacoes_fisco?: string | null
+          items?: Json
+          modelo?: string
           motivo_rejeicao?: string | null
+          movimenta_estoque?: boolean
+          natureza_operacao?: string
           numero?: string | null
+          outras_despesas?: number
           owner_id: string
           payload_request?: Json | null
           payload_response?: Json | null
+          payments?: Json
           protocolo?: string | null
           provider: string
           provider_ref?: string | null
           qrcode_data?: string | null
           qrcode_url?: string | null
           sale_id?: string | null
+          separar_iguais?: boolean
           serie?: string | null
           status?: string
+          tipo_documento?: string
+          total_frete?: number
+          total_pago?: number
+          total_produtos?: number
+          troco?: number
           updated_at?: string
           valor_total?: number
           xml_url?: string | null
@@ -641,26 +716,50 @@ export type Database = {
           ambiente?: string
           cancelled_at?: string | null
           chave?: string | null
+          chave_referencia?: string | null
+          consumidor_final?: string
           created_at?: string
           created_by?: string | null
           customer_doc?: string | null
           customer_name?: string | null
           danfce_url?: string | null
+          data_emissao?: string
+          data_saida?: string | null
+          desconto?: number
+          destinatario?: Json | null
           emitted_at?: string | null
+          enviar_email?: boolean
+          finalidade?: string
+          frete_modalidade?: string
           id?: string
+          indicador_presenca?: string
+          informacoes_complementares?: string | null
+          informacoes_fisco?: string | null
+          items?: Json
+          modelo?: string
           motivo_rejeicao?: string | null
+          movimenta_estoque?: boolean
+          natureza_operacao?: string
           numero?: string | null
+          outras_despesas?: number
           owner_id?: string
           payload_request?: Json | null
           payload_response?: Json | null
+          payments?: Json
           protocolo?: string | null
           provider?: string
           provider_ref?: string | null
           qrcode_data?: string | null
           qrcode_url?: string | null
           sale_id?: string | null
+          separar_iguais?: boolean
           serie?: string | null
           status?: string
+          tipo_documento?: string
+          total_frete?: number
+          total_pago?: number
+          total_produtos?: number
+          troco?: number
           updated_at?: string
           valor_total?: number
           xml_url?: string | null
