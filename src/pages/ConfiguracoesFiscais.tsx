@@ -308,14 +308,6 @@ export default function ConfiguracoesFiscais() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>CFOP padrão</Label>
-            <Input value={form.cfop_default} onChange={(e) => setForm({ ...form, cfop_default: e.target.value })} />
-          </div>
-          <div className="space-y-2">
-            <Label>CSOSN/CST padrão</Label>
-            <Input value={form.csosn_default} onChange={(e) => setForm({ ...form, csosn_default: e.target.value })} />
-          </div>
         </CardContent>
       </Card>
 
