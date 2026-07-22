@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download } from "lucide-react";
+import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download, ArrowUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -27,6 +29,7 @@ interface Plan {
 interface NfceDoc {
   id: string;
   numero: string | null;
+  modelo: string | null;
   status: string;
   customer_name: string | null;
   valor_total: number | null;
@@ -35,6 +38,9 @@ interface NfceDoc {
   danfce_url: string | null;
   xml_url: string | null;
 }
+
+type SortField = "created_at" | "numero" | "valor_total" | "customer_name";
+type SortDir = "asc" | "desc";
 
 const NotasFiscais = () => {
   const { effectiveUserId } = useUserRole();
@@ -45,6 +51,14 @@ const NotasFiscais = () => {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Filtros e ordenação
+  const [filterModelo, setFilterModelo] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterFrom, setFilterFrom] = useState<string>("");
+  const [filterTo, setFilterTo] = useState<string>("");
+  const [sortField, setSortField] = useState<SortField>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const canEmit = currentPlan?.features?.nfce === true;
 
@@ -72,13 +86,53 @@ const NotasFiscais = () => {
       // Notas emitidas (se houver)
       const { data: nf } = await supabase
         .from("nfce_documents")
-        .select("id, numero, status, customer_name, valor_total, emitted_at, created_at, danfce_url, xml_url")
+        .select("id, numero, modelo, status, customer_name, valor_total, emitted_at, created_at, danfce_url, xml_url")
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(500);
       setDocs((nf || []) as NfceDoc[]);
       setLoading(false);
     })();
   }, [effectiveUserId]);
+
+  const filteredDocs = (() => {
+    let list = [...docs];
+    if (filterModelo !== "all") list = list.filter(d => (d.modelo || "") === filterModelo);
+    if (filterStatus !== "all") list = list.filter(d => d.status === filterStatus);
+    if (filterFrom) {
+      const from = new Date(filterFrom + "T00:00:00").getTime();
+      list = list.filter(d => new Date(d.emitted_at || d.created_at).getTime() >= from);
+    }
+    if (filterTo) {
+      const to = new Date(filterTo + "T23:59:59").getTime();
+      list = list.filter(d => new Date(d.emitted_at || d.created_at).getTime() <= to);
+    }
+    const dir = sortDir === "asc" ? 1 : -1;
+    list.sort((a, b) => {
+      let av: any; let bv: any;
+      switch (sortField) {
+        case "numero": av = Number(a.numero || 0); bv = Number(b.numero || 0); break;
+        case "valor_total": av = Number(a.valor_total || 0); bv = Number(b.valor_total || 0); break;
+        case "customer_name": av = (a.customer_name || "").toLowerCase(); bv = (b.customer_name || "").toLowerCase(); break;
+        default: av = new Date(a.emitted_at || a.created_at).getTime(); bv = new Date(b.emitted_at || b.created_at).getTime();
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return list;
+  })();
+
+  const toggleSort = (f: SortField) => {
+    if (sortField === f) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(f); setSortDir("desc"); }
+  };
+
+  const clearFilters = () => {
+    setFilterModelo("all"); setFilterStatus("all"); setFilterFrom(""); setFilterTo("");
+  };
+
+  const hasFilters = filterModelo !== "all" || filterStatus !== "all" || filterFrom !== "" || filterTo !== "";
+
 
   const handleUpgrade = async (planId: string) => {
     setUpgrading(planId);
@@ -244,25 +298,79 @@ const NotasFiscais = () => {
       )}
 
       <Card>
-        <CardHeader><CardTitle>Histórico</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle>Histórico</CardTitle>
+            <div className="text-xs text-muted-foreground">
+              {filteredDocs.length} de {docs.length} nota(s)
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 pt-3">
+            <Select value={filterModelo} onValueChange={setFilterModelo}>
+              <SelectTrigger><SelectValue placeholder="Modelo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os modelos</SelectItem>
+                <SelectItem value="55">NF-e (55)</SelectItem>
+                <SelectItem value="65">NFC-e (65)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="authorized">Autorizada</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="rejected">Rejeitada</SelectItem>
+                <SelectItem value="cancelled">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} aria-label="Data inicial" />
+            <Input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} aria-label="Data final" />
+            <Button variant="outline" onClick={clearFilters} disabled={!hasFilters}>
+              <X className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Valor</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("numero")}>
+                    Número <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
+                <TableHead>Modelo</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("customer_name")}>
+                    Cliente <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("valor_total")}>
+                    Valor <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Emissão</TableHead>
+                <TableHead>
+                  <button className="flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("created_at")}>
+                    Emissão <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {docs.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma nota emitida ainda.</TableCell></TableRow>
-              ) : docs.map(d => (
+              {filteredDocs.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  {docs.length === 0 ? "Nenhuma nota emitida ainda." : "Nenhuma nota corresponde aos filtros."}
+                </TableCell></TableRow>
+              ) : filteredDocs.map(d => (
                 <TableRow key={d.id}>
                   <TableCell className="font-mono text-xs">{d.numero || "—"}</TableCell>
+                  <TableCell className="text-xs">
+                    {d.modelo === "55" ? "NF-e" : d.modelo === "65" ? "NFC-e" : "—"}
+                  </TableCell>
                   <TableCell>{d.customer_name || "Consumidor"}</TableCell>
                   <TableCell>{Number(d.valor_total || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
                   <TableCell>{statusBadge(d.status)}</TableCell>
