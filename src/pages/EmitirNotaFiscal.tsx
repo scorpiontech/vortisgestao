@@ -661,7 +661,10 @@ export default function EmitirNotaFiscal() {
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button variant="outline" disabled title="Pré-visualização da DANFE fica disponível após a autorização"><FileText className="h-4 w-4 mr-1" /> Pré-visualização Da DANFE</Button>
+            <Button variant="outline" onClick={handlePreview} disabled={previewing || items.length === 0}>
+              {previewing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
+              Pré-visualizar
+            </Button>
             <Button onClick={handleEmit} disabled={emitting || !canEmit}>
               {emitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               Emitir {modelo === "55" ? "NF-e" : "NFC-e"}
