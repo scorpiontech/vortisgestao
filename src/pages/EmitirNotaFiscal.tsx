@@ -674,12 +674,18 @@ export default function EmitirNotaFiscal() {
       </div>
 
       {/* Destinatário Dialog */}
-      <Dialog open={destOpen} onOpenChange={setDestOpen}>
+      <Dialog open={destOpen} onOpenChange={(v) => { setDestOpen(v); if (!v) setDestSearch(""); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Selecionar destinatário</DialogTitle>
-            <DialogDescription>Escolha um cliente cadastrado.</DialogDescription>
+            <DialogDescription>Pesquise por nome, documento ou email.</DialogDescription>
           </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="Buscar cliente..."
+            value={destSearch}
+            onChange={(e) => setDestSearch(e.target.value)}
+          />
           <div className="max-h-96 overflow-auto border rounded">
             <Table>
               <TableHeader>
@@ -690,7 +696,18 @@ export default function EmitirNotaFiscal() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((c: any) => (
+                {customers
+                  .filter((c: any) => {
+                    const q = destSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return (
+                      String(c.name || "").toLowerCase().includes(q) ||
+                      String(c.document || "").toLowerCase().includes(q) ||
+                      String(c.email || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .slice(0, 100)
+                  .map((c: any) => (
                   <TableRow key={c.id}>
                     <TableCell>{c.name}</TableCell>
                     <TableCell className="font-mono text-xs">{c.document}</TableCell>
@@ -711,6 +728,7 @@ export default function EmitirNotaFiscal() {
                           cep: c.zip_code,
                         });
                         setDestOpen(false);
+                        setDestSearch("");
                       }}>Selecionar</Button>
                     </TableCell>
                   </TableRow>
@@ -722,7 +740,7 @@ export default function EmitirNotaFiscal() {
       </Dialog>
 
       {/* Item Dialog */}
-      <Dialog open={itemDialog} onOpenChange={setItemDialog}>
+      <Dialog open={itemDialog} onOpenChange={(v) => { setItemDialog(v); if (!v) setItemSearch(""); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Item da nota</DialogTitle></DialogHeader>
           {editingItem && (
