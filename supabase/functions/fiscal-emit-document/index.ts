@@ -24,14 +24,14 @@ function focusBaseUrl(ambiente: string) {
 }
 
 // Data/hora de emissão no formato exigido pela SEFAZ (horário de Brasília com offset -03:00).
-// Enviar em UTC (sufixo Z) faz a SEFAZ interpretar a emissão 3h no futuro em relação ao
-// horário de recebimento, gerando a rejeição "Data-Hora de Emissão posterior ao horário de recebimento".
+// Nunca usa data futura enviada pelo navegador: campos datetime-local podem chegar em UTC
+// quando montados com toISOString(), o que adianta a emissão em 3h no Brasil.
 function brtEmissionDateTime(input?: string, driftMs = 0) {
-  // Base: se veio uma data do cliente respeita, senão usa "agora" corrigido pelo desvio
-  // do servidor menos 60s de margem para evitar rejeição por relógio adiantado.
-  const base = input ? new Date(input) : new Date(Date.now() - driftMs - 60_000);
+  const safeNowMs = Date.now() - driftMs - 120_000;
+  const parsedMs = input ? new Date(input).getTime() : NaN;
+  const baseMs = Number.isFinite(parsedMs) && parsedMs <= safeNowMs ? parsedMs : safeNowMs;
   // Converte para horário de Brasília (UTC-3, sem horário de verão desde 2019)
-  const brt = new Date(base.getTime() - 3 * 60 * 60 * 1000);
+  const brt = new Date(baseMs - 3 * 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
   const y = brt.getUTCFullYear();
   const mo = pad(brt.getUTCMonth() + 1);

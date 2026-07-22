@@ -72,6 +72,10 @@ const FORMAS_PAGAMENTO: Record<string, string> = {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const fmt = (v: number) => (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const toDatetimeLocalValue = (date = new Date()) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+};
 
 export default function EmitirNotaFiscal() {
   const navigate = useNavigate();
@@ -90,8 +94,8 @@ export default function EmitirNotaFiscal() {
   const [finalidade, setFinalidade] = useState("1"); // 1 NFe normal
   const [tipoDocumento, setTipoDocumento] = useState("1"); // Saída
   const [consumidorFinal, setConsumidorFinal] = useState("1");
-  const [dataEmissao, setDataEmissao] = useState(() => new Date().toISOString().slice(0, 16));
-  const [dataSaida, setDataSaida] = useState(() => new Date().toISOString().slice(0, 16));
+  const [dataEmissao, setDataEmissao] = useState(() => toDatetimeLocalValue());
+  const [dataSaida, setDataSaida] = useState(() => toDatetimeLocalValue());
   const [movimentaEstoque, setMovimentaEstoque] = useState(true);
   const [informarChaveRef, setInformarChaveRef] = useState(false);
   const [chaveReferencia, setChaveReferencia] = useState("");
