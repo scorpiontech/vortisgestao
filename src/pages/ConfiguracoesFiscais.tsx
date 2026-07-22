@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle2, AlertCircle, ShieldCheck, Upload, Loader2 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CheckCircle2, AlertCircle, ShieldCheck, Upload, Loader2, Trash2, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -187,8 +188,6 @@ export default function ConfiguracoesFiscais() {
   const readyToEmit =
     validateCNPJ(form.cnpj) &&
     !!form.ie &&
-    !!form.csc_id &&
-    !!form.csc_token &&
     !!form.provider_token &&
     form.certificate_valid &&
     !certExpired;
@@ -196,10 +195,35 @@ export default function ConfiguracoesFiscais() {
   const missing: string[] = [];
   if (!validateCNPJ(form.cnpj)) missing.push("CNPJ");
   if (!form.ie) missing.push("Inscrição Estadual");
-  if (!form.csc_id || !form.csc_token) missing.push("CSC (ID + Token)");
   if (!form.provider_token) missing.push("Token do provedor fiscal");
   if (!form.certificate_valid) missing.push("Certificado A1");
   if (certExpired) missing.push("Certificado vencido");
+
+  const handleRemoveCertificate = async () => {
+    if (!confirm("Remover o certificado digital atual? Você precisará enviar um novo para voltar a emitir notas.")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("fiscal_settings").update({
+      certificate_path: null,
+      certificate_filename: "",
+      certificate_subject: "",
+      certificate_expires_at: null,
+      certificate_valid: false,
+      certificate_password_encrypted: null,
+    }).eq("owner_id", user.id);
+    if (error) { toast.error("Erro ao remover: " + error.message); return; }
+    setForm((f) => ({
+      ...f,
+      certificate_filename: "",
+      certificate_subject: "",
+      certificate_expires_at: null,
+      certificate_valid: false,
+    }));
+    setCertFile(null);
+    setCertPassword("");
+    if (fileRef.current) fileRef.current.value = "";
+    toast.success("Certificado removido. Envie o novo arquivo.");
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -231,8 +255,11 @@ export default function ConfiguracoesFiscais() {
           {form.certificate_valid && (
             <Alert className={certExpired ? "border-destructive" : certExpiringSoon ? "border-yellow-500" : "border-green-500"}>
               {certExpired ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-              <AlertTitle>
-                {certExpired ? "Certificado vencido" : certExpiringSoon ? "Certificado próximo do vencimento" : "Certificado ativo"}
+              <AlertTitle className="flex items-center justify-between gap-2">
+                <span>{certExpired ? "Certificado vencido" : certExpiringSoon ? "Certificado próximo do vencimento" : "Certificado ativo"}</span>
+                <Button type="button" size="sm" variant="outline" onClick={handleRemoveCertificate} className="gap-1">
+                  <Trash2 className="h-3.5 w-3.5" /> Remover
+                </Button>
               </AlertTitle>
               <AlertDescription>
                 <div><strong>Titular:</strong> {form.certificate_subject}</div>
@@ -281,33 +308,47 @@ export default function ConfiguracoesFiscais() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>CFOP padrão</Label>
-            <Input value={form.cfop_default} onChange={(e) => setForm({ ...form, cfop_default: e.target.value })} />
-          </div>
-          <div className="space-y-2">
-            <Label>CSOSN/CST padrão</Label>
-            <Input value={form.csosn_default} onChange={(e) => setForm({ ...form, csosn_default: e.target.value })} />
-          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>CSC — Código de Segurança do Contribuinte</CardTitle>
-          <CardDescription>Token gerado no portal da SEFAZ do seu estado para NFC-e.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>ID CSC</Label>
-            <Input value={form.csc_id} onChange={(e) => setForm({ ...form, csc_id: e.target.value })} placeholder="000001" />
-          </div>
-          <div className="space-y-2">
-            <Label>Token CSC</Label>
-            <Input type="password" value={form.csc_token} onChange={(e) => setForm({ ...form, csc_token: e.target.value })} />
-          </div>
-        </CardContent>
-      </Card>
+      <Collapsible>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/40 transition-colors flex-row items-center justify-between gap-2 [&>svg]:data-[state=open]:rotate-180">
+              <div>
+                <CardTitle className="text-base">Configurações avançadas (opcional)</CardTitle>
+                <CardDescription>CSC, CFOP e CSOSN — só preencha se o seu contador informar. Na dúvida, deixe em branco: o provedor fiscal usa os valores padrão.</CardDescription>
+              </div>
+              <ChevronDown className="h-5 w-5 transition-transform text-muted-foreground" />
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="grid md:grid-cols-2 gap-4 pt-0">
+              <div className="space-y-2 md:col-span-2">
+                <p className="text-xs text-muted-foreground">
+                  <strong>CSC</strong> é gerado no portal da SEFAZ do seu estado apenas para emissão direta de NFC-e. A maioria dos provedores fiscais dispensa este campo — pergunte ao seu contador antes de preencher.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>ID CSC</Label>
+                <Input value={form.csc_id} onChange={(e) => setForm({ ...form, csc_id: e.target.value })} placeholder="Ex.: 000001 (deixe em branco se não tiver)" />
+              </div>
+              <div className="space-y-2">
+                <Label>Token CSC</Label>
+                <Input type="password" value={form.csc_token} onChange={(e) => setForm({ ...form, csc_token: e.target.value })} placeholder="Deixe em branco se não tiver" />
+              </div>
+              <div className="space-y-2">
+                <Label>CFOP padrão</Label>
+                <Input value={form.cfop_default} onChange={(e) => setForm({ ...form, cfop_default: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>CSOSN/CST padrão</Label>
+                <Input value={form.csosn_default} onChange={(e) => setForm({ ...form, csosn_default: e.target.value })} />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <Card>
         <CardHeader>
