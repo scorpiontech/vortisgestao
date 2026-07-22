@@ -747,23 +747,41 @@ export default function EmitirNotaFiscal() {
             <div className="space-y-3">
               <div className="space-y-1.5">
                 <Label>Produto</Label>
-                <Select
-                  value={editingItem.product_id || ""}
-                  onValueChange={(v) => {
-                    const p = products.find((x) => x.id === v);
-                    if (p) setEditingItem({
-                      ...editingItem, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
-                      descricao: p.name, ncm: "00000000", valor_unitario: Number(p.price || 0),
-                    });
-                  }}
-                >
-                  <SelectTrigger><SelectValue placeholder="Selecione um produto do estoque (opcional)" /></SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} · {p.sku}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="Buscar produto por nome ou código..."
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                />
+                {itemSearch.trim() && (
+                  <div className="max-h-48 overflow-auto border rounded mt-1">
+                    {products
+                      .filter((p) => {
+                        const q = itemSearch.trim().toLowerCase();
+                        return (
+                          String(p.name || "").toLowerCase().includes(q) ||
+                          String(p.sku || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .slice(0, 30)
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-muted text-sm border-b last:border-b-0"
+                          onClick={() => {
+                            setEditingItem({
+                              ...editingItem!, product_id: p.id, codigo: p.sku || p.id.slice(0, 8),
+                              descricao: p.name, ncm: editingItem!.ncm || "00000000", valor_unitario: Number(p.price || 0),
+                            });
+                            setItemSearch("");
+                          }}
+                        >
+                          <div className="font-medium">{p.name}</div>
+                          <div className="text-xs text-muted-foreground">SKU: {p.sku || "—"} · {fmt(Number(p.price || 0))}</div>
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Código</Label><Input value={editingItem.codigo} onChange={(e) => setEditingItem({ ...editingItem, codigo: e.target.value })} /></div>
