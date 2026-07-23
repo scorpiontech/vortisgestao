@@ -263,7 +263,72 @@ Deno.serve(async (req) => {
     if (!user) return json(401, { error: "Sessão inválida" });
 
     const body = await req.json();
-    const { doc, preview } = body ?? {};
+    const { doc, preview, action, id: docId } = body ?? {};
+
+    // Consulta de status na Focus NFe para atualizar notas pendentes.
+    // Ref: https://doc.focusnfe.com.br/reference/nfe (GET /v2/nfe/{ref} e /v2/nfce/{ref}).
+    if (action === "consult") { {
+      if (!docId) return json(400, { error: "id é obrigatório" });
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+      const { data: member } = await admin
+        .from("company_members").select("owner_id, role")
+        .eq("user_id", user.id).eq("active", true).maybeSingle();
+      const ownerId = member?.role === "vendedor" ? member.owner_id : user.id;
+
+      const { data: nf } = await admin.from("nfce_documents")
+        .select("id, owner_id, modelo, provider_ref, ambiente")
+        .eq("id", docId).maybeSingle();
+      if (!nf || nf.owner_id !== ownerId) return json(404, { error: "Nota não encontrada" });
+
+      const { data: settings } = await admin.from("fiscal_settings")
+        .select("provider_token, ambiente").eq("owner_id", ownerId).maybeSingle();
+      if (!settings?.provider_token) return json(400, { error: "Token do provedor não configurado" });
+
+      const endpoint = nf.modelo === "55" ? "/v2/nfe" : "/v2/nfce";
+      const base = focusBaseUrl(nf.ambiente || settings.ambiente);
+      const url = `${base}${endpoint}/${encodeURIComponent(nf.provider_ref)}`;
+      const basic = btoa(`${settings.provider_token}:`);
+      const resp = await fetch(url, { headers: { Authorization: `Basic ${basic}` } });
+      const text = await resp.text();
+      let pr: any; try { pr = JSON.parse(text); } catch { pr = { raw: text }; }
+
+      const authorized = pr?.status === "autorizado";
+      const rejected = pr?.status === "cancelado" || pr?.status === "erro_autorizacao";
+      const finalStatus = authorized ? "authorized" : rejected ? "rejected" : "pending";
+
+      const updates: any = {
+        status: finalStatus,
+        payload_response: pr,
+        motivo_rejeicao: rejected ? (pr?.mensagem_sefaz || pr?.erros?.[0]?.mensagem || "Rejeitado pelo provedor") : null,
+        chave: pr?.chave_nfe || null,
+        protocolo: pr?.protocolo || null,
+        xml_url: pr?.caminho_xml_nota_fiscal ? `${base}${pr.caminho_xml_nota_fiscal}` : null,
+        danfce_url: pr?.caminho_danfe ? `${base}${pr.caminho_danfe}` : null,
+        qrcode_data: pr?.qrcode_url || null,
+        emitted_at: authorized ? new Date().toISOString() : null,
+      };
+      await admin.from("nfce_documents").update(updates).eq("id", nf.id);
+
+      // Atualiza cota se acabou de autorizar
+      if (authorized) {
+        const ym = new Date().toISOString().slice(0, 7);
+        const { data: existing } = await admin.from("fiscal_quota_usage")
+          .select("*").eq("owner_id", ownerId).eq("year_month", ym).maybeSingle();
+        if (existing) {
+          await admin.from("fiscal_quota_usage")
+            .update({ authorized_count: ((existing as any).authorized_count || 0) + 1 })
+            .eq("owner_id", ownerId).eq("year_month", ym);
+        } else {
+          await admin.from("fiscal_quota_usage").insert({
+            owner_id: ownerId, year_month: ym, authorized_count: 1,
+          } as any);
+        }
+      }
+
+      return json(200, { id: nf.id, status: finalStatus, ...updates });
+    } }
+
     if (!doc) return json(400, { error: "Documento é obrigatório" });
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);

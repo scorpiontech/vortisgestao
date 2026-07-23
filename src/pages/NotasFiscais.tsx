@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download, ArrowUpDown, X } from "lucide-react";
+import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download, ArrowUpDown, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -154,6 +154,34 @@ const NotasFiscais = () => {
       setUpgrading(null);
     }
   };
+
+  const [syncing, setSyncing] = useState<string | null>(null);
+  const handleSync = async (d: NfceDoc) => {
+    setSyncing(d.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("fiscal-emit-document", {
+        body: { action: "consult", id: d.id },
+      });
+      if (error) throw error;
+      const r = data as any;
+      setDocs(prev => prev.map(x => x.id === d.id ? {
+        ...x,
+        status: r.status,
+        danfce_url: r.danfce_url ?? x.danfce_url,
+        xml_url: r.xml_url ?? x.xml_url,
+        emitted_at: r.emitted_at ?? x.emitted_at,
+      } : x));
+      if (r.status === "authorized") toast.success("Nota autorizada! DANFE e XML disponíveis.");
+      else if (r.status === "rejected") toast.error("Nota rejeitada: " + (r.motivo_rejeicao || ""));
+      else toast.message("Ainda pendente no provedor. Tente novamente em instantes.");
+    } catch (e: any) {
+      toast.error(e.message || "Falha ao sincronizar");
+    } finally {
+      setSyncing(null);
+    }
+  };
+
+
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
@@ -379,6 +407,18 @@ const NotasFiscais = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
+                      {d.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={syncing === d.id}
+                          onClick={() => handleSync(d)}
+                          title="Consultar status no provedor (Focus NFe) e atualizar DANFE/XML"
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${syncing === d.id ? "animate-spin" : ""}`} />
+                          Sincronizar
+                        </Button>
+                      )}
                       {d.status === "authorized" && d.danfce_url && (
                         <Button
                           size="sm"
