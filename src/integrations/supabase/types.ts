@@ -489,6 +489,7 @@ export type Database = {
           csosn_default: string
           enviar_email_destinatario_default: boolean
           ibs_aliquota: number
+          ibs_cbs_enabled: boolean
           ibs_cst: string
           icms_aliquota: number | null
           icms_modalidade_base_calculo: string | null
@@ -526,6 +527,7 @@ export type Database = {
           csosn_default?: string
           enviar_email_destinatario_default?: boolean
           ibs_aliquota?: number
+          ibs_cbs_enabled?: boolean
           ibs_cst?: string
           icms_aliquota?: number | null
           icms_modalidade_base_calculo?: string | null
@@ -563,6 +565,7 @@ export type Database = {
           csosn_default?: string
           enviar_email_destinatario_default?: boolean
           ibs_aliquota?: number
+          ibs_cbs_enabled?: boolean
           ibs_cst?: string
           icms_aliquota?: number | null
           icms_modalidade_base_calculo?: string | null
