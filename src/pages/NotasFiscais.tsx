@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download, ArrowUpDown, X } from "lucide-react";
+import { FileText, Lock, Rocket, CheckCircle2, ArrowRight, Sparkles, Printer, Download, ArrowUpDown, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
