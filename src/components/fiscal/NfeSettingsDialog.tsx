@@ -44,6 +44,7 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
       setIbsCst(d.ibs_cst ?? "000");
       setIbsAliq(String(d.ibs_aliquota ?? "0.1"));
       setCbsAliq(String(d.cbs_aliquota ?? "0.9"));
+      setIbsCbsEnabled(Boolean(d.ibs_cbs_enabled));
       setIcmsAliq(String(d.icms_aliquota ?? "0"));
       setPisCst(d.pis_cst_default ?? "49");
       setPisAliq(String(d.pis_aliquota ?? "0"));
