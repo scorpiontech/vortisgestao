@@ -14,6 +14,7 @@ import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
 import { PricingCalculator } from "@/components/PricingCalculator";
+import { NcmSearch } from "@/components/NcmSearch";
 
 interface Product {
   id: string;
@@ -210,7 +211,10 @@ const Estoque = () => {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>NCM</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>NCM</Label>
+                    <NcmSearch onSelect={(codigo) => setForm({ ...form, ncm: codigo })} />
+                  </div>
                   <Input
                     inputMode="numeric"
                     maxLength={8}
