@@ -179,6 +179,9 @@ const NotasFiscais = () => {
     } finally {
       setSyncing(null);
     }
+  };
+
+
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
