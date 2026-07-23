@@ -23,6 +23,7 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
   const [ibsCst, setIbsCst] = useState<string>("000");
   const [ibsAliq, setIbsAliq] = useState<string>("0.1");
   const [cbsAliq, setCbsAliq] = useState<string>("0.9");
+  const [ibsCbsEnabled, setIbsCbsEnabled] = useState<boolean>(false);
   const [icmsAliq, setIcmsAliq] = useState<string>("0");
   const [pisCst, setPisCst] = useState<string>("49");
   const [pisAliq, setPisAliq] = useState<string>("0");
@@ -43,6 +44,7 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
       setIbsCst(d.ibs_cst ?? "000");
       setIbsAliq(String(d.ibs_aliquota ?? "0.1"));
       setCbsAliq(String(d.cbs_aliquota ?? "0.9"));
+      setIbsCbsEnabled(Boolean(d.ibs_cbs_enabled));
       setIcmsAliq(String(d.icms_aliquota ?? "0"));
       setPisCst(d.pis_cst_default ?? "49");
       setPisAliq(String(d.pis_aliquota ?? "0"));
@@ -60,6 +62,7 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
       ibs_cst: ibsCst,
       ibs_aliquota: Number(ibsAliq) || 0,
       cbs_aliquota: Number(cbsAliq) || 0,
+      ibs_cbs_enabled: ibsCbsEnabled,
       icms_aliquota: Number(icmsAliq) || 0,
       pis_cst_default: pisCst,
       pis_aliquota: Number(pisAliq) || 0,
@@ -139,8 +142,25 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
             </div>
 
             <div className="pt-2 border-t">
-              <p className="text-sm font-medium mb-2">Configurações IBS e CBS (Reforma Tributária)</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div>
+                  <p className="text-sm font-medium">IBS e CBS (Reforma Tributária)</p>
+                  <p className="text-xs text-muted-foreground">
+                    Habilite apenas quando a SEFAZ da sua UF já aceitar o grupo IBS/CBS no schema.
+                    Se habilitado antes disso, a nota será rejeitada com “Element gIBSCBS is not expected”.
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-xs shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={ibsCbsEnabled}
+                    onChange={(e) => setIbsCbsEnabled(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Habilitar
+                </label>
+              </div>
+              <div className={`grid grid-cols-3 gap-3 ${ibsCbsEnabled ? "" : "opacity-50 pointer-events-none"}`}>
                 <div className="space-y-1.5">
                   <Label className="text-xs">CST Padrão IBS/CBS</Label>
                   <Input value={ibsCst} onChange={(e) => setIbsCst(e.target.value)} />
