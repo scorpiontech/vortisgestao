@@ -37,12 +37,33 @@ export function NcmSearch({ onSelect }: NcmSearchProps) {
       const params = new URLSearchParams();
       if (desc) params.set("descricao", desc);
       if (cod) params.set("codigo", cod);
-      const { data, error } = await supabase.functions.invoke(
-        `fiscal-consult-ncm?${params.toString()}`,
-        { method: "GET" }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+      const resp = await fetch(
+        `${supabaseUrl}/functions/v1/fiscal-consult-ncm?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token ?? anonKey}`,
+            apikey: anonKey,
+          },
+        }
       );
-      if (error) throw error;
-      const payload = (data as any)?.data;
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(
+          (json as any)?.error ||
+            (typeof (json as any)?.detail === "string"
+              ? (json as any).detail
+              : JSON.stringify((json as any)?.detail || {})) ||
+            `HTTP ${resp.status}`
+        );
+      }
+      const payload = (json as any)?.data;
       const list: NcmItem[] = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.ncms)
