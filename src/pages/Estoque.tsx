@@ -14,6 +14,7 @@ import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
 import { PricingCalculator } from "@/components/PricingCalculator";
+import { NcmSearch } from "@/components/NcmSearch";
 
 interface Product {
   id: string;
