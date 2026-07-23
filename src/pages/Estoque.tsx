@@ -211,7 +211,10 @@ const Estoque = () => {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>NCM</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>NCM</Label>
+                    <NcmSearch onSelect={(codigo) => setForm({ ...form, ncm: codigo })} />
+                  </div>
                   <Input
                     inputMode="numeric"
                     maxLength={8}
