@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
       }
 
       return json(200, { id: nf.id, status: finalStatus, ...updates });
-    }
+    } }
 
     if (!doc) return json(400, { error: "Documento é obrigatório" });
 
