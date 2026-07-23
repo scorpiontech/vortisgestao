@@ -26,7 +26,8 @@ export function useUserRole() {
 
       if (data) {
         setRole(data.role as CompanyRole);
-        setEffectiveUserId(data.role === "vendedor" ? data.owner_id : user.id);
+        // Sub-users (master OR vendedor) share the owner's tenant data
+        setEffectiveUserId(data.owner_id);
       } else {
         setRole("master");
         setEffectiveUserId(user.id);
