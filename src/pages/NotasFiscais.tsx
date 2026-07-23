@@ -407,6 +407,18 @@ const NotasFiscais = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
+                      {d.status === "pending" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={syncing === d.id}
+                          onClick={() => handleSync(d)}
+                          title="Consultar status no provedor (Focus NFe) e atualizar DANFE/XML"
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${syncing === d.id ? "animate-spin" : ""}`} />
+                          Sincronizar
+                        </Button>
+                      )}
                       {d.status === "authorized" && d.danfce_url && (
                         <Button
                           size="sm"
