@@ -277,7 +277,7 @@ export default function EmitirNotaFiscal() {
       quantidade: i.quantidade,
       valor_unitario: i.valor_unitario,
     })),
-    payments,
+    payments: payments.length > 0 ? payments : [{ forma: "01", valor: Number(totalNota.toFixed(2)) }],
     total_produtos: totalProdutos,
     total_frete: Number(totalFrete),
     outras_despesas: Number(outrasDespesas),
