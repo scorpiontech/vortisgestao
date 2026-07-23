@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const { data: settings } = await admin
       .from("fiscal_settings")
       .select("provider_token, ambiente")
-      .eq("user_id", ownerId)
+      .eq("owner_id", ownerId)
       .maybeSingle();
 
     if (!settings?.provider_token) {
