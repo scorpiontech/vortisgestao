@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       events.forEach((ev) => window.removeEventListener(ev, resetTimer));
+      document.removeEventListener("visibilitychange", resetTimer);
       if (idleTimerRef.current) {
         window.clearTimeout(idleTimerRef.current);
         idleTimerRef.current = null;
