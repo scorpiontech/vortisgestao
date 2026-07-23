@@ -81,6 +81,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Logs de Leituras", url: "/logs-leituras", icon: ScanBarcode },
     { title: "Usuários", url: "/usuarios", icon: UsersRound },
   ]},
+  { title: "Suporte", url: "/suporte", icon: LifeBuoy },
 ];
 
 export function AppSidebar() {
