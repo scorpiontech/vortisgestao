@@ -148,18 +148,20 @@ function buildItemTaxes(it: any, settings: any, valorBruto: number) {
     taxes.cofins_valor = round2(base * cofinsAliq / 100);
   }
 
-  // IBS/CBS — Reforma Tributária. Só envia quando explicitamente habilitado,
-  // pois o schema atual da SEFAZ na maioria das UFs ainda REJEITA o grupo gIBSCBS
-  // (erro: "Element gIBSCBS is not expected. Expected is CST").
-  if (settings.ibs_cbs_enabled) {
+  // IBS/CBS — Reforma Tributária (obrigatório a partir de 2026).
+  // Nomes de campos conforme documentação Focus NFe:
+  // https://campos.focusnfe.com.br/nfe/NotaFiscalXML.html
+  // Enviado por padrão; pode ser desabilitado em fiscal_settings.ibs_cbs_enabled = false
+  // caso a UF ainda não tenha liberado o grupo no schema.
+  if (settings.ibs_cbs_enabled !== false) {
     const ibsCst = String(it.ibs_cst ?? settings.ibs_cst ?? "000");
     const ibsClass = String(it.ibs_classificacao ?? settings.ibs_classificacao ?? "000001");
     const ibsAliq = Number(it.ibs_aliquota ?? settings.ibs_aliquota ?? 0);
     const cbsAliq = Number(it.cbs_aliquota ?? settings.cbs_aliquota ?? 0);
     const baseIbsCbs = round2(valorBruto);
 
-    taxes.ibs_cbs_codigo_situacao_tributaria = ibsCst;
-    taxes.ibs_cbs_codigo_classificacao_tributaria = ibsClass;
+    taxes.ibs_cbs_situacao_tributaria = ibsCst;
+    taxes.ibs_cbs_classificacao_tributaria = ibsClass;
     taxes.ibs_cbs_base_calculo = baseIbsCbs;
     taxes.ibs_uf_aliquota = ibsAliq;
     taxes.ibs_uf_valor = round2(baseIbsCbs * ibsAliq / 100);
