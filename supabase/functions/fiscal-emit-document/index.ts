@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
 
     // Consulta de status na Focus NFe para atualizar notas pendentes.
     // Ref: https://doc.focusnfe.com.br/reference/nfe (GET /v2/nfe/{ref} e /v2/nfce/{ref}).
-    if (action === "consult") {
+    if (action === "consult") { {
       if (!docId) return json(400, { error: "id é obrigatório" });
       const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
