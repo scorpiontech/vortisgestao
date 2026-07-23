@@ -172,7 +172,16 @@ export default function EmitirNotaFiscal() {
 
   const canGoStep2 = !!naturezaOperacao && (modelo === "65" || !!destinatario);
   const canGoStep3 = items.length > 0;
-  const canEmit = totalPago >= totalNota && totalNota > 0;
+  const canEmit = totalNota > 0 && (payments.length === 0 || totalPago + 0.005 >= totalNota);
+
+  // Sync automatico: quando ha apenas 1 pagamento, mantem seu valor igual ao total da nota
+  // (evita botao "Emitir" desativado ao adicionar/remover itens depois de cadastrar o pagamento).
+  useEffect(() => {
+    if (payments.length === 1 && Math.abs(payments[0].valor - totalNota) > 0.005) {
+      setPayments([{ ...payments[0], valor: Number(totalNota.toFixed(2)) }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalNota]);
 
   // ---- Step 0: escolher modelo ----
   if (!modelo) {
