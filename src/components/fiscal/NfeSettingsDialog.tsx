@@ -23,6 +23,7 @@ export default function NfeSettingsDialog({ open, onOpenChange, modelo, ownerId,
   const [ibsCst, setIbsCst] = useState<string>("000");
   const [ibsAliq, setIbsAliq] = useState<string>("0.1");
   const [cbsAliq, setCbsAliq] = useState<string>("0.9");
+  const [ibsCbsEnabled, setIbsCbsEnabled] = useState<boolean>(false);
   const [icmsAliq, setIcmsAliq] = useState<string>("0");
   const [pisCst, setPisCst] = useState<string>("49");
   const [pisAliq, setPisAliq] = useState<string>("0");
