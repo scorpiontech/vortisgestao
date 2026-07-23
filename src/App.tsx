@@ -40,6 +40,7 @@ import Orcamentos from "./pages/Orcamentos";
 import NotasFiscais from "./pages/NotasFiscais";
 import EmitirNotaFiscal from "./pages/EmitirNotaFiscal";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
+import Suporte from "./pages/Suporte";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +81,7 @@ const App = () => (
               <Route path="/orcamentos" element={<Orcamentos />} />
               <Route path="/notas-fiscais" element={<NotasFiscais />} />
               <Route path="/notas-fiscais/emitir" element={<EmitirNotaFiscal />} />
+              <Route path="/suporte" element={<Suporte />} />
             </Route>
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />

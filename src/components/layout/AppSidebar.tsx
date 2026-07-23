@@ -20,6 +20,7 @@ import {
   ScrollText,
   ScanBarcode,
   FileText,
+  LifeBuoy,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -80,6 +81,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Logs de Leituras", url: "/logs-leituras", icon: ScanBarcode },
     { title: "Usuários", url: "/usuarios", icon: UsersRound },
   ]},
+  { title: "Suporte", url: "/suporte", icon: LifeBuoy },
 ];
 
 export function AppSidebar() {
