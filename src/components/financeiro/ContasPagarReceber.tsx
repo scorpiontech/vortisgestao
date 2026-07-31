@@ -50,6 +50,9 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   const [statusFilter, setStatusFilter] = useState<"all" | "pago" | "atrasado" | "pendente">("all");
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cobrancaBill, setCobrancaBill] = useState<Bill | null>(null);
+  const [linksOpen, setLinksOpen] = useState(false);
+  const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
   const { toast } = useToast();
 
   const [form, setForm] = useState(emptyForm);
