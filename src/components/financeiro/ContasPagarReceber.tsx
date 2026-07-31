@@ -334,6 +334,36 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
           </TableBody>
         </Table>
       </div>
+
+      {type === "receber" && (
+        <>
+          <NovaCobrancaDialog
+            open={!!cobrancaBill}
+            onOpenChange={o => { if (!o) setCobrancaBill(null); }}
+            defaults={{
+              source: "bill",
+              billId: cobrancaBill?.id || null,
+              customerId: cobrancaBill?.customer_id || null,
+              description: cobrancaBill?.description || "",
+              amount: Number(cobrancaBill?.amount || 0),
+              lockAmount: true,
+              createReceivables: false,
+            }}
+            onCreated={(_charge, installments) => {
+              setChargeInstallments(installments as ChargeInstallment[]);
+              setLinksOpen(true);
+              setCobrancaBill(null);
+              fetchBills();
+            }}
+          />
+          <CobrancaLinksDialog
+            open={linksOpen}
+            onOpenChange={setLinksOpen}
+            title="Cobrança da conta a receber"
+            installments={chargeInstallments}
+          />
+        </>
+      )}
     </div>
   );
 };
