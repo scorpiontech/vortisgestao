@@ -623,6 +623,8 @@ const Vendas = () => {
                       <SelectItem value="PIX">PIX</SelectItem>
                       <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
                       <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
+                      <SelectItem value="Boleto (Asaas)">Boleto (cobrança Asaas)</SelectItem>
+                      <SelectItem value="PIX (Asaas)">PIX (cobrança Asaas)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
