@@ -205,6 +205,7 @@ const Vendas = () => {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const showInstallments = paymentMethod === "Cartão Crédito";
+  const isAsaasPayment = paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)";
 
   const addProductById = (productId: string, qty: number = 1) => {
     const product = products.find(p => p.id === productId);
