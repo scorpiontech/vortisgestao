@@ -79,6 +79,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Auditoria", url: "/auditoria", icon: ScrollText },
     { title: "Cadastro", url: "/cadastro", icon: UserCog },
     { title: "Cobranças", url: "/cobrancas", icon: Receipt },
+    { title: "Cobranças (Asaas)", url: "/configuracoes-asaas", icon: Wallet },
     { title: "Configurações Fiscais", url: "/configuracoes-fiscais", icon: FileText },
     { title: "Logs de Leituras", url: "/logs-leituras", icon: ScanBarcode },
     { title: "Usuários", url: "/usuarios", icon: UsersRound },
