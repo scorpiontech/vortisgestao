@@ -858,6 +858,44 @@ const Vendas = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <NovaCobrancaDialog
+        open={cobrancaOpen}
+        onOpenChange={setCobrancaOpen}
+        defaults={{
+          source: "pdv",
+          customerId: selectedCustomerId || null,
+          customerName: customerName,
+          description: `Venda PDV ${new Date().toLocaleDateString("pt-BR")}`,
+          amount: total,
+          lockAmount: true,
+          discount: discountValue,
+          createReceivables: false,
+          items: items.map(i => ({
+            product_id: i.realProductId,
+            product_name: i.productName,
+            quantity: i.quantity,
+            unit_price: i.unitPrice,
+            total: i.total,
+          })),
+        }}
+        onCreated={(_charge, installments) => {
+          setChargeInstallments(installments as ChargeInstallment[]);
+          setLinksOpen(true);
+          setItems([]);
+          setDiscount("0");
+          setInstallments("1");
+          toast({ title: "Cobrança enviada", description: "A venda será registrada automaticamente após a confirmação do pagamento." });
+        }}
+      />
+
+      <CobrancaLinksDialog
+        open={linksOpen}
+        onOpenChange={setLinksOpen}
+        title="Cobrança da venda"
+        description="A venda é registrada automaticamente após a confirmação do pagamento."
+        installments={chargeInstallments}
+      />
     </div>
   );
 };
