@@ -76,6 +76,9 @@ const Vendas = () => {
   const [discount, setDiscount] = useState("0");
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
+  const [cobrancaOpen, setCobrancaOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
+  const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
