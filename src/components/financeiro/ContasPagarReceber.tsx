@@ -29,6 +29,8 @@ interface Bill {
   paid: boolean;
   paid_at: string | null;
   payment_method: string;
+  charge_id?: string | null;
+  customer_id?: string | null;
 }
 
 interface ContasPagarReceberProps {
