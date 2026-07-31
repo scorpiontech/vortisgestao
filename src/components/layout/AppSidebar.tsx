@@ -63,6 +63,7 @@ const allMenuItems: MenuItem[] = [
   ]},
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, children: [
     { title: "Caixa", url: "/caixa", icon: Vault },
+    { title: "Cobranças de Clientes", url: "/cobrancas-clientes", icon: Wallet },
     { title: "Contas a Pagar", url: "/contas-pagar", icon: ArrowLeftRight, masterOnly: true },
     { title: "Contas a Receber", url: "/contas-receber", icon: ArrowLeftRight, masterOnly: true },
     { title: "Movimentação", url: "/movimentacao", icon: ArrowLeftRight, masterOnly: true },
