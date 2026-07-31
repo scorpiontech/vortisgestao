@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      asaas_settings: {
+        Row: {
+          active: boolean
+          ambiente: string
+          api_key: string
+          boleto_days: number
+          created_at: string
+          id: string
+          owner_id: string
+          updated_at: string
+          webhook_token: string
+        }
+        Insert: {
+          active?: boolean
+          ambiente?: string
+          api_key?: string
+          boleto_days?: number
+          created_at?: string
+          id?: string
+          owner_id: string
+          updated_at?: string
+          webhook_token?: string
+        }
+        Update: {
+          active?: boolean
+          ambiente?: string
+          api_key?: string
+          boleto_days?: number
+          created_at?: string
+          id?: string
+          owner_id?: string
+          updated_at?: string
+          webhook_token?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -125,7 +161,9 @@ export type Database = {
       bills: {
         Row: {
           amount: number
+          charge_id: string | null
           created_at: string
+          customer_id: string | null
           description: string
           due_date: string
           id: string
@@ -138,7 +176,9 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          charge_id?: string | null
           created_at?: string
+          customer_id?: string | null
           description: string
           due_date: string
           id?: string
@@ -151,7 +191,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          charge_id?: string | null
           created_at?: string
+          customer_id?: string | null
           description?: string
           due_date?: string
           id?: string
@@ -162,7 +204,22 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bills_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "customer_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cash_registers: {
         Row: {
@@ -381,6 +438,199 @@ export type Database = {
           zip_code?: string
         }
         Relationships: []
+      }
+      customer_charge_installments: {
+        Row: {
+          amount: number
+          asaas_payment_id: string | null
+          bank_slip_url: string | null
+          barcode: string | null
+          bill_id: string | null
+          charge_id: string
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          invoice_url: string | null
+          owner_id: string
+          paid_at: string | null
+          pix_payload: string | null
+          pix_qrcode_image: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          asaas_payment_id?: string | null
+          bank_slip_url?: string | null
+          barcode?: string | null
+          bill_id?: string | null
+          charge_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number?: number
+          invoice_url?: string | null
+          owner_id: string
+          paid_at?: string | null
+          pix_payload?: string | null
+          pix_qrcode_image?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          asaas_payment_id?: string | null
+          bank_slip_url?: string | null
+          barcode?: string | null
+          bill_id?: string | null
+          charge_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          invoice_url?: string | null
+          owner_id?: string
+          paid_at?: string | null
+          pix_payload?: string | null
+          pix_qrcode_image?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_charge_installments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_charge_installments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "customer_charges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_charges: {
+        Row: {
+          ambiente: string
+          asaas_customer_id: string | null
+          asaas_installment_id: string | null
+          bill_id: string | null
+          billing_type: string
+          cancelled_at: string | null
+          created_at: string
+          created_by: string | null
+          customer_document: string
+          customer_email: string
+          customer_id: string | null
+          customer_name: string
+          customer_phone: string
+          description: string
+          discount: number
+          finalized_at: string | null
+          id: string
+          installment_count: number
+          items: Json
+          owner_id: string
+          paid_at: string | null
+          payment_method: string
+          provider: string
+          sale_id: string | null
+          source: string
+          source_id: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          asaas_customer_id?: string | null
+          asaas_installment_id?: string | null
+          bill_id?: string | null
+          billing_type?: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_document?: string
+          customer_email?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          description?: string
+          discount?: number
+          finalized_at?: string | null
+          id?: string
+          installment_count?: number
+          items?: Json
+          owner_id: string
+          paid_at?: string | null
+          payment_method?: string
+          provider?: string
+          sale_id?: string | null
+          source?: string
+          source_id?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          asaas_customer_id?: string | null
+          asaas_installment_id?: string | null
+          bill_id?: string | null
+          billing_type?: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_document?: string
+          customer_email?: string
+          customer_id?: string | null
+          customer_name?: string
+          customer_phone?: string
+          description?: string
+          discount?: number
+          finalized_at?: string | null
+          id?: string
+          installment_count?: number
+          items?: Json
+          owner_id?: string
+          paid_at?: string | null
+          payment_method?: string
+          provider?: string
+          sale_id?: string | null
+          source?: string
+          source_id?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_charges_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_charges_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_charges_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
