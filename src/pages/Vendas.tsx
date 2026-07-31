@@ -685,9 +685,15 @@ const Vendas = () => {
                     <p className="text-sm text-muted-foreground">{installmentsNum}x de {formatCurrency(total / installmentsNum)}</p>
                   )}
                 </div>
-                <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
-                  <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
-                </Button>
+                {isAsaasPayment ? (
+                  <Button onClick={() => setCobrancaOpen(true)} size="lg" disabled={items.length === 0}>
+                    <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
+                  </Button>
+                ) : (
+                  <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
+                  </Button>
+                )}
               </div>
             </motion.div>
           )}
