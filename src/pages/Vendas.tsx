@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks } from "lucide-react";
+import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
+import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
+import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
@@ -74,6 +76,9 @@ const Vendas = () => {
   const [discount, setDiscount] = useState("0");
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
+  const [cobrancaOpen, setCobrancaOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
+  const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
@@ -203,6 +208,7 @@ const Vendas = () => {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const showInstallments = paymentMethod === "Cartão Crédito";
+  const isAsaasPayment = paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)";
 
   const addProductById = (productId: string, qty: number = 1) => {
     const product = products.find(p => p.id === productId);
@@ -623,6 +629,8 @@ const Vendas = () => {
                       <SelectItem value="PIX">PIX</SelectItem>
                       <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
                       <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
+                      <SelectItem value="Boleto (Asaas)">Boleto (cobrança Asaas)</SelectItem>
+                      <SelectItem value="PIX (Asaas)">PIX (cobrança Asaas)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -683,9 +691,15 @@ const Vendas = () => {
                     <p className="text-sm text-muted-foreground">{installmentsNum}x de {formatCurrency(total / installmentsNum)}</p>
                   )}
                 </div>
-                <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
-                  <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
-                </Button>
+                {isAsaasPayment ? (
+                  <Button onClick={() => setCobrancaOpen(true)} size="lg" disabled={items.length === 0}>
+                    <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
+                  </Button>
+                ) : (
+                  <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
+                  </Button>
+                )}
               </div>
             </motion.div>
           )}
@@ -850,6 +864,44 @@ const Vendas = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <NovaCobrancaDialog
+        open={cobrancaOpen}
+        onOpenChange={setCobrancaOpen}
+        defaults={{
+          source: "pdv",
+          customerId: selectedCustomerId || null,
+          customerName: customerName,
+          description: `Venda PDV ${new Date().toLocaleDateString("pt-BR")}`,
+          amount: total,
+          lockAmount: true,
+          discount: discountValue,
+          createReceivables: false,
+          items: items.map(i => ({
+            product_id: i.realProductId,
+            product_name: i.productName,
+            quantity: i.quantity,
+            unit_price: i.unitPrice,
+            total: i.total,
+          })),
+        }}
+        onCreated={(_charge, installments) => {
+          setChargeInstallments(installments as ChargeInstallment[]);
+          setLinksOpen(true);
+          setItems([]);
+          setDiscount("0");
+          setInstallments("1");
+          toast({ title: "Cobrança enviada", description: "A venda será registrada automaticamente após a confirmação do pagamento." });
+        }}
+      />
+
+      <CobrancaLinksDialog
+        open={linksOpen}
+        onOpenChange={setLinksOpen}
+        title="Cobrança da venda"
+        description="A venda é registrada automaticamente após a confirmação do pagamento."
+        installments={chargeInstallments}
+      />
     </div>
   );
 };

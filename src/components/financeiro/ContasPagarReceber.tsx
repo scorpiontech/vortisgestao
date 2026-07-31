@@ -8,7 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2 } from "lucide-react";
+import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye } from "lucide-react";
+import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
+import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { format, isPast, parseISO } from "date-fns";
@@ -27,6 +29,8 @@ interface Bill {
   paid: boolean;
   paid_at: string | null;
   payment_method: string;
+  charge_id?: string | null;
+  customer_id?: string | null;
 }
 
 interface ContasPagarReceberProps {
@@ -46,6 +50,9 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   const [statusFilter, setStatusFilter] = useState<"all" | "pago" | "atrasado" | "pendente">("all");
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [cobrancaBill, setCobrancaBill] = useState<Bill | null>(null);
+  const [linksOpen, setLinksOpen] = useState(false);
+  const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
   const { toast } = useToast();
 
   const [form, setForm] = useState(emptyForm);
@@ -167,6 +174,17 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
 
   const label = type === "pagar" ? "Contas a Pagar" : "Contas a Receber";
 
+  const openCharge = async (bill: Bill) => {
+    if (!bill.charge_id) return;
+    const { data } = await (supabase as any)
+      .from("customer_charge_installments")
+      .select("*")
+      .eq("charge_id", bill.charge_id)
+      .order("installment_number");
+    setChargeInstallments((data as ChargeInstallment[]) || []);
+    setLinksOpen(true);
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
@@ -282,8 +300,18 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {type === "receber" && b.charge_id && (
+                        <Button size="sm" variant="ghost" title="Ver cobrança" onClick={() => openCharge(b)}>
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      )}
                       {!b.paid && (
                         <>
+                          {type === "receber" && !b.charge_id && (
+                            <Button size="sm" variant="outline" title="Gerar boleto ou PIX" onClick={() => setCobrancaBill(b)}>
+                              <Wallet className="h-3 w-3 mr-1" />Cobrar
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => handleMarkPaid(b)}>
                             <Check className="h-3 w-3 mr-1" />Pagar
                           </Button>
@@ -306,6 +334,36 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
           </TableBody>
         </Table>
       </div>
+
+      {type === "receber" && (
+        <>
+          <NovaCobrancaDialog
+            open={!!cobrancaBill}
+            onOpenChange={o => { if (!o) setCobrancaBill(null); }}
+            defaults={{
+              source: "bill",
+              billId: cobrancaBill?.id || null,
+              customerId: cobrancaBill?.customer_id || null,
+              description: cobrancaBill?.description || "",
+              amount: Number(cobrancaBill?.amount || 0),
+              lockAmount: true,
+              createReceivables: false,
+            }}
+            onCreated={(_charge, installments) => {
+              setChargeInstallments(installments as ChargeInstallment[]);
+              setLinksOpen(true);
+              setCobrancaBill(null);
+              fetchBills();
+            }}
+          />
+          <CobrancaLinksDialog
+            open={linksOpen}
+            onOpenChange={setLinksOpen}
+            title="Cobrança da conta a receber"
+            installments={chargeInstallments}
+          />
+        </>
+      )}
     </div>
   );
 };

@@ -41,6 +41,8 @@ import NotasFiscais from "./pages/NotasFiscais";
 import EmitirNotaFiscal from "./pages/EmitirNotaFiscal";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import Suporte from "./pages/Suporte";
+import CobrancasClientes from "./pages/CobrancasClientes";
+import ConfiguracoesAsaas from "./pages/ConfiguracoesAsaas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -74,6 +76,8 @@ const App = () => (
               <Route path="/cobrancas" element={<Cobrancas />} />
               <Route path="/contas-pagar" element={<ContasPagar />} />
               <Route path="/contas-receber" element={<ContasReceber />} />
+              <Route path="/cobrancas-clientes" element={<CobrancasClientes />} />
+              <Route path="/configuracoes-asaas" element={<ConfiguracoesAsaas />} />
               <Route path="/usuarios" element={<Usuarios />} />
               <Route path="/auditoria" element={<Auditoria />} />
               <Route path="/logs-leituras" element={<LogsLeituras />} />
