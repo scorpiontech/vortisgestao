@@ -41,6 +41,8 @@ import NotasFiscais from "./pages/NotasFiscais";
 import EmitirNotaFiscal from "./pages/EmitirNotaFiscal";
 import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import Suporte from "./pages/Suporte";
+import CobrancasClientes from "./pages/CobrancasClientes";
+import ConfiguracoesAsaas from "./pages/ConfiguracoesAsaas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
