@@ -289,8 +289,18 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {type === "receber" && b.charge_id && (
+                        <Button size="sm" variant="ghost" title="Ver cobrança" onClick={() => openCharge(b)}>
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                      )}
                       {!b.paid && (
                         <>
+                          {type === "receber" && !b.charge_id && (
+                            <Button size="sm" variant="outline" title="Gerar boleto ou PIX" onClick={() => setCobrancaBill(b)}>
+                              <Wallet className="h-3 w-3 mr-1" />Cobrar
+                            </Button>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => handleMarkPaid(b)}>
                             <Check className="h-3 w-3 mr-1" />Pagar
                           </Button>
