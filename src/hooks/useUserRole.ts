@@ -39,7 +39,9 @@ export function useUserRole() {
   }, [user]);
 
   const isMaster = role === "master";
+  const isGerente = role === "gerente";
   const isVendedor = role === "vendedor";
+  const isCaixa = role === "caixa";
 
-  return { role, isMaster, isVendedor, effectiveUserId, loading };
+  return { role, isMaster, isGerente, isVendedor, isCaixa, effectiveUserId, loading };
 }
