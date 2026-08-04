@@ -21,6 +21,19 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Não autenticado" }, 401);
 
     const { data: ownerId } = await admin.rpc("get_effective_user_id", { _user_id: user.id });
+    if (!ownerId) return json({ error: "Empresa não identificada" }, 400);
+
+    // Validação de acesso ao módulo (Plano Pro requerido)
+    const { data: accountData } = await admin
+      .from("client_accounts")
+      .select("subscription_plans(tier)")
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    
+    const tier = (accountData as any)?.subscription_plans?.tier;
+    if (!tier?.startsWith("pro") && tier !== "pro_custom") {
+      return json({ error: "Módulo restrito ao Plano Pro. Entre em contato com o suporte para realizar o upgrade." }, 403);
+    }
     const { charge_id, action } = await req.json();
     if (!charge_id) return json({ error: "charge_id obrigatório" }, 400);
 
