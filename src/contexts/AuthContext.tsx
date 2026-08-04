@@ -19,13 +19,11 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
-// Tempo de inatividade permitido antes do logout automático (2 minutos)
-const IDLE_TIMEOUT_MS = 2 * 60 * 1000;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const idleTimerRef = useRef<number | null>(null);
+  
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -41,41 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Logout automático por inatividade (2 minutos sem interação)
-  useEffect(() => {
-    if (!session) {
-      if (idleTimerRef.current) {
-        window.clearTimeout(idleTimerRef.current);
-        idleTimerRef.current = null;
-      }
-      return;
-    }
-
-    const resetTimer = () => {
-      if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = window.setTimeout(async () => {
-        await supabase.auth.signOut();
-        toast({
-          title: "Sessão encerrada",
-          description: "Você foi desconectado após 2 minutos sem atividade.",
-        });
-      }, IDLE_TIMEOUT_MS);
-    };
-
-    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel"];
-    events.forEach((ev) => window.addEventListener(ev, resetTimer, { passive: true }));
-    document.addEventListener("visibilitychange", resetTimer);
-    resetTimer();
-
-    return () => {
-      events.forEach((ev) => window.removeEventListener(ev, resetTimer));
-      document.removeEventListener("visibilitychange", resetTimer);
-      if (idleTimerRef.current) {
-        window.clearTimeout(idleTimerRef.current);
-        idleTimerRef.current = null;
-      }
-    };
-  }, [session]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
