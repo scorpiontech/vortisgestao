@@ -50,6 +50,7 @@ const CobrancasClientes = () => {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Charge | null>(null);
   const [hasSettings, setHasSettings] = useState(true);
+  const [isPro, setIsPro] = useState<boolean | null>(null);
 
   const fetchCharges = async () => {
     const { data, error } = await (supabase as any)
@@ -68,6 +69,16 @@ const CobrancasClientes = () => {
   useEffect(() => {
     if (!effectiveUserId) return;
     (async () => {
+      // Check subscription plan tier
+      const { data: accountData } = await supabase
+        .from("client_accounts")
+        .select("plan_id, subscription_plans(tier)")
+        .eq("user_id", effectiveUserId)
+        .maybeSingle();
+      
+      const tier = (accountData as any)?.subscription_plans?.tier;
+      setIsPro(tier?.startsWith("pro") || tier === "pro_custom");
+
       const { data } = await (supabase as any)
         .from("asaas_settings")
         .select("api_key, active")
