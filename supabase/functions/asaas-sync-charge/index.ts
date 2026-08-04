@@ -47,8 +47,13 @@ Deno.serve(async (req) => {
 
     // ===== Cancelamento =====
     if (action === "cancel") {
+      const { data: chargeData } = await admin.from("customer_charges").select("sale_id, source, items").eq("id", charge_id).single();
+      
       for (const inst of installments || []) {
-        if (inst.status === "paid" || !inst.asaas_payment_id) continue;
+        if (inst.status === "paid" || !inst.asaas_payment_id) {
+          // Se já estiver pago, talvez queira estornar? Por enquanto, cancelamos apenas pendentes no Asaas.
+          continue;
+        }
         try {
           await asaasFetch(settings, `/payments/${inst.asaas_payment_id}`, { method: "DELETE" });
         } catch (e) {
@@ -57,10 +62,32 @@ Deno.serve(async (req) => {
         await admin.from("customer_charge_installments").update({ status: "cancelled" }).eq("id", inst.id);
         if (inst.bill_id) await admin.from("bills").delete().eq("id", inst.bill_id).eq("paid", false);
       }
+
+      // Estorno de Venda (PDV)
+      if (chargeData?.sale_id && chargeData?.source === "pdv") {
+        // Remove transações de entrada vinculadas
+        await admin.from("transactions").delete().eq("user_id", ownerId).eq("description", `${charge.description || "Cobrança"} - ${charge.customer_name}`).eq("category", "Vendas");
+        
+        // Estorna estoque
+        const items = chargeData.items || [];
+        for (const i of items) {
+          if (!i.product_id) continue;
+          const { data: prod } = await admin.from("products").select("stock").eq("id", i.product_id).maybeSingle();
+          if (prod) {
+            await admin.from("products").update({ stock: Number(prod.stock) + Number(i.quantity) }).eq("id", i.product_id);
+          }
+        }
+        
+        // Remove os itens da venda e a venda em si
+        await admin.from("sale_items").delete().eq("sale_id", chargeData.sale_id);
+        await admin.from("sales").delete().eq("id", chargeData.sale_id);
+      }
+
       await admin
         .from("customer_charges")
-        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString(), sale_id: null, finalized_at: null })
         .eq("id", charge_id);
+        
       return json({ cancelled: true });
     }
 
