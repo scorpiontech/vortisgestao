@@ -392,6 +392,49 @@ const Relatorios = () => {
         </DialogContent>
       </Dialog>
 
+
+      {/* Dialog Asaas */}
+      <Dialog open={asaasDialogOpen} onOpenChange={setAsaasDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Relatório de Cobranças (Asaas)</DialogTitle></DialogHeader>
+          <PeriodFilter from={asaasFrom} to={asaasTo} setFrom={setAsaasFrom} setTo={setAsaasTo}
+            extra={<Button className="ml-auto" size="sm" onClick={printAsaas}><Printer className="h-3.5 w-3.5 mr-1.5" />Imprimir Relatório</Button>}
+          />
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getFilteredCharges().length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma cobrança no período</TableCell></TableRow>
+                ) : getFilteredCharges().map(c => (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.created_at.slice(0, 10)}</TableCell>
+                    <TableCell className="font-medium">{c.customer_name}</TableCell>
+                    <TableCell>{c.billing_type}</TableCell>
+                    <TableCell className="text-sm">{c.description}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(Number(c.total_amount))}</TableCell>
+                    <TableCell>
+                      <Badge variant={c.status === 'paid' ? 'default' : c.status === 'overdue' ? 'destructive' : 'secondary'}>
+                        {c.status === 'paid' ? 'Pago' : c.status === 'overdue' ? 'Vencido' : c.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Financeiro */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-card rounded-lg shadow-card border p-5">
         <div className="flex items-center justify-between mb-3">
