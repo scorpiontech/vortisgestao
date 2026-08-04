@@ -18,13 +18,14 @@ const COLORS = ["hsl(215, 80%, 50%)", "hsl(152, 60%, 42%)", "hsl(38, 92%, 50%)",
 
 const Relatorios = () => {
   const sellerName = useSellerName();
-  const { isMaster } = useUserRole();
+  const { isMaster, effectiveUserId } = useUserRole();
   const [products, setProducts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [cashRegisters, setCashRegisters] = useState<any[]>([]);
+  const [asaasCharges, setAsaasCharges] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Period filters
@@ -41,16 +42,20 @@ const Relatorios = () => {
   const [billsFrom, setBillsFrom] = useState("");
   const [billsTo, setBillsTo] = useState("");
   const [billsDialogOpen, setBillsDialogOpen] = useState(false);
+  const [asaasDialogOpen, setAsaasDialogOpen] = useState(false);
+  const [asaasFrom, setAsaasFrom] = useState("");
+  const [asaasTo, setAsaasTo] = useState("");
 
   useEffect(() => {
     const load = async () => {
-      const [p, t, s, c, b, cr] = await Promise.all([
+      const [p, t, s, c, b, cr, ac] = await Promise.all([
         supabase.from("products").select("*"),
         supabase.from("transactions").select("*").order("date", { ascending: false }),
         supabase.from("sales").select("*").order("date", { ascending: false }),
         supabase.from("customers").select("*").order("name"),
         supabase.from("bills").select("*").order("due_date", { ascending: false }),
         supabase.from("cash_registers").select("*").order("opened_at", { ascending: false }),
+        supabase.from("customer_charges").select("*").order("created_at", { ascending: false }),
       ]);
       setProducts(p.data || []);
       setTransactions(t.data || []);
@@ -58,6 +63,7 @@ const Relatorios = () => {
       setCustomers(c.data || []);
       setBills(b.data || []);
       setCashRegisters(cr.data || []);
+      setAsaasCharges(ac.data || []);
       setLoading(false);
     };
     load();
@@ -262,6 +268,48 @@ const Relatorios = () => {
     });
   };
 
+  const getFilteredCharges = () => {
+    return filterByPeriod(asaasCharges, "created_at", asaasFrom, asaasTo);
+  };
+
+  const printAsaas = () => {
+    const filtered = getFilteredCharges();
+    const totalPago = filtered.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.total_amount), 0);
+    const totalAtrasado = filtered.filter(c => c.status === "overdue").reduce((s, c) => s + Number(c.total_amount), 0);
+    const totalPendente = filtered.filter(c => ["pending", "partially_paid"].includes(c.status)).reduce((s, c) => s + Number(c.total_amount), 0);
+    
+    const rows = filtered.map(c => {
+      const statusLabel = c.status === "paid" ? "Pago" : c.status === "overdue" ? "Vencido" : c.status === "cancelled" ? "Cancelado" : "Pendente";
+      const color = c.status === "paid" ? "green" : c.status === "overdue" ? "red" : c.status === "cancelled" ? "gray" : "orange";
+      return `<tr>
+        <td>${c.created_at.slice(0, 10)}</td>
+        <td>${c.customer_name}</td>
+        <td>${c.billing_type}</td>
+        <td>${c.description}</td>
+        <td style="text-align:right">${formatCurrency(Number(c.total_amount))}</td>
+        <td style="color:${color};font-weight:600">${statusLabel}</td>
+      </tr>`;
+    }).join("");
+
+    const periodo = asaasFrom || asaasTo ? `Período: ${asaasFrom || "início"} a ${asaasTo || "hoje"}` : "Todos os períodos";
+    
+    printA4({
+      title: "Relatório de Cobranças (Asaas)",
+      subtitle: `${filtered.length} cobranças — ${periodo}`,
+      sellerName,
+      content: `
+        <div class="highlight-box">
+          <div class="summary-row"><span>Recebido:</span><span style="color:green">${formatCurrency(totalPago)}</span></div>
+          <div class="summary-row"><span>Em aberto:</span><span style="color:orange">${formatCurrency(totalPendente)}</span></div>
+          <div class="summary-row"><span>Vencido/Atrasado:</span><span style="color:red">${formatCurrency(totalAtrasado)}</span></div>
+          <div class="summary-row total"><span>Total Geral:</span><span>${formatCurrency(totalPago + totalPendente + totalAtrasado)}</span></div>
+        </div>
+        <table><thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Descrição</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center">Sem registros</td></tr>'}</tbody></table>
+      `,
+    });
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   const billsPagar = getFilteredBills("pagar");
@@ -290,6 +338,7 @@ const Relatorios = () => {
           <p className="text-sm text-muted-foreground">Análise de estoque e financeiro</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAsaasDialogOpen(true)}><Printer className="h-3.5 w-3.5 mr-1.5" />Cobranças Asaas</Button>
           <Button variant="outline" size="sm" onClick={() => setBillsDialogOpen(true)}><Printer className="h-3.5 w-3.5 mr-1.5" />Contas</Button>
         </div>
       </div>
@@ -324,6 +373,52 @@ const Relatorios = () => {
             </div>
             <div>
               <h3 className="font-semibold mb-2">Contas a Receber ({billsReceber.length})</h3>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Asaas */}
+      <Dialog open={asaasDialogOpen} onOpenChange={setAsaasDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Relatório de Cobranças (Asaas)</DialogTitle></DialogHeader>
+          <PeriodFilter from={asaasFrom} to={asaasTo} setFrom={setAsaasFrom} setTo={setAsaasTo}
+            extra={<Button className="ml-auto" size="sm" onClick={printAsaas}><Printer className="h-3.5 w-3.5 mr-1.5" />Imprimir Relatório</Button>}
+          />
+          <div className="bg-card rounded-lg border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {getFilteredCharges().length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma cobrança no período</TableCell></TableRow>
+                ) : getFilteredCharges().map(c => (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.created_at.slice(0, 10)}</TableCell>
+                    <TableCell className="font-medium">{c.customer_name}</TableCell>
+                    <TableCell>{c.billing_type}</TableCell>
+                    <TableCell className="text-sm">{c.description}</TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(Number(c.total_amount))}</TableCell>
+                    <TableCell>
+                      <Badge variant={c.status === 'paid' ? 'default' : c.status === 'overdue' ? 'destructive' : 'secondary'}>
+                        {c.status === 'paid' ? 'Pago' : c.status === 'overdue' ? 'Vencido' : c.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
               <Table>
                 <TableHeader><TableRow><TableHead>Vencimento</TableHead><TableHead>Descrição</TableHead><TableHead>Pagamento</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                 <TableBody>

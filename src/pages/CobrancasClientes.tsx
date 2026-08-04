@@ -29,9 +29,9 @@ interface Charge {
 }
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  pending: { label: "Aguardando", variant: "secondary" },
+  pending: { label: "Aberta", variant: "secondary" },
   partially_paid: { label: "Parcial", variant: "outline" },
-  paid: { label: "Pago", variant: "default" },
+  paid: { label: "Paga", variant: "default" },
   overdue: { label: "Vencida", variant: "destructive" },
   cancelled: { label: "Cancelada", variant: "outline" },
 };
@@ -208,7 +208,7 @@ const CobrancasClientes = () => {
           <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="pending">Aguardando</SelectItem>
+            <SelectItem value="pending">Abertas</SelectItem>
             <SelectItem value="partially_paid">Parcial</SelectItem>
             <SelectItem value="paid">Pagas</SelectItem>
             <SelectItem value="overdue">Vencidas</SelectItem>
@@ -293,7 +293,7 @@ const CobrancasClientes = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar cobrança?</AlertDialogTitle>
             <AlertDialogDescription>
-              As parcelas em aberto de <strong>{cancelTarget?.customer_name}</strong> serão canceladas no Asaas e as contas a receber vinculadas não pagas serão removidas.
+              As parcelas em aberto de <strong>{cancelTarget?.customer_name}</strong> serão canceladas no Asaas. Caso a venda já tenha sido finalizada ou o estoque/caixa alterado, estas ações serão estornadas automaticamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
