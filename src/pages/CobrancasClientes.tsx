@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { cancelAsaasCharge, formatBRL, syncAsaasCharge } from "@/lib/asaas";
-import { Plus, RefreshCw, Search, Eye, Ban, Wallet, Barcode, QrCode } from "lucide-react";
+import { Plus, RefreshCw, Search, Eye, Ban, Wallet, Barcode, QrCode, Download, FileText } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Charge {
   id: string;
