@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type CompanyRole = "master" | "vendedor";
+export type CompanyRole = "master" | "gerente" | "vendedor" | "caixa";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -39,7 +39,9 @@ export function useUserRole() {
   }, [user]);
 
   const isMaster = role === "master";
+  const isGerente = role === "gerente";
   const isVendedor = role === "vendedor";
+  const isCaixa = role === "caixa";
 
-  return { role, isMaster, isVendedor, effectiveUserId, loading };
+  return { role, isMaster, isGerente, isVendedor, isCaixa, effectiveUserId, loading };
 }

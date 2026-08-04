@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { cancelAsaasCharge, formatBRL, syncAsaasCharge } from "@/lib/asaas";
-import { Plus, RefreshCw, Search, Eye, Ban, Wallet, Barcode, QrCode } from "lucide-react";
+import { Plus, RefreshCw, Search, Eye, Ban, Wallet, Barcode, QrCode, Download, FileText } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Charge {
   id: string;
@@ -37,7 +39,8 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
 };
 
 const CobrancasClientes = () => {
-  const { effectiveUserId, isMaster } = useUserRole();
+  const { effectiveUserId, isMaster, isGerente, role } = useUserRole();
+  const canManage = isMaster || isGerente;
   const { toast } = useToast();
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +137,42 @@ const CobrancasClientes = () => {
     });
   }, [charges, search, statusFilter]);
 
+  const exportCSV = () => {
+    const headers = ["Data", "Cliente", "Descricao", "Tipo", "Valor", "Status"];
+    const rows = filtered.map(c => [
+      c.created_at.slice(0, 10),
+      c.customer_name,
+      c.description,
+      c.billing_type,
+      c.total_amount,
+      statusMap[c.status]?.label || c.status
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `cobrancas_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Relatório de Cobranças de Clientes", 14, 15);
+    const tableData = filtered.map(c => [
+      c.created_at.slice(0, 10),
+      c.customer_name,
+      c.billing_type,
+      c.total_amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+      statusMap[c.status]?.label || c.status
+    ]);
+    autoTable(doc, {
+      head: [["Data", "Cliente", "Tipo", "Valor", "Status"]],
+      body: tableData,
+      startY: 20,
+    });
+    doc.save(`cobrancas_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   const totalRecebido = charges.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.total_amount), 0);
   const totalAberto = charges.filter(c => ["pending", "partially_paid", "overdue"].includes(c.status)).reduce((s, c) => s + Number(c.total_amount), 0);
 
@@ -164,9 +203,11 @@ const CobrancasClientes = () => {
           <h1 className="text-2xl font-bold">Cobranças de Clientes</h1>
           <p className="text-sm text-muted-foreground">Boletos e PIX emitidos pela sua conta Asaas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={exportCSV}><Download className="h-4 w-4 mr-2" />CSV</Button>
+          <Button variant="outline" onClick={exportPDF}><FileText className="h-4 w-4 mr-2" />PDF</Button>
           <Button variant="outline" onClick={fetchCharges}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
-          <Button onClick={() => setNovaOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Cobrança</Button>
+          {canManage && <Button onClick={() => setNovaOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Cobrança</Button>}
         </div>
       </div>
 
@@ -261,7 +302,7 @@ const CobrancasClientes = () => {
                       <Button variant="ghost" size="icon" title="Sincronizar status" disabled={syncingId === c.id} onClick={() => sync(c)}>
                         <RefreshCw className={`h-4 w-4 ${syncingId === c.id ? "animate-spin" : ""}`} />
                       </Button>
-                      {isMaster && c.status !== "paid" && c.status !== "cancelled" && (
+                      {canManage && c.status !== "paid" && c.status !== "cancelled" && (
                         <Button variant="ghost" size="icon" title="Cancelar cobrança" onClick={() => setCancelTarget(c)}>
                           <Ban className="h-4 w-4 text-destructive" />
                         </Button>

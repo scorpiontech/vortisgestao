@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Shield, ShoppingCart } from "lucide-react";
+import { Plus, Users, Shield, ShoppingCart, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface CompanyMember {
@@ -149,8 +149,10 @@ export default function Usuarios() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="master">Proprietário (Master)</SelectItem>
+                    <SelectItem value="gerente">Gerente</SelectItem>
                     <SelectItem value="vendedor">Vendedor</SelectItem>
-                    <SelectItem value="master">Master</SelectItem>
+                    <SelectItem value="caixa">Caixa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -164,9 +166,21 @@ export default function Usuarios() {
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
+                  <Shield className="h-4 w-4 text-blue-500 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Gerente:</span> Financeiro completo e gestão operacional
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
                   <ShoppingCart className="h-4 w-4 text-orange-500 mt-0.5" />
                   <div>
-                    <span className="font-medium">Vendedor:</span> PDV, Vendas, Clientes, Produtos e Fornecedores
+                    <span className="font-medium">Vendedor:</span> PDV, Vendas, Clientes e Produtos
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Wallet className="h-4 w-4 text-green-500 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Caixa:</span> Apenas PDV e fechamento de caixa
                   </div>
                 </div>
               </div>
