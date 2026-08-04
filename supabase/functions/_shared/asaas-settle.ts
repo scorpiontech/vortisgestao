@@ -104,5 +104,26 @@ export async function applyPaidInstallment(admin: any, paymentId: string, paidDa
 
   await admin.from("customer_charges").update(chargeUpdate).eq("id", charge.id);
 
+  // Envia notificações para o PDV e Financeiro
+  const paymentLink = `https://www.asaas.com/payment/${paymentId}/view`;
+  
+  if (charge.source === "pdv") {
+    await admin.from("notifications").insert({
+      owner_id: charge.owner_id,
+      title: "Pagamento PDV Recebido",
+      message: `O pagamento da venda de ${charge.customer_name} via ${charge.billing_type} foi confirmado.`,
+      type: "pdv",
+      link: paymentLink
+    });
+  }
+
+  await admin.from("notifications").insert({
+    owner_id: charge.owner_id,
+    title: "Cobrança Recebida",
+    message: `Recebimento de ${charge.customer_name} confirmado no valor de R$ ${Number(inst.amount).toFixed(2)}.`,
+    type: "financeiro",
+    link: "/financeiro/contas-receber" // Ou link direto se houver página de detalhes
+  });
+
   return { ok: true, charge_id: charge.id };
 }
