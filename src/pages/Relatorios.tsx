@@ -310,6 +310,25 @@ const Relatorios = () => {
     });
   };
 
+  const exportAsaasCSV = () => {
+    const filtered = getFilteredCharges();
+    const headers = ["Data", "Cliente", "Tipo", "Descricao", "Valor", "Status"];
+    const rows = filtered.map(c => [
+      c.created_at.slice(0, 10),
+      c.customer_name,
+      c.billing_type,
+      c.description || "",
+      c.total_amount,
+      c.status === "paid" ? "Pago" : c.status === "overdue" ? "Vencido" : c.status === "cancelled" ? "Cancelado" : "Pendente"
+    ]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `relatorio_asaas_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   const billsPagar = getFilteredBills("pagar");
