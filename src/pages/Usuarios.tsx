@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Users, Shield, ShoppingCart } from "lucide-react";
+import { Plus, Users, Shield, ShoppingCart, Wallet } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface CompanyMember {
