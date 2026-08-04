@@ -14,6 +14,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [signedOut, setSignedOut] = useState(false);
   const [accountBlocked, setAccountBlocked] = useState(false);
+  const [isPro, setIsPro] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -46,9 +47,12 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       const effectiveOwnerId = member?.role === "vendedor" ? member.owner_id : user.id;
       const { data: account } = await supabase
         .from("client_accounts")
-        .select("blocked")
+        .select("blocked, plan_id, subscription_plans(tier)")
         .eq("user_id", effectiveOwnerId)
         .maybeSingle();
+
+      const tier = (account as any)?.subscription_plans?.tier;
+      setIsPro(tier?.startsWith("pro") || tier === "pro_custom");
 
       if (account?.blocked) {
         setAccountBlocked(true);
@@ -72,6 +76,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (accountBlocked && !ALLOWED_WHEN_BLOCKED.includes(location.pathname)) {
     return <Navigate to="/cobrancas" replace state={{ blockedRedirect: true }} />;
+  }
+
+  if (location.pathname === "/cobrancas-clientes" && isPro === false) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
