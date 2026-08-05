@@ -138,43 +138,45 @@ const Estoque = () => {
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Estoque</h1>
-          <p className="text-sm text-muted-foreground">{products.length} produtos cadastrados</p>
+    <div className="w-full max-w-[100rem] mx-auto space-y-5 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold truncate">Estoque</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">{products.length} produtos cadastrados</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>*]:w-full sm:[&>*]:w-auto">
             <XmlProductImport onImported={fetchProducts} />
             <DialogTrigger asChild>
-              <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Novo Produto</Button>
+              <Button onClick={openNew} className="w-full sm:w-auto h-11 sm:h-10">
+                <Plus className="h-4 w-4 mr-2" />Novo Produto
+              </Button>
             </DialogTrigger>
           </div>
-          <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[26rem] sm:max-w-lg max-h-[88vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
+          <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[26rem] sm:max-w-lg lg:max-w-2xl max-h-[88vh] overflow-y-auto p-4 sm:p-6">
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="text-base sm:text-lg">{editProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Nome</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>SKU</Label><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} /></div>
+            <div className="grid gap-3.5 sm:gap-4 py-1 sm:py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">Nome</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+                <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">SKU</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Categoria</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs sm:text-sm">Categoria</Label>
                   <Select value={form.category} onValueChange={v => setForm({ ...form, category: v === "__none__" ? "" : v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">— Nenhuma —</SelectItem>
                       {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Unidade</Label>
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs sm:text-sm">Unidade</Label>
                   <Select value={form.unit} onValueChange={v => setForm({ ...form, unit: v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
                       {units.length === 0 && <SelectItem value="un">un</SelectItem>}
                       {units.map(u => <SelectItem key={u.id} value={u.abbreviation || u.name}>{u.name} ({u.abbreviation})</SelectItem>)}
@@ -182,40 +184,41 @@ const Estoque = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label>Preço Venda</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs sm:text-sm truncate">Preço Venda</Label>
                     <PricingCalculator
                       cost={Number(form.cost) || 0}
                       onApply={(price) => setForm({ ...form, price: price.toFixed(2) })}
                     />
                   </div>
-                  <Input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+                  <Input className="h-11 sm:h-10 text-base sm:text-sm" type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
                 </div>
-                <div className="space-y-1.5"><Label>Custo</Label><Input type="number" step="0.01" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} /></div>
+                <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">Custo</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" type="number" step="0.01" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Estoque Atual</Label><Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">Estoque Atual</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
+                <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">Estoque Mínimo</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Fornecedor</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs sm:text-sm">Fornecedor</Label>
                   <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
+                    <SelectTrigger className="h-11 sm:h-10 text-base sm:text-sm"><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">— Sem fornecedor —</SelectItem>
                       {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label>NCM</Label>
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs sm:text-sm truncate">NCM</Label>
                     <NcmSearch onSelect={(codigo) => setForm({ ...form, ncm: codigo })} />
                   </div>
                   <Input
+                    className="h-11 sm:h-10 text-base sm:text-sm"
                     inputMode="numeric"
                     maxLength={8}
                     placeholder="00000000"
@@ -224,16 +227,21 @@ const Estoque = () => {
                   />
                 </div>
               </div>
-              <Button onClick={handleSave} className="w-full">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10">Cancelar</Button>
+                <Button onClick={handleSave} className="w-full sm:w-auto h-11 sm:h-10">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
+
       </div>
 
-      <div className="relative max-w-sm">
+      <div className="relative w-full sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou SKU..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <Input placeholder="Buscar por nome ou SKU..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-11 sm:h-10 text-base sm:text-sm" />
       </div>
+
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-card rounded-lg shadow-card border overflow-hidden">
         <div className="overflow-x-auto">
