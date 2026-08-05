@@ -151,16 +151,16 @@ const Estoque = () => {
               <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Novo Produto</Button>
             </DialogTrigger>
           </div>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="w-[calc(100vw-1.5rem)] max-w-[26rem] sm:max-w-lg max-h-[88vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-2">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Nome</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label>SKU</Label><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Categoria</Label>
                   <Select value={form.category} onValueChange={v => setForm({ ...form, category: v === "__none__" ? "" : v })}>
@@ -182,7 +182,7 @@ const Estoque = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label>Preço Venda</Label>
@@ -195,11 +195,11 @@ const Estoque = () => {
                 </div>
                 <div className="space-y-1.5"><Label>Custo</Label><Input type="number" step="0.01" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Estoque Atual</Label><Input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label>Estoque Mínimo</Label><Input type="number" value={form.min_stock} onChange={e => setForm({ ...form, min_stock: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Fornecedor</Label>
                   <Select value={form.supplier_id} onValueChange={v => setForm({ ...form, supplier_id: v === "__none__" ? "" : v })}>

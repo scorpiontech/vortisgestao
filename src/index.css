@@ -166,8 +166,22 @@
   }
 }
 
-/* Receipt / Cupom fiscal print styles */
+/* Receipt / Cupom fiscal print styles — impressora térmica 80mm (área útil 72mm) */
+
+
 @media print {
+  @page {
+    size: 80mm auto;
+    margin: 0mm;
+  }
+
+  html, body {
+    width: 80mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -178,9 +192,38 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 80mm;
+    width: 72mm;
+    max-width: 72mm;
+    margin: 0 4mm;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
     font-family: 'Courier New', monospace;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow: visible;
+  }
+  .receipt-print * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    max-width: 72mm;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .receipt-print table {
+    width: 72mm !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+  /* Não imprimir botões/ações dentro do cupom */
+  .receipt-print button,
+  .receipt-print .no-print,
+  .no-print {
+    display: none !important;
   }
 }
 
