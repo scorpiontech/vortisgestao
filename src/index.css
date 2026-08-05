@@ -167,10 +167,7 @@
 }
 
 /* Receipt / Cupom fiscal print styles — impressora térmica 80mm (área útil 72mm) */
-@page thermal {
-  size: 80mm auto;
-  margin: 0;
-}
+
 
 @media print {
   @page {
