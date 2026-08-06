@@ -39,7 +39,7 @@ const statusMap: Record<string, { label: string; variant: "default" | "secondary
 };
 
 const CobrancasClientes = () => {
-  const { effectiveUserId, isMaster, isGerente, role } = useUserRole();
+  const { effectiveUserId, isMaster, isGerente, role, loading: roleLoading } = useUserRole();
   const canManage = isMaster || isGerente;
   const { toast } = useToast();
   const [charges, setCharges] = useState<Charge[]>([]);
@@ -176,22 +176,24 @@ const CobrancasClientes = () => {
   const totalRecebido = charges.filter(c => c.status === "paid").reduce((s, c) => s + Number(c.total_amount), 0);
   const totalAberto = charges.filter(c => ["pending", "partially_paid", "overdue"].includes(c.status)).reduce((s, c) => s + Number(c.total_amount), 0);
 
-  if (loading) {
+  if (loading || roleLoading) {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   }
 
-  if (isPro === false) {
+  if (isPro === false || (!isMaster && !isGerente)) {
+    const isPlanRestricted = isPro === false;
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
         <Wallet className="h-12 w-12 text-muted-foreground opacity-20" />
         <div>
-          <h2 className="text-xl font-bold">Módulo restrito ao Plano Pro</h2>
+          <h2 className="text-xl font-bold">{isPlanRestricted ? "Módulo restrito ao Plano Pro" : "Acesso restrito"}</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
-            A gestão de cobranças via Asaas está disponível apenas para assinantes dos planos Pro.
-            Entre em contato com o suporte para realizar o upgrade.
+            {isPlanRestricted 
+              ? "A gestão de cobranças via Asaas está disponível apenas para assinantes dos planos Pro. Entre em contato com o suporte para realizar o upgrade."
+              : "Apenas usuários com perfil Master ou Gerente podem visualizar este módulo."}
           </p>
         </div>
-        <Button onClick={() => window.location.href = "/suporte"}>Ver Planos / Suporte</Button>
+        {isPlanRestricted && <Button onClick={() => window.location.href = "/suporte"}>Ver Planos / Suporte</Button>}
       </div>
     );
   }

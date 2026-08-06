@@ -60,7 +60,7 @@ interface CompanyInfo {
 
 const Vendas = () => {
   const { user } = useAuth();
-  const { effectiveUserId } = useUserRole();
+  const { effectiveUserId, isMaster, isGerente } = useUserRole();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
@@ -208,7 +208,7 @@ const Vendas = () => {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const showInstallments = paymentMethod === "Cartão Crédito";
-  const isAsaasPayment = paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)";
+  const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && (isMaster || isGerente);
 
   const addProductById = (productId: string, qty: number = 1) => {
     const product = products.find(p => p.id === productId);
@@ -629,8 +629,12 @@ const Vendas = () => {
                       <SelectItem value="PIX">PIX</SelectItem>
                       <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
                       <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
-                      <SelectItem value="Boleto (Asaas)">Boleto (cobrança Asaas)</SelectItem>
-                      <SelectItem value="PIX (Asaas)">PIX (cobrança Asaas)</SelectItem>
+                      {(isMaster || isGerente) && (
+                        <>
+                          <SelectItem value="Boleto (Asaas)">Boleto (cobrança Asaas)</SelectItem>
+                          <SelectItem value="PIX (Asaas)">PIX (cobrança Asaas)</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

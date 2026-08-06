@@ -12,7 +12,7 @@ import { asaasWebhookUrl } from "@/lib/asaas";
 import { Copy, Save, Wallet, Eye, EyeOff } from "lucide-react";
 
 const ConfiguracoesAsaas = () => {
-  const { effectiveUserId, isMaster, loading: roleLoading } = useUserRole();
+  const { effectiveUserId, isMaster, isGerente, loading: roleLoading } = useUserRole();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -86,8 +86,8 @@ const ConfiguracoesAsaas = () => {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   }
 
-  if (!isMaster) {
-    return <p className="text-sm text-muted-foreground">Apenas usuários Master podem configurar a integração de cobranças.</p>;
+  if (!isMaster && !isGerente) {
+    return <p className="text-sm text-muted-foreground">Apenas usuários Master ou Gerente podem configurar a integração de cobranças.</p>;
   }
 
   return (

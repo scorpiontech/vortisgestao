@@ -94,13 +94,21 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const isMobile = useIsMobile();
-  const { isMaster } = useUserRole();
+  const { isMaster, isGerente } = useUserRole();
 
   const menuItems = allMenuItems
-    .filter(item => !item.masterOnly || isMaster)
+    .filter(item => {
+      if (item.masterOnly && !isMaster) return false;
+      if (item.url === "/cobrancas-clientes" && !isMaster && !isGerente) return false;
+      return true;
+    })
     .map(item => ({
       ...item,
-      children: item.children?.filter(c => !c.masterOnly || isMaster),
+      children: item.children?.filter(c => {
+        if (c.masterOnly && !isMaster) return false;
+        if ((c.url === "/cobrancas-clientes" || c.url === "/configuracoes-asaas") && !isMaster && !isGerente) return false;
+        return true;
+      }),
     }));
 
   const closeMobile = () => {
