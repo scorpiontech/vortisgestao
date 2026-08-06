@@ -46,7 +46,7 @@ export default function AdminDashboard() {
   const [selected, setSelected] = useState<ClientAccount | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", plan_id: "", billing_type: "avulsa", due_day: 10, status: "ativo", monthly_value: 99.90, tolerance_days: 15 });
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", plan_id: "", monthly_value: 99.90 });
+  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", plan_id: "", monthly_value: 0 });
   const [creating, setCreating] = useState(false);
 
   const [chargeOpen, setChargeOpen] = useState(false);
@@ -141,7 +141,21 @@ export default function AdminDashboard() {
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const plan = plans.find(p => p.id === createForm.plan_id);
+      
+      // Se não houver plano selecionado, busca o plano 'Free' ou usa valores padrão
+      let plan = plans.find(p => p.id === createForm.plan_id);
+      let planName = plan?.name || "Plano Free";
+      let monthlyValue = plan ? createForm.monthly_value : 0;
+
+      if (!plan && !createForm.plan_id) {
+        const freePlan = plans.find(p => p.name.toLowerCase().includes("free") || p.name.toLowerCase().includes("gratuito"));
+        if (freePlan) {
+          plan = freePlan;
+          planName = freePlan.name;
+          monthlyValue = 0;
+        }
+      }
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
@@ -149,8 +163,8 @@ export default function AdminDashboard() {
           email: createForm.email,
           password: createForm.password,
           name: createForm.name,
-          plan: plan?.name || "Plano Mensal",
-          monthly_value: createForm.monthly_value,
+          plan: planName,
+          monthly_value: monthlyValue,
         }),
       });
       const result = await response.json();
@@ -162,7 +176,7 @@ export default function AdminDashboard() {
         }
         toast.success("Conta criada com sucesso!");
         setCreateOpen(false);
-        setCreateForm({ name: "", email: "", password: "", plan_id: "", monthly_value: 99.90 });
+        setCreateForm({ name: "", email: "", password: "", plan_id: "", monthly_value: 0 });
         fetchAccounts();
       }
     } catch {
