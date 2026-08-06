@@ -189,7 +189,7 @@ const CobrancasClientes = () => {
           <h2 className="text-xl font-bold">{isPlanRestricted ? "Módulo restrito ao Plano Pro" : "Acesso restrito"}</h2>
           <p className="text-muted-foreground max-w-md mx-auto">
             {isPlanRestricted 
-              ? "A gestão de cobranças via Asaas está disponível apenas para assinantes dos planos Pro. Entre em contato com o suporte para realizar o upgrade."
+              ? "A gestão de cobranças via Asaas está disponível apenas para assinantes dos planos Pro. Realize o upgrade da sua conta para gerenciar boletos e PIX."
               : "Apenas usuários com perfil Master ou Gerente podem visualizar este módulo."}
           </p>
         </div>

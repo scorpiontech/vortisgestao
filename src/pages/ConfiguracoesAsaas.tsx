@@ -13,6 +13,7 @@ import { Copy, Save, Wallet, Eye, EyeOff } from "lucide-react";
 
 const ConfiguracoesAsaas = () => {
   const { effectiveUserId, isMaster, isGerente, loading: roleLoading } = useUserRole();
+  const [isPro, setIsPro] = useState<boolean | null>(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -28,6 +29,16 @@ const ConfiguracoesAsaas = () => {
   useEffect(() => {
     if (!effectiveUserId) return;
     const load = async () => {
+      // Check subscription plan tier
+      const { data: accountData } = await supabase
+        .from("client_accounts")
+        .select("plan_id, subscription_plans(tier)")
+        .eq("user_id", effectiveUserId)
+        .maybeSingle();
+      
+      const tier = (accountData as any)?.subscription_plans?.tier;
+      setIsPro(tier?.startsWith("pro") || tier === "pro_custom");
+
       const { data } = await (supabase as any)
         .from("asaas_settings")
         .select("*")
@@ -86,8 +97,26 @@ const ConfiguracoesAsaas = () => {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   }
 
-  if (!isMaster && !isGerente) {
-    return <p className="text-sm text-muted-foreground">Apenas usuários Master ou Gerente podem configurar a integração de cobranças.</p>;
+  if (isPro === false || (!isMaster && !isGerente)) {
+    const isPlanRestricted = isPro === false;
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+        <Wallet className="h-12 w-12 text-muted-foreground opacity-20" />
+        <div>
+          <h2 className="text-xl font-bold">{isPlanRestricted ? "Módulo restrito ao Plano Pro" : "Acesso restrito"}</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            {isPlanRestricted 
+              ? "As configurações de cobranças via Asaas estão disponíveis apenas para assinantes dos planos Pro. Realize o upgrade para liberar esta integração."
+              : "Apenas usuários com perfil Master ou Gerente podem configurar este módulo."}
+          </p>
+        </div>
+        {isPlanRestricted && (
+          <Button onClick={() => window.location.href = "/suporte"}>
+            Ver Planos / Falar com Suporte
+          </Button>
+        )}
+      </div>
+    );
   }
 
   return (
