@@ -107,6 +107,7 @@ export default function AdminDashboard() {
       status: account.status,
       monthly_value: Number(account.monthly_value),
       tolerance_days: account.tolerance_days || 15,
+      document: account.document || "",
     });
     setEditOpen(true);
   };
@@ -124,6 +125,7 @@ export default function AdminDashboard() {
       status: editForm.status,
       monthly_value: editForm.monthly_value,
       tolerance_days: editForm.tolerance_days,
+      document: editForm.document.replace(/\D/g, ""),
     }).eq("id", selected.id);
     if (error) toast.error("Erro ao atualizar conta: " + error.message);
     else { toast.success("Conta atualizada!"); setEditOpen(false); fetchAccounts(); }
