@@ -34,6 +34,7 @@ interface ClientAccount {
   due_day: number;
   blocked: boolean;
   tolerance_days: number;
+  document: string | null;
 }
 
 export default function AdminDashboard() {
@@ -44,7 +45,7 @@ export default function AdminDashboard() {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selected, setSelected] = useState<ClientAccount | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", plan_id: "", billing_type: "avulsa", due_day: 10, status: "ativo", monthly_value: 99.90, tolerance_days: 15 });
+  const [editForm, setEditForm] = useState({ name: "", email: "", plan_id: "", billing_type: "avulsa", due_day: 10, status: "ativo", monthly_value: 99.90, tolerance_days: 15, document: "" });
   const [syncing, setSyncing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ 
