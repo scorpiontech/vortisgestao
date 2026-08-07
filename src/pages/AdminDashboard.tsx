@@ -46,7 +46,19 @@ export default function AdminDashboard() {
   const [selected, setSelected] = useState<ClientAccount | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", plan_id: "", billing_type: "avulsa", due_day: 10, status: "ativo", monthly_value: 99.90, tolerance_days: 15 });
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", plan_id: "", monthly_value: 0 });
+  const [createForm, setCreateForm] = useState({ 
+    name: "", 
+    email: "", 
+    password: "", 
+    plan_id: "", 
+    monthly_value: 0,
+    cnpj: "",
+    ie: "",
+    regime_tributario: "simples_nacional",
+    municipio: "",
+    uf: "",
+    create_focus: false 
+  });
   const [creating, setCreating] = useState(false);
 
   const [chargeOpen, setChargeOpen] = useState(false);
