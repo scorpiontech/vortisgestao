@@ -477,13 +477,13 @@ export default function AdminDashboard() {
             <div className="space-y-2"><Label>Nome</Label><Input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
             <div className="space-y-2"><Label>E-mail</Label><Input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
             <div className="space-y-2">
-            <div className="space-y-2">
               <Label>CPF/CNPJ da Empresa</Label>
               <Input placeholder="Somente números" value={editForm.document} onChange={e => setEditForm({ ...editForm, document: e.target.value })} />
               <p className="text-xs text-muted-foreground">Obrigatório para emitir cobranças no Asaas.</p>
             </div>
             <div className="space-y-2">
               <Label>Plano</Label>
+
 
               <Select value={editForm.plan_id} onValueChange={v => {
                 const p = plans.find(x => x.id === v);
