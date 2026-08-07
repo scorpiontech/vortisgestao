@@ -22,13 +22,30 @@ Deno.serve(async (req) => {
     const { data: roleData } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
     if (!roleData) return json({ error: "Apenas administradores" }, 403);
 
-    const asaasKey = Deno.env.get("ASAAS_ADMIN_KEY");
-    if (!asaasKey) return json({ error: "Token Asaas Admin não configurado" }, 500);
+    // Configuração do Asaas administrativo: primeiro a tela de configuração
+    // do painel admin (asaas_settings do usuário admin), depois o secret global.
+    let settings: { api_key: string; ambiente: string } | null = null;
 
-    const settings = {
-      api_key: asaasKey,
-      ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox"
-    };
+    const { data: adminSettings } = await admin
+      .from("asaas_settings")
+      .select("api_key, ambiente, active")
+      .eq("owner_id", user.id)
+      .maybeSingle();
+
+    if (adminSettings?.api_key && adminSettings.active !== false) {
+      settings = { api_key: adminSettings.api_key, ambiente: adminSettings.ambiente || "sandbox" };
+    } else {
+      const asaasKey = Deno.env.get("ASAAS_ADMIN_KEY");
+      if (asaasKey) {
+        settings = { api_key: asaasKey, ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox" };
+      }
+    }
+
+    if (!settings) {
+      return json({
+        error: "Integração Asaas não configurada. Acesse Painel Administrativo > Asaas Admin e informe a chave de API.",
+      }, 400);
+    }
 
     const { client_account_id, due_date, reference_month, custom_amount } = await req.json();
 
