@@ -188,7 +188,7 @@ export default function AdminDashboard() {
         }
         toast.success("Conta criada com sucesso!");
         setCreateOpen(false);
-        setCreateForm({ name: "", email: "", password: "", plan_id: "", monthly_value: 0 });
+        setCreateForm({ name: "", email: "", password: "", plan_id: "", monthly_value: 0, cnpj: "", ie: "", regime_tributario: "simples_nacional", municipio: "", uf: "", create_focus: false });
         fetchAccounts();
       }
     } catch {
