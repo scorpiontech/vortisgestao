@@ -179,7 +179,7 @@ export default function AdminConfiguracoesAsaas() {
                 <Shield className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Disponível no painel do Asaas em Configurações > Integrações.
+                Disponível no painel do Asaas em Configurações &gt; Integrações.
               </p>
             </div>
 
