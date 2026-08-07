@@ -445,7 +445,7 @@ export default function AdminDashboard() {
             <Button variant="outline" onClick={() => setChargeOpen(false)}>Cancelar</Button>
             <Button onClick={handleGenerateCharge} disabled={generating}>
               <CreditCard className="h-4 w-4 mr-2" />
-              {generating ? "Gerando..." : "Gerar no Mercado Pago"}
+              {generating ? "Gerando..." : "Gerar no Asaas"}
             </Button>
           </DialogFooter>
         </DialogContent>
