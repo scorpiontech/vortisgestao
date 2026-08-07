@@ -45,6 +45,7 @@ export default function AdminDashboard() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selected, setSelected] = useState<ClientAccount | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", plan_id: "", billing_type: "avulsa", due_day: 10, status: "ativo", monthly_value: 99.90, tolerance_days: 15 });
+  const [syncing, setSyncing] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState({ 
     name: "", 
@@ -282,6 +283,24 @@ export default function AdminDashboard() {
     setGenerating(false);
   };
 
+  const handleSyncAccounts = async () => {
+    setSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-sync-accounts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+      });
+      const result = await response.json();
+      if (!response.ok) toast.error(result.error || "Erro na sincronização");
+      else toast.success(`Sincronização concluída: ${result.processed} contas processadas.`);
+    } catch (e) {
+      toast.error("Erro ao sincronizar contas");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const filtered = accounts.filter(a =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
     a.email.toLowerCase().includes(search.toLowerCase())
@@ -324,6 +343,10 @@ export default function AdminDashboard() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/admin/configuracoes-asaas")}>
             <Wallet className="h-4 w-4 mr-2" />Asaas Admin
+          </Button>
+          <Button variant="secondary" size="sm" onClick={handleSyncAccounts} disabled={syncing}>
+            <Shield className={`h-4 w-4 mr-2 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando..." : "Vincular Contas"}
           </Button>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />Sair
