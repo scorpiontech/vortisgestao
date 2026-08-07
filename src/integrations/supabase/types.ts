@@ -287,6 +287,7 @@ export type Database = {
           blocked: boolean
           blocked_at: string | null
           created_at: string
+          document: string
           due_day: number
           email: string
           id: string
@@ -305,6 +306,7 @@ export type Database = {
           blocked?: boolean
           blocked_at?: string | null
           created_at?: string
+          document?: string
           due_day?: number
           email: string
           id?: string
@@ -323,6 +325,7 @@ export type Database = {
           blocked?: boolean
           blocked_at?: string | null
           created_at?: string
+          document?: string
           due_day?: number
           email?: string
           id?: string
