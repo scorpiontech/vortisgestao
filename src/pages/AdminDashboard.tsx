@@ -46,7 +46,19 @@ export default function AdminDashboard() {
   const [selected, setSelected] = useState<ClientAccount | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", plan_id: "", billing_type: "avulsa", due_day: 10, status: "ativo", monthly_value: 99.90, tolerance_days: 15 });
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: "", email: "", password: "", plan_id: "", monthly_value: 0 });
+  const [createForm, setCreateForm] = useState({ 
+    name: "", 
+    email: "", 
+    password: "", 
+    plan_id: "", 
+    monthly_value: 0,
+    cnpj: "",
+    ie: "",
+    regime_tributario: "simples_nacional",
+    municipio: "",
+    uf: "",
+    create_focus: false 
+  });
   const [creating, setCreating] = useState(false);
 
   const [chargeOpen, setChargeOpen] = useState(false);
@@ -170,13 +182,55 @@ export default function AdminDashboard() {
       const result = await response.json();
       if (!response.ok) toast.error(result.error || "Erro ao criar conta");
       else {
+        const userId = result.user_id;
+        const accountId = result.account_id || (await supabase.from("client_accounts").select("id").eq("user_id", userId).maybeSingle())?.data?.id;
+
         // se houver plano selecionado, vincula
-        if (createForm.plan_id && result.user_id) {
-          await supabase.from("client_accounts").update({ plan_id: createForm.plan_id }).eq("user_id", result.user_id);
+        if (createForm.plan_id && userId) {
+          await supabase.from("client_accounts").update({ plan_id: createForm.plan_id }).eq("user_id", userId);
         }
+
+        // Criar na Focus NFe se solicitado
+        if (createForm.create_focus && accountId && createForm.cnpj) {
+          try {
+            const focusResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-company-in-focus`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+              body: JSON.stringify({
+                client_account_id: accountId,
+                fiscal_data: {
+                  cnpj: createForm.cnpj,
+                  ie: createForm.ie,
+                  regime_tributario: createForm.regime_tributario,
+                  municipio: createForm.municipio,
+                  uf: createForm.uf,
+                  ambiente: "homologacao"
+                }
+              }),
+            });
+            const focusResult = await focusResp.json();
+            if (!focusResp.ok) toast.error("Conta criada, mas erro na Focus: " + (focusResult.error || "Verifique as configurações"));
+            else toast.success("Empresa registrada na Focus NFe!");
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
         toast.success("Conta criada com sucesso!");
         setCreateOpen(false);
-        setCreateForm({ name: "", email: "", password: "", plan_id: "", monthly_value: 0 });
+        setCreateForm({ 
+          name: "", 
+          email: "", 
+          password: "", 
+          plan_id: "", 
+          monthly_value: 0, 
+          cnpj: "", 
+          ie: "", 
+          regime_tributario: "simples_nacional", 
+          municipio: "", 
+          uf: "", 
+          create_focus: false 
+        });
         fetchAccounts();
       }
     } catch {
@@ -487,6 +541,51 @@ export default function AdminDashboard() {
               </Select>
             </div>
             <div className="space-y-2"><Label>Valor Mensal (R$)</Label><Input type="number" step="0.01" value={createForm.monthly_value} onChange={e => setCreateForm({ ...createForm, monthly_value: parseFloat(e.target.value) || 0 })} /></div>
+            
+            <div className="pt-4 border-t space-y-4">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="createFocus" 
+                  checked={createForm.create_focus} 
+                  onChange={e => setCreateForm({ ...createForm, create_focus: e.target.checked })} 
+                />
+                <Label htmlFor="createFocus" className="cursor-pointer">Registrar empresa na Focus NFe agora</Label>
+              </div>
+
+              {createForm.create_focus && (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-300">
+                  <div className="space-y-2">
+                    <Label>CNPJ</Label>
+                    <Input placeholder="00.000.000/0000-00" value={createForm.cnpj} onChange={e => setCreateForm({ ...createForm, cnpj: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Inscrição Estadual</Label>
+                    <Input placeholder="ISENTO" value={createForm.ie} onChange={e => setCreateForm({ ...createForm, ie: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Município</Label>
+                    <Input placeholder="Cidade" value={createForm.municipio} onChange={e => setCreateForm({ ...createForm, municipio: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>UF</Label>
+                    <Input placeholder="PA" maxLength={2} value={createForm.uf} onChange={e => setCreateForm({ ...createForm, uf: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label>Regime Tributário</Label>
+                    <Select value={createForm.regime_tributario} onValueChange={v => setCreateForm({ ...createForm, regime_tributario: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
+                        <SelectItem value="simples_excesso">Simples Nacional - Excesso</SelectItem>
+                        <SelectItem value="lucro_presumido">Lucro Presumido</SelectItem>
+                        <SelectItem value="lucro_real">Lucro Real</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>

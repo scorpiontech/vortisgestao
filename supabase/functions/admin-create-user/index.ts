@@ -63,17 +63,29 @@ Deno.serve(async (req) => {
     }
 
     // Update client_account with plan and value (trigger already created it)
+    let accountId = null;
     if (plan || monthly_value) {
-      await adminClient
+      const { data: updatedAcc } = await adminClient
         .from("client_accounts")
         .update({
           ...(plan && { plan }),
           ...(monthly_value && { monthly_value }),
         })
-        .eq("user_id", newUser.user!.id);
+        .eq("user_id", newUser.user!.id)
+        .select("id")
+        .maybeSingle();
+      
+      accountId = updatedAcc?.id;
+    } else {
+      const { data: acc } = await adminClient
+        .from("client_accounts")
+        .select("id")
+        .eq("user_id", newUser.user!.id)
+        .maybeSingle();
+      accountId = acc?.id;
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: newUser.user!.id }), {
+    return new Response(JSON.stringify({ success: true, user_id: newUser.user!.id, account_id: accountId }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
