@@ -67,12 +67,48 @@ Deno.serve(async (req) => {
     if (amount < 5) amount = 5;
     amount = Math.round(amount * 100) / 100;
 
-    // Get CPF/CNPJ from fiscal_settings if not on account
+    // Documento (CPF/CNPJ) obrigatório no Asaas: conta -> empresa cadastrada (master) -> fiscal
     let document = onlyDigits(account.document || "");
+
+    // Resolve o master efetivo (sub-usuários herdam a empresa do proprietário)
+    let masterId = account.user_id;
+    const { data: member } = await admin
+      .from("company_members")
+      .select("owner_id")
+      .eq("user_id", account.user_id)
+      .eq("active", true)
+      .maybeSingle();
+    if (member?.owner_id) masterId = member.owner_id;
+
     if (!document) {
-      const { data: fSettings } = await admin.from("fiscal_settings").select("cnpj").eq("owner_id", account.user_id).maybeSingle();
+      const { data: reg } = await admin
+        .from("company_registrations")
+        .select("document")
+        .eq("user_id", masterId)
+        .maybeSingle();
+      if (reg?.document) document = onlyDigits(reg.document);
+    }
+    if (!document) {
+      const { data: fSettings } = await admin
+        .from("fiscal_settings")
+        .select("cnpj")
+        .eq("owner_id", masterId)
+        .maybeSingle();
       if (fSettings?.cnpj) document = onlyDigits(fSettings.cnpj);
     }
+
+    // Persiste o vínculo encontrado para as próximas cobranças
+    if (document && document !== onlyDigits(account.document || "")) {
+      await admin.from("client_accounts").update({ document }).eq("id", account.id);
+    }
+
+    if (!document || (document.length !== 11 && document.length !== 14)) {
+      return json({
+        error:
+          "Conta sem empresa vinculada: informe um CPF/CNPJ válido na edição da conta ou use o botão 'Vincular Contas' para importar o documento da empresa do master.",
+      }, 400);
+    }
+
     
     // 1) Find/Create Customer in Admin Asaas
     let asaasCustomerId: string | null = null;
