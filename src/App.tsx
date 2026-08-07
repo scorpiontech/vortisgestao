@@ -43,6 +43,7 @@ import { AdminProtectedRoute } from "@/components/auth/AdminProtectedRoute";
 import Suporte from "./pages/Suporte";
 import CobrancasClientes from "./pages/CobrancasClientes";
 import ConfiguracoesAsaas from "./pages/ConfiguracoesAsaas";
+import AdminConfiguracoesAsaas from "./pages/AdminConfiguracoesAsaas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/admin/faturas" element={<AdminProtectedRoute><AdminFaturas /></AdminProtectedRoute>} />
               <Route path="/admin/logs-faturas" element={<AdminProtectedRoute><AdminLogsFaturas /></AdminProtectedRoute>} />
               <Route path="/admin/faturas-automaticas" element={<AdminProtectedRoute><AdminFaturasAutomaticas /></AdminProtectedRoute>} />
+              <Route path="/admin/configuracoes-asaas" element={<AdminProtectedRoute><AdminConfiguracoesAsaas /></AdminProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
