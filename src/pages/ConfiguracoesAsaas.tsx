@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { asaasWebhookUrl } from "@/lib/asaas";
-import { Copy, Save, Wallet, Eye, EyeOff } from "lucide-react";
+import { Copy, Save, Wallet, Eye, EyeOff, Ban } from "lucide-react";
 
 const ConfiguracoesAsaas = () => {
   const { effectiveUserId, isMaster, isGerente, loading: roleLoading } = useUserRole();
@@ -100,20 +100,29 @@ const ConfiguracoesAsaas = () => {
   if (isPro === false || (!isMaster && !isGerente)) {
     const isPlanRestricted = isPro === false;
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-        <Wallet className="h-12 w-12 text-muted-foreground opacity-20" />
-        <div>
-          <h2 className="text-xl font-bold">{isPlanRestricted ? "Módulo restrito ao Plano Pro" : "Acesso restrito"}</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
+      <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+        <div className="bg-destructive/10 p-4 rounded-full">
+          <Ban className="h-12 w-12 text-destructive" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isPlanRestricted ? "Módulo restrito ao Plano Pro" : "Acesso Negado"}
+          </h2>
+          <p className="text-muted-foreground max-w-md mx-auto text-balance">
             {isPlanRestricted 
-              ? "As configurações de cobranças via Asaas estão disponíveis apenas para assinantes dos planos Pro. Realize o upgrade para liberar esta integração."
-              : "Apenas usuários com perfil Master ou Gerente podem configurar este módulo."}
+              ? "As configurações de cobranças via Asaas estão disponíveis exclusivamente para assinantes dos planos Pro. Faça o upgrade agora para liberar esta integração."
+              : "Você não possui permissão de Master ou Gerente para configurar este módulo."}
           </p>
         </div>
         {isPlanRestricted && (
-          <Button onClick={() => window.location.href = "/suporte"}>
-            Ver Planos / Falar com Suporte
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button size="lg" className="bg-primary hover:bg-primary/90" onClick={() => window.location.href = "/suporte"}>
+              Fazer Upgrade para Pro
+            </Button>
+            <Button variant="ghost" onClick={() => window.history.back()}>
+              Voltar
+            </Button>
+          </div>
         )}
       </div>
     );
