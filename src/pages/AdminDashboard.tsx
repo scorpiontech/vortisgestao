@@ -182,13 +182,55 @@ export default function AdminDashboard() {
       const result = await response.json();
       if (!response.ok) toast.error(result.error || "Erro ao criar conta");
       else {
+        const userId = result.user_id;
+        const accountId = result.account_id || (await supabase.from("client_accounts").select("id").eq("user_id", userId).maybeSingle())?.data?.id;
+
         // se houver plano selecionado, vincula
-        if (createForm.plan_id && result.user_id) {
-          await supabase.from("client_accounts").update({ plan_id: createForm.plan_id }).eq("user_id", result.user_id);
+        if (createForm.plan_id && userId) {
+          await supabase.from("client_accounts").update({ plan_id: createForm.plan_id }).eq("user_id", userId);
         }
+
+        // Criar na Focus NFe se solicitado
+        if (createForm.create_focus && accountId && createForm.cnpj) {
+          try {
+            const focusResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-company-in-focus`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+              body: JSON.stringify({
+                client_account_id: accountId,
+                fiscal_data: {
+                  cnpj: createForm.cnpj,
+                  ie: createForm.ie,
+                  regime_tributario: createForm.regime_tributario,
+                  municipio: createForm.municipio,
+                  uf: createForm.uf,
+                  ambiente: "homologacao"
+                }
+              }),
+            });
+            const focusResult = await focusResp.json();
+            if (!focusResp.ok) toast.error("Conta criada, mas erro na Focus: " + (focusResult.error || "Verifique as configurações"));
+            else toast.success("Empresa registrada na Focus NFe!");
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
         toast.success("Conta criada com sucesso!");
         setCreateOpen(false);
-        setCreateForm({ name: "", email: "", password: "", plan_id: "", monthly_value: 0, cnpj: "", ie: "", regime_tributario: "simples_nacional", municipio: "", uf: "", create_focus: false });
+        setCreateForm({ 
+          name: "", 
+          email: "", 
+          password: "", 
+          plan_id: "", 
+          monthly_value: 0, 
+          cnpj: "", 
+          ie: "", 
+          regime_tributario: "simples_nacional", 
+          municipio: "", 
+          uf: "", 
+          create_focus: false 
+        });
         fetchAccounts();
       }
     } catch {
