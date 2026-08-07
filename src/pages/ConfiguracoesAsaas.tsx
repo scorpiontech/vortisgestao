@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { asaasWebhookUrl } from "@/lib/asaas";
-import { Copy, Save, Wallet, Eye, EyeOff } from "lucide-react";
+import { Copy, Save, Wallet, Eye, EyeOff, Ban } from "lucide-react";
 
 const ConfiguracoesAsaas = () => {
   const { effectiveUserId, isMaster, isGerente, loading: roleLoading } = useUserRole();
