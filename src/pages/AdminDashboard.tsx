@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText, Bell } from "lucide-react";
+import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText, Bell, Wallet } from "lucide-react";
 
 interface Plan {
   id: string;
