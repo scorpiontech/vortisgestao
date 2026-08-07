@@ -205,7 +205,7 @@ export default function AdminDashboard() {
     setGenerating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-create-invoice`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/asaas-create-invoice`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({
@@ -219,7 +219,7 @@ export default function AdminDashboard() {
       if (!response.ok) {
         toast.error(result.error || "Erro ao gerar cobrança");
       } else {
-        toast.success("Cobrança gerada! Link de pagamento criado.");
+        toast.success("Cobrança gerada via Asaas! Link de pagamento enviado.");
         setChargeOpen(false);
       }
     } catch (e) {
