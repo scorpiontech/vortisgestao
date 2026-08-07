@@ -113,7 +113,17 @@ Deno.serve(async (req) => {
     // 1) Find/Create Customer in Admin Asaas
     let asaasCustomerId: string | null = null;
     const customers = await asaasFetch(settings, `/customers?email=${encodeURIComponent(account.email)}&limit=1`);
-    if (customers?.data?.length) asaasCustomerId = customers.data[0].id;
+    const existing = customers?.data?.[0];
+    if (existing) {
+      asaasCustomerId = existing.id;
+      // Garante que o cliente já existente no Asaas tenha o documento correto
+      if (onlyDigits(existing.cpfCnpj || "") !== document) {
+        await asaasFetch(settings, `/customers/${asaasCustomerId}`, {
+          method: "POST",
+          body: JSON.stringify({ name: account.name, email: account.email, cpfCnpj: document }),
+        });
+      }
+    }
 
     if (!asaasCustomerId) {
       const created = await asaasFetch(settings, "/customers", {
@@ -121,12 +131,13 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           name: account.name,
           email: account.email,
-          cpfCnpj: document || undefined,
+          cpfCnpj: document,
           externalReference: account.id,
         }),
       });
       asaasCustomerId = created.id;
     }
+
 
     // 2) Create Payment
     const payment = await asaasFetch(settings, "/payments", {
