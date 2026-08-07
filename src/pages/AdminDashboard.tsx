@@ -295,8 +295,14 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
       });
       const result = await response.json();
-      if (!response.ok) toast.error(result.error || "Erro na sincronização");
-      else toast.success(`Sincronização concluída: ${result.processed} contas processadas.`);
+      if (!response.ok) toast.error(result.error || "Erro na validação de vínculos");
+      else {
+        toast.success(`${result.linked} conta(s) vinculadas • ${result.already_linked} já corretas de ${result.total}.`);
+        if (result.pending?.length) {
+          toast.warning(`Sem empresa cadastrada: ${result.pending.map((p: { name: string }) => p.name).join(", ")}`, { duration: 8000 });
+        }
+        fetchAccounts();
+      }
     } catch (e) {
       toast.error("Erro ao sincronizar contas");
     } finally {
@@ -420,7 +426,16 @@ export default function AdminDashboard() {
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</TableCell></TableRow>
                 ) : filtered.map(account => (
                   <TableRow key={account.id}>
-                    <TableCell className="font-medium">{account.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-1">
+                        <span>{account.name}</span>
+                        {account.document ? (
+                          <span className="text-xs text-muted-foreground">{account.document}</span>
+                        ) : (
+                          <Badge variant="outline" className="w-fit text-[10px] border-destructive text-destructive">Sem CPF/CNPJ</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>{account.email}</TableCell>
                     <TableCell>{plans.find(p => p.id === account.plan_id)?.name || account.plan}</TableCell>
                     <TableCell>{Number(account.monthly_value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</TableCell>
@@ -462,7 +477,14 @@ export default function AdminDashboard() {
             <div className="space-y-2"><Label>Nome</Label><Input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></div>
             <div className="space-y-2"><Label>E-mail</Label><Input value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
             <div className="space-y-2">
+            <div className="space-y-2">
+              <Label>CPF/CNPJ da Empresa</Label>
+              <Input placeholder="Somente números" value={editForm.document} onChange={e => setEditForm({ ...editForm, document: e.target.value })} />
+              <p className="text-xs text-muted-foreground">Obrigatório para emitir cobranças no Asaas.</p>
+            </div>
+            <div className="space-y-2">
               <Label>Plano</Label>
+
               <Select value={editForm.plan_id} onValueChange={v => {
                 const p = plans.find(x => x.id === v);
                 setEditForm({ ...editForm, plan_id: v, monthly_value: p ? Number(p.monthly_value) : editForm.monthly_value });
