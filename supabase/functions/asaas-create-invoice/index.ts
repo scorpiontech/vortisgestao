@@ -67,7 +67,12 @@ Deno.serve(async (req) => {
     if (amount < 5) amount = 5;
     amount = Math.round(amount * 100) / 100;
 
-    const document = onlyDigits(account.document || ""); // Note: assuming document exists on client_accounts or we need to fetch from profile
+    // Get CPF/CNPJ from fiscal_settings if not on account
+    let document = onlyDigits(account.document || "");
+    if (!document) {
+      const { data: fSettings } = await admin.from("fiscal_settings").select("cnpj").eq("owner_id", account.user_id).maybeSingle();
+      if (fSettings?.cnpj) document = onlyDigits(fSettings.cnpj);
+    }
     
     // 1) Find/Create Customer in Admin Asaas
     let asaasCustomerId: string | null = null;
@@ -80,6 +85,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           name: account.name,
           email: account.email,
+          cpfCnpj: document || undefined,
           externalReference: account.id,
         }),
       });
