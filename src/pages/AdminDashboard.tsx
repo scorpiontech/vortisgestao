@@ -541,6 +541,51 @@ export default function AdminDashboard() {
               </Select>
             </div>
             <div className="space-y-2"><Label>Valor Mensal (R$)</Label><Input type="number" step="0.01" value={createForm.monthly_value} onChange={e => setCreateForm({ ...createForm, monthly_value: parseFloat(e.target.value) || 0 })} /></div>
+            
+            <div className="pt-4 border-t space-y-4">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="createFocus" 
+                  checked={createForm.create_focus} 
+                  onChange={e => setCreateForm({ ...createForm, create_focus: e.target.checked })} 
+                />
+                <Label htmlFor="createFocus" className="cursor-pointer">Registrar empresa na Focus NFe agora</Label>
+              </div>
+
+              {createForm.create_focus && (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-300">
+                  <div className="space-y-2">
+                    <Label>CNPJ</Label>
+                    <Input placeholder="00.000.000/0000-00" value={createForm.cnpj} onChange={e => setCreateForm({ ...createForm, cnpj: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Inscrição Estadual</Label>
+                    <Input placeholder="ISENTO" value={createForm.ie} onChange={e => setCreateForm({ ...createForm, ie: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Município</Label>
+                    <Input placeholder="Cidade" value={createForm.municipio} onChange={e => setCreateForm({ ...createForm, municipio: e.target.value })} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>UF</Label>
+                    <Input placeholder="PA" maxLength={2} value={createForm.uf} onChange={e => setCreateForm({ ...createForm, uf: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label>Regime Tributário</Label>
+                    <Select value={createForm.regime_tributario} onValueChange={v => setCreateForm({ ...createForm, regime_tributario: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
+                        <SelectItem value="simples_excesso">Simples Nacional - Excesso</SelectItem>
+                        <SelectItem value="lucro_presumido">Lucro Presumido</SelectItem>
+                        <SelectItem value="lucro_real">Lucro Real</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
