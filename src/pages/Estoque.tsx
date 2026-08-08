@@ -144,12 +144,34 @@ const Estoque = () => {
 
     if (editProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", editProduct.id);
-      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+      if (error) { 
+        if (error.code === '23505') {
+           toast({ 
+            title: "Produto já existente", 
+            description: "Este nome ou SKU já está cadastrado. Você pode atualizar o estoque diretamente na listagem.", 
+            variant: "destructive" 
+          });
+        } else {
+          toast({ title: "Erro", description: error.message, variant: "destructive" }); 
+        }
+        return; 
+      }
       toast({ title: "Produto atualizado!" });
       logAudit({ action: "update", entity: "product", entityId: editProduct.id, details: { name: payload.name } });
     } else {
       const { error } = await supabase.from("products").insert(payload);
-      if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+      if (error) { 
+        if (error.code === '23505') {
+           toast({ 
+            title: "Produto já existente", 
+            description: "Este nome ou SKU já está cadastrado. Procure pelo produto na listagem e atualize o estoque.", 
+            variant: "destructive" 
+          });
+        } else {
+          toast({ title: "Erro", description: error.message, variant: "destructive" }); 
+        }
+        return; 
+      }
       toast({ title: "Produto cadastrado!" });
       logAudit({ action: "create", entity: "product", details: { name: payload.name, sku: payload.sku } });
     }
