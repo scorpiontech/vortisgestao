@@ -1735,6 +1735,42 @@ export type Database = {
         }
         Relationships: []
       }
+      xml_import_logs: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          filename: string | null
+          id: string
+          imported_items: number | null
+          owner_id: string
+          rejected_items: number | null
+          total_items: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          filename?: string | null
+          id?: string
+          imported_items?: number | null
+          owner_id: string
+          rejected_items?: number | null
+          total_items?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          filename?: string | null
+          id?: string
+          imported_items?: number | null
+          owner_id?: string
+          rejected_items?: number | null
+          total_items?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
