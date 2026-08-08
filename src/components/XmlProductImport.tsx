@@ -99,50 +99,83 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
     const names = selected.map(p => p.name);
     const skus = selected.map(p => p.sku).filter(sku => sku !== "");
     
-    // Construct OR query for all names and skus
-    let query = supabase.from("products").select("name, sku");
-    
+    let existing: any[] = [];
     const filters = [];
     if (names.length > 0) filters.push(`name.in.(${names.map(n => `"${n}"`).join(",")})`);
     if (skus.length > 0) filters.push(`sku.in.(${skus.map(s => `"${s}"`).join(",")})`);
     
     if (filters.length > 0) {
-      const { data: existing } = await query.or(filters.join(","));
-      
-      if (existing && existing.length > 0) {
-        setLoading(false);
-        const duplicateNames = existing.map(e => e.name);
-        toast({ 
-          title: "Produtos repetidos encontrados", 
-          description: `Alguns produtos já existem na base (${duplicateNames.slice(0, 2).join(", ")}...). Por favor, realize a atualização por movimentação de estoque.`, 
-          variant: "destructive" 
-        });
-        return;
+      const { data } = await supabase.from("products").select("id, name, sku, stock").or(filters.join(","));
+      existing = data || [];
+    }
+
+    const duplicates = selected.filter(p => 
+      existing.some(e => e.name === p.name || (p.sku && e.sku === p.sku))
+    );
+    const newItems = selected.filter(p => 
+      !existing.some(e => e.name === p.name || (p.sku && e.sku === p.sku))
+    );
+
+    let importedCount = 0;
+    let updatedCount = 0;
+    const rejectedDetails: any[] = [];
+
+    // 1. Insert New Items
+    if (newItems.length > 0) {
+      const payload = newItems.map((p) => ({
+        name: p.name,
+        sku: p.sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        price: p.price,
+        cost: p.cost,
+        unit: p.unit,
+        stock: p.quantity,
+        min_stock: 0,
+        category: "",
+        ncm: p.ncm || null,
+        user_id: user!.id,
+      }));
+      const { error } = await supabase.from("products").insert(payload);
+      if (!error) importedCount = newItems.length;
+      else {
+        rejectedDetails.push({ error: "Erro ao inserir novos itens", message: error.message });
       }
     }
 
-    const payload = selected.map((p) => ({
-      name: p.name,
-      sku: p.sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      price: p.price,
-      cost: p.cost,
-      unit: p.unit,
-      stock: p.quantity,
-      min_stock: 0,
-      category: "",
-      ncm: p.ncm || null,
-      user_id: user!.id,
-    }));
-
-    const { error } = await supabase.from("products").insert(payload);
-    setLoading(false);
-
-    if (error) {
-      toast({ title: "Erro ao importar", description: error.message, variant: "destructive" });
-      return;
+    // 2. Update existing items (Update stock instead of blocking)
+    for (const dup of duplicates) {
+      const dbItem = existing.find(e => e.name === dup.name || (dup.sku && e.sku === dup.sku));
+      if (dbItem) {
+        const { error } = await supabase.from("products").update({
+          stock: (dbItem.stock || 0) + dup.quantity,
+          cost: dup.cost, // Update cost from XML
+        }).eq("id", dbItem.id);
+        
+        if (!error) updatedCount++;
+        else rejectedDetails.push({ product: dup.name, error: "Erro ao atualizar estoque", message: error.message });
+      }
     }
 
-    toast({ title: `${selected.length} produto(s) importado(s) com sucesso!` });
+    // 3. Log the import results
+    await supabase.from("xml_import_logs").insert({
+      owner_id: user!.id, // Fallback to user_id if company owner logic is complex here
+      user_id: user!.id,
+      filename: fileRef.current?.files?.[0]?.name || "unknown.xml",
+      total_items: selected.length,
+      imported_items: importedCount,
+      rejected_items: duplicates.length - updatedCount,
+      details: {
+        updated: updatedCount,
+        new: importedCount,
+        rejected: rejectedDetails
+      }
+    });
+
+    setLoading(false);
+    toast({ 
+      title: "Importação concluída", 
+      description: `${importedCount} novos, ${updatedCount} atualizados. Os existentes tiveram o estoque somado.` 
+    });
+    
     setProducts([]);
     setOpen(false);
     if (fileRef.current) fileRef.current.value = "";
