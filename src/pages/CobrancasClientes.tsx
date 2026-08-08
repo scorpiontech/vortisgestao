@@ -180,33 +180,23 @@ const CobrancasClientes = () => {
     return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
   }
 
-  if (isPro === false || (!isMaster && !isGerente)) {
-    const isPlanRestricted = isPro === false;
+  if (isPro === false) {
+    window.location.href = "/cobrancas";
+    return null;
+  }
+
+  if (!isMaster && !isGerente) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
         <div className="bg-destructive/10 p-4 rounded-full">
           <Ban className="h-12 w-12 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">
-            {isPlanRestricted ? "Módulo restrito ao Plano Pro" : "Acesso Negado"}
-          </h2>
+          <h2 className="text-2xl font-bold tracking-tight">Acesso Negado</h2>
           <p className="text-muted-foreground max-w-md mx-auto text-balance">
-            {isPlanRestricted 
-              ? "A gestão de cobranças via Asaas está disponível exclusivamente para assinantes dos planos Pro. Faça o upgrade agora para começar a emitir boletos e PIX diretamente pelo sistema."
-              : "Você não possui permissão de Master ou Gerente para acessar este módulo."}
+            Você não possui permissão de Master ou Gerente para acessar este módulo.
           </p>
         </div>
-        {isPlanRestricted && (
-          <div className="flex flex-col gap-3">
-            <Button size="lg" className="bg-primary hover:bg-primary/90" onClick={() => window.location.href = "/suporte"}>
-              Fazer Upgrade para Pro
-            </Button>
-            <Button variant="ghost" onClick={() => window.history.back()}>
-              Voltar
-            </Button>
-          </div>
-        )}
       </div>
     );
   }

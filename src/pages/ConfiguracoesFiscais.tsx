@@ -56,26 +56,42 @@ const empty: FiscalSettings = {
 };
 
 export default function ConfiguracoesFiscais() {
-  const { isMaster, loading: roleLoading } = useUserRole();
+  const { effectiveUserId, isMaster, loading: roleLoading } = useUserRole();
   const [form, setForm] = useState<FiscalSettings>(empty);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [certFile, setCertFile] = useState<File | null>(null);
   const [certPassword, setCertPassword] = useState("");
+  const [isPro, setIsPro] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      const { data: account } = await supabase
+        .from("client_accounts")
+        .select("plan_id, subscription_plans(tier)")
+        .eq("user_id", effectiveUserId || user.id)
+        .maybeSingle();
+
+      const tier = (account as any)?.subscription_plans?.tier;
+      setIsPro(tier?.startsWith("pro") || tier === "pro_custom");
+
       const { data } = await supabase.from("fiscal_settings").select("*").eq("owner_id", user.id).maybeSingle();
       if (data) setForm({ ...empty, ...data });
       setLoading(false);
     })();
-  }, []);
+  }, [effectiveUserId]);
 
   if (roleLoading || loading) {
-    return <div className="p-6"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return <div className="p-6 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+  }
+
+  if (isPro === false) {
+    window.location.href = "/cobrancas";
+    return null;
   }
 
   if (!isMaster) {
