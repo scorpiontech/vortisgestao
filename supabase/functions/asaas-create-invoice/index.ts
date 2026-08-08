@@ -61,10 +61,18 @@ Deno.serve(async (req) => {
 
     if (accErr || !account) return json({ error: "Conta não encontrada" }, 404);
 
+    const isFreePlan = account.subscription_plans?.name?.toLowerCase().includes("free") || 
+                      account.plan?.toLowerCase().includes("free") ||
+                      account.subscription_plans?.name?.toLowerCase().includes("gratuito") ||
+                      account.plan?.toLowerCase().includes("gratuito");
+
+    if (isFreePlan) {
+      return json({ error: "Não é possível emitir cobrança para contas no plano Free." }, 400);
+    }
+
     let amount = Number(custom_amount ?? account.subscription_plans?.monthly_value ?? account.monthly_value);
     const planName = account.subscription_plans?.name ?? account.plan ?? "Mensalidade";
 
-    if (amount < 5) amount = 5;
     amount = Math.round(amount * 100) / 100;
 
     // Documento (CPF/CNPJ) obrigatório no Asaas: conta -> empresa cadastrada (master) -> fiscal
