@@ -10,11 +10,15 @@ import { ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, Info } from "lucide-r
 
 interface Log {
   id: string;
-  level: string;
-  message: string;
-  metadata: any;
+  action: string;
   created_at: string;
-  read: boolean;
+  details: any;
+  entity: string;
+  entity_id: string | null;
+  owner_id: string;
+  user_email: string;
+  user_id: string;
+  user_name: string;
 }
 
 export default function AdminLogsFaturas() {
@@ -27,32 +31,28 @@ export default function AdminLogsFaturas() {
     const { data, error } = await supabase
       .from("audit_logs")
       .select("*")
-      .eq("category", "faturamento")
+      .eq("entity", "subscription_invoice")
       .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) {
       toast.error("Erro ao carregar logs");
     } else {
-      setLogs(data || []);
-      // Marcar como lidos
-      const unreadIds = data?.filter(l => !l.read).map(l => l.id) || [];
-      if (unreadIds.length > 0) {
-        await supabase.from("audit_logs").update({ read: true }).in("id", unreadIds);
-      }
+      setLogs((data as Log[]) || []);
     }
     setLoading(false);
   };
 
   useEffect(() => { fetchLogs(); }, []);
 
-  const getLevelBadge = (level: string) => {
-    switch (level) {
-      case "error": return <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Erro</Badge>;
-      case "warning": return <Badge variant="secondary" className="bg-yellow-500 text-white gap-1"><AlertTriangle className="h-3 w-3" /> Aviso</Badge>;
-      case "success": return <Badge variant="default" className="bg-green-600 gap-1"><CheckCircle className="h-3 w-3" /> Sucesso</Badge>;
-      default: return <Badge variant="outline" className="gap-1"><Info className="h-3 w-3" /> Info</Badge>;
+  const getStatusBadge = (action: string) => {
+    if (action.includes("erro") || action.includes("error") || action.includes("falha")) {
+      return <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Erro</Badge>;
     }
+    if (action.includes("sucesso") || action.includes("success") || action.includes("criada")) {
+      return <Badge variant="default" className="bg-green-600 gap-1"><CheckCircle className="h-3 w-3" /> Sucesso</Badge>;
+    }
+    return <Badge variant="outline" className="gap-1"><Info className="h-3 w-3" /> Info</Badge>;
   };
 
   return (
@@ -75,8 +75,8 @@ export default function AdminLogsFaturas() {
             <TableHeader>
               <TableRow>
                 <TableHead>Data/Hora</TableHead>
-                <TableHead>Nível</TableHead>
-                <TableHead>Mensagem</TableHead>
+                <TableHead>Ação</TableHead>
+                <TableHead>Usuário</TableHead>
                 <TableHead>Detalhes</TableHead>
               </TableRow>
             </TableHeader>
@@ -90,10 +90,16 @@ export default function AdminLogsFaturas() {
                   <TableCell className="text-xs whitespace-nowrap">
                     {new Date(log.created_at).toLocaleString("pt-BR")}
                   </TableCell>
-                  <TableCell>{getLevelBadge(log.level)}</TableCell>
-                  <TableCell className="font-medium">{log.message}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-xs truncate">
-                    {JSON.stringify(log.metadata)}
+                  <TableCell>{getStatusBadge(log.action)}</TableCell>
+                  <TableCell className="text-xs">
+                    <div className="font-medium">{log.user_name}</div>
+                    <div className="text-muted-foreground">{log.user_email}</div>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-md">
+                    <div className="font-medium text-foreground mb-1">{log.action}</div>
+                    <pre className="whitespace-pre-wrap overflow-hidden">
+                      {JSON.stringify(log.details, null, 2)}
+                    </pre>
                   </TableCell>
                 </TableRow>
               ))}

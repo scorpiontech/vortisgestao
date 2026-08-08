@@ -449,7 +449,13 @@ export default function AdminDashboard() {
                     </TableCell>
                     <TableCell>
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Gerar cobrança" onClick={() => openCharge(account)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Gerar cobrança" 
+                          onClick={() => openCharge(account)}
+                          disabled={(plans.find(p => p.id === account.plan_id)?.name || account.plan || "").toLowerCase().includes("free") || (plans.find(p => p.id === account.plan_id)?.name || account.plan || "").toLowerCase().includes("gratuito")}
+                        >
                           <Receipt className="h-4 w-4 text-primary" />
                         </Button>
                         <Button variant="ghost" size="icon" title={account.blocked ? "Desbloquear" : "Bloquear"} onClick={() => toggleBlocked(account)}>
