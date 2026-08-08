@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
         due_date,
         status: "pending",
         asaas_id: payment.id,
-        payment_link: payment.invoiceUrl,
+        payment_link: payment.invoiceUrl || payment.bankSlipUrl || payment.pixCopyPaste,
         reference_month,
       })
       .select()
