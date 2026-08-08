@@ -78,8 +78,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     return <Navigate to="/cobrancas" replace state={{ blockedRedirect: true }} />;
   }
 
-  if (location.pathname === "/cobrancas-clientes" && isPro === false) {
-    return <Navigate to="/dashboard" replace />;
+  // Redirecionamento de upgrade para módulos Pro/Fiscais no plano Free
+  const proRoutes = ["/cobrancas-clientes", "/configuracoes-asaas", "/configuracoes-fiscais"];
+  if (proRoutes.includes(location.pathname) && isPro === false) {
+    return <Navigate to="/cobrancas" replace />;
   }
 
   return <>{children}</>;
