@@ -1495,6 +1495,7 @@ export type Database = {
       subscription_invoices: {
         Row: {
           amount: number
+          asaas_id: string | null
           client_account_id: string
           created_at: string
           due_date: string
@@ -1511,6 +1512,7 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          asaas_id?: string | null
           client_account_id: string
           created_at?: string
           due_date: string
@@ -1527,6 +1529,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          asaas_id?: string | null
           client_account_id?: string
           created_at?: string
           due_date?: string
