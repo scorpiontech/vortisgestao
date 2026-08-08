@@ -97,6 +97,37 @@ const Estoque = () => {
       toast({ title: "Erro", description: "Preencha nome e SKU", variant: "destructive" });
       return;
     }
+
+    // Check for duplicates if it's a new product or if name/sku changed
+    const isNew = !editProduct;
+    const nameChanged = editProduct && editProduct.name !== form.name;
+    const skuChanged = editProduct && editProduct.sku !== form.sku;
+
+    if (isNew || nameChanged || skuChanged) {
+      const { data: existingProducts, error: checkError } = await supabase
+        .from("products")
+        .select("id, name, sku")
+        .or(`name.eq."${form.name}",sku.eq."${form.sku}"`);
+
+      if (checkError) {
+        console.error("Erro ao verificar duplicatas:", checkError);
+      } else if (existingProducts && existingProducts.length > 0) {
+        // Filter out the current product if editing
+        const duplicates = isNew 
+          ? existingProducts 
+          : existingProducts.filter(p => p.id !== editProduct.id);
+
+        if (duplicates.length > 0) {
+          toast({
+            title: "Produto já existente",
+            description: "Já existe um produto com este nome ou SKU na base. Por favor, realize a atualização através de movimentação de estoque ou edite o produto existente.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
     const payload = {
       name: form.name,
       sku: form.sku,

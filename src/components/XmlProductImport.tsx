@@ -94,6 +94,33 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
     }
 
     setLoading(true);
+
+    // Check for duplicates before importing
+    const names = selected.map(p => p.name);
+    const skus = selected.map(p => p.sku).filter(sku => sku !== "");
+    
+    // Construct OR query for all names and skus
+    let query = supabase.from("products").select("name, sku");
+    
+    const filters = [];
+    if (names.length > 0) filters.push(`name.in.(${names.map(n => `"${n}"`).join(",")})`);
+    if (skus.length > 0) filters.push(`sku.in.(${skus.map(s => `"${s}"`).join(",")})`);
+    
+    if (filters.length > 0) {
+      const { data: existing } = await query.or(filters.join(","));
+      
+      if (existing && existing.length > 0) {
+        setLoading(false);
+        const duplicateNames = existing.map(e => e.name);
+        toast({ 
+          title: "Produtos repetidos encontrados", 
+          description: `Alguns produtos já existem na base (${duplicateNames.slice(0, 2).join(", ")}...). Por favor, realize a atualização por movimentação de estoque.`, 
+          variant: "destructive" 
+        });
+        return;
+      }
+    }
+
     const payload = selected.map((p) => ({
       name: p.name,
       sku: p.sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
