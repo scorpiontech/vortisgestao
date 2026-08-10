@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { asaasFetch } from "../_shared/asaas.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,21 +34,22 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const mpToken = Deno.env.get("MP_ACCESS_TOKEN");
-    if (!mpToken) {
-      return new Response(JSON.stringify({ error: "MP_ACCESS_TOKEN não configurado" }), {
+    const asaasKey = Deno.env.get("ASAAS_ADMIN_KEY");
+    if (!asaasKey) {
+      return new Response(JSON.stringify({ error: "ASAAS_ADMIN_KEY não configurado" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
-    const isTestToken = mpToken.startsWith("TEST-");
+    const settings = { api_key: asaasKey, ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox" };
 
     const { data: accounts, error: accErr } = await supabase
       .from("client_accounts")
-      .select("*, subscription_plans(id, name, monthly_value)")
+      .select("*, subscription_plans(id, name, monthly_value, tier)")
       .eq("status", "ativo")
-      .eq("blocked", false);
+      .eq("blocked", false)
+      .neq("subscription_plans.tier", "free");
 
     if (accErr) throw accErr;
 
@@ -57,6 +59,16 @@ Deno.serve(async (req) => {
     const summary = { generated: 0, skipped: 0, errors: [] as string[] };
 
     for (const acc of accounts || []) {
+      const isFree = acc.subscription_plans?.tier === "free" || 
+                     acc.plan?.toLowerCase().includes("free") ||
+                     acc.subscription_plans?.name?.toLowerCase().includes("free") ||
+                     acc.subscription_plans?.name?.toLowerCase().includes("gratuito");
+      
+      if (isFree) {
+        summary.skipped++;
+        continue;
+      }
+
       try {
         const dueDate = computeNextDueDate(acc.due_day || 10, today);
         const daysUntil = Math.floor((dueDate.getTime() - today.getTime()) / 86400000);
@@ -76,87 +88,72 @@ Deno.serve(async (req) => {
         if (existing) { summary.skipped++; continue; }
 
         let amount = Number(acc.subscription_plans?.monthly_value ?? acc.monthly_value);
-        if (amount < 5) amount = 5;
+        if (amount < 1) amount = 1;
         amount = Math.round(amount * 100) / 100;
 
         const planName = acc.subscription_plans?.name ?? acc.plan ?? "Mensalidade";
         const dueDateStr = dueDate.toISOString().slice(0, 10);
 
-        const preferencePayload = {
-          items: [{
-            id: String(acc.id).slice(0, 12),
-            title: `${planName} - ${refMonth}`.slice(0, 250),
-            description: `Mensalidade ${planName}`.slice(0, 250),
-            category_id: "services",
-            quantity: 1,
-            currency_id: "BRL",
-            unit_price: amount,
-          }],
-          external_reference: `${acc.id}|${refMonth}`,
-          notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
-          statement_descriptor: "VORTISGESTAO",
-          back_urls: {
-            success: "https://vortisgestao.lovable.app/cobrancas",
-            pending: "https://vortisgestao.lovable.app/cobrancas",
-            failure: "https://vortisgestao.lovable.app/cobrancas",
-          },
-          payment_methods: { installments: 12 },
-          binary_mode: false,
-        };
+        let document = acc.document || "";
+        if (!document) {
+          const { data: fSettings } = await supabase.from("fiscal_settings").select("cnpj").eq("owner_id", acc.user_id).maybeSingle();
+          if (fSettings?.cnpj) document = fSettings.cnpj;
+        }
+        document = document.replace(/\D/g, "");
 
-        let mpRes: Response;
-        let mpData: any;
+        if (!document || (document.length !== 11 && document.length !== 14)) {
+          summary.errors.push(`${acc.name}: sem documento válido`);
+          continue;
+        }
+
+        let asaasCustomerId: string | null = null;
         try {
-          mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+          const customers = await asaasFetch(settings, `/customers?email=${encodeURIComponent(acc.email)}&limit=1`);
+          const existing = customers?.data?.[0];
+          if (existing) {
+            asaasCustomerId = existing.id;
+          } else {
+            const created = await asaasFetch(settings, "/customers", {
+              method: "POST",
+              body: JSON.stringify({
+                name: acc.name,
+                email: acc.email,
+                cpfCnpj: document,
+                externalReference: acc.id,
+              }),
+            });
+            asaasCustomerId = created.id;
+          }
+
+          const payment = await asaasFetch(settings, "/payments", {
             method: "POST",
-            headers: {
-              "Authorization": `Bearer ${mpToken}`,
-              "Content-Type": "application/json",
-              "X-Idempotency-Key": `${acc.id}-${refMonth}-auto`,
-            },
-            body: JSON.stringify(preferencePayload),
+            body: JSON.stringify({
+              customer: asaasCustomerId,
+              billingType: "UNDEFINED",
+              dueDate: dueDateStr,
+              value: amount,
+              description: `${planName} - ${refMonth}`,
+              externalReference: acc.id,
+            }),
           });
-          mpData = await mpRes.json();
-        } catch (fetchErr) {
-          const msg = (fetchErr as Error).message;
-          console.error(`[gen] MP fetch failed acc=${acc.id} name=${acc.name}:`, msg);
+
+        } catch (asaasErr) {
+          const msg = (asaasErr as Error).message;
+          console.error(`[gen] Asaas error acc=${acc.id} name=${acc.name}:`, msg);
           await supabase.from("invoice_generation_logs").insert({
             client_account_id: acc.id,
             client_name: acc.name || "",
             reference_month: refMonth,
             amount,
             status: "error",
-            error_message: `Falha de rede ao contatar Mercado Pago: ${msg}`,
-            error_details: { stage: "mp_fetch", error: msg },
+            error_message: `Falha ao gerar cobrança no Asaas: ${msg}`,
+            error_details: { stage: "asaas_integration", error: msg },
             source: "auto",
           });
-          summary.errors.push(`${acc.name}: falha de rede`);
+          summary.errors.push(`${acc.name}: ${msg}`);
           continue;
         }
 
-        if (!mpRes.ok) {
-          const errMsg = mpData?.message || mpData?.error || `HTTP ${mpRes.status}`;
-          console.error(`[gen] MP error acc=${acc.id} name=${acc.name} status=${mpRes.status}:`, JSON.stringify(mpData));
-          await supabase.from("invoice_generation_logs").insert({
-            client_account_id: acc.id,
-            client_name: acc.name || "",
-            reference_month: refMonth,
-            amount,
-            status: "error",
-            error_message: `Mercado Pago rejeitou a criação da preferência: ${errMsg}`,
-            error_details: {
-              stage: "mp_create_preference",
-              http_status: mpRes.status,
-              mp_response: mpData,
-              mp_cause: mpData?.cause,
-            },
-            source: "auto",
-          });
-          summary.errors.push(`${acc.name}: ${errMsg}`);
-          continue;
-        }
-
-        const checkoutUrl = isTestToken ? mpData.sandbox_init_point : mpData.init_point;
 
         const { data: insertedInv, error: invErr } = await supabase.from("subscription_invoices").insert({
           client_account_id: acc.id,
@@ -164,8 +161,8 @@ Deno.serve(async (req) => {
           amount,
           due_date: dueDateStr,
           status: "pending",
-          mp_preference_id: mpData.id,
-          payment_link: checkoutUrl,
+          asaas_id: payment.id,
+          payment_link: payment.invoiceUrl || payment.bankSlipUrl || payment.pixCopyPaste,
           reference_month: refMonth,
         }).select().single();
 
@@ -177,8 +174,8 @@ Deno.serve(async (req) => {
             reference_month: refMonth,
             amount,
             status: "error",
-            error_message: `Preferência criada no MP, mas falhou ao salvar fatura: ${invErr.message}`,
-            error_details: { stage: "db_insert", mp_preference_id: mpData.id, db_error: invErr.message },
+            error_message: `Cobrança criada no Asaas, mas falhou ao salvar fatura: ${invErr.message}`,
+            error_details: { stage: "db_insert", asaas_id: payment.id, db_error: invErr.message },
             source: "auto",
           });
           summary.errors.push(`${acc.name}: ${invErr.message}`);
@@ -192,7 +189,7 @@ Deno.serve(async (req) => {
           amount,
           status: "success",
           error_message: "",
-          error_details: { mp_preference_id: mpData.id, due_date: dueDateStr },
+          error_details: { asaas_id: payment.id, due_date: dueDateStr },
           source: "auto",
           acknowledged: true,
         });

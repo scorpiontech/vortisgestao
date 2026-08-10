@@ -61,8 +61,9 @@ Deno.serve(async (req) => {
 
     if (accErr || !account) return json({ error: "Conta não encontrada" }, 404);
 
-    const isFreePlan = account.subscription_plans?.name?.toLowerCase().includes("free") || 
+    const isFreePlan = account.subscription_plans?.tier === "free" || 
                       account.plan?.toLowerCase().includes("free") ||
+                      account.subscription_plans?.name?.toLowerCase().includes("free") ||
                       account.subscription_plans?.name?.toLowerCase().includes("gratuito") ||
                       account.plan?.toLowerCase().includes("gratuito");
 
