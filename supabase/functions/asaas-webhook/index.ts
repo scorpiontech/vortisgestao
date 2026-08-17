@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
         error_message: errorMsg
       });
     } catch (logErr) {
-      console.error("[asaas-webhook] failed to log error:", logErr);
+      console.error("[asaas-webhook] falha ao logar erro:", logErr);
     }
 
     return json({ error: errorMsg }, 500);
