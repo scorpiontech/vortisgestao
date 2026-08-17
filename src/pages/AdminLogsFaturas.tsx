@@ -50,18 +50,18 @@ export default function AdminLogsFaturas() {
     if (invError) {
       toast.error("Erro ao carregar logs de geração");
     } else {
-      setInvoiceLogs(invData || []);
+      setInvoiceLogs((invData as any) || []);
     }
 
-    // Buscar logs de webhook
+    // Buscar logs de webhook - usando any para evitar erro de cache do schema no build
     const { data: whData, error: whError } = await supabase
-      .from("asaas_webhook_logs")
+      .from("asaas_webhook_logs" as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
 
     if (!whError) {
-      setWebhookLogs(whData || []);
+      setWebhookLogs((whData as any) || []);
     }
     
     setLoading(false);
