@@ -110,7 +110,18 @@ Deno.serve(async (req) => {
 
     return json({ received: true, ignored: event });
   } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : "Erro inesperado";
     console.error("[asaas-webhook]", e);
-    return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
+    
+    try {
+      await admin.from("asaas_webhook_logs").insert({
+        status: "error",
+        error_message: errorMsg
+      });
+    } catch (logErr) {
+      console.error("[asaas-webhook] failed to log error:", logErr);
+    }
+
+    return json({ error: errorMsg }, 500);
   }
 });
