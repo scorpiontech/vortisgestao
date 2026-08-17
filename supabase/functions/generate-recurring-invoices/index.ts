@@ -44,9 +44,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
     const settings = { api_key: asaasKey, ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox" };
 
+    // Refinamento SQL para buscar apenas planos pagantes (tier pro)
     const { data: accounts, error: accErr } = await supabase
       .from("client_accounts")
-      .select("*, subscription_plans(id, name, monthly_value, tier)")
+      .select("*, subscription_plans!inner(id, name, monthly_value, tier)")
       .eq("status", "ativo")
       .eq("blocked", false)
       .neq("subscription_plans.tier", "free");
