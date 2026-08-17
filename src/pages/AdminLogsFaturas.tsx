@@ -40,28 +40,32 @@ export default function AdminLogsFaturas() {
   const fetchData = async () => {
     setLoading(true);
     
-    // Buscar logs de geração
-    const { data: invData, error: invError } = await supabase
-      .from("invoice_generation_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
+    try {
+      // Buscar logs de geração
+      const { data: invData, error: invError } = await supabase
+        .from("invoice_generation_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (invError) {
-      toast.error("Erro ao carregar logs de geração");
-    } else {
-      setInvoiceLogs((invData as any) || []);
-    }
+      if (invError) {
+        toast.error("Erro ao carregar logs de geração");
+      } else {
+        setInvoiceLogs((invData as any) || []);
+      }
 
-    // Buscar logs de webhook - usando any para evitar erro de cache do schema no build
-    const { data: whData, error: whError } = await supabase
-      .from("asaas_webhook_logs" as any)
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
+      // Buscar logs de webhook - usando as any para evitar erro de cache do schema
+      const { data: whData, error: whError } = await supabase
+        .from("asaas_webhook_logs" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-    if (!whError) {
-      setWebhookLogs((whData as any) || []);
+      if (!whError) {
+        setWebhookLogs((whData as any) || []);
+      }
+    } catch (e) {
+      console.error("fetchData error:", e);
     }
     
     setLoading(false);
@@ -74,7 +78,7 @@ export default function AdminLogsFaturas() {
       case "success":
       case "received":
       case "processed":
-        return <Badge variant="default" className="bg-green-600 gap-1"><CheckCircle className="h-3 w-3" /> Sucesso</Badge>;
+        return <Badge variant="default" className="bg-green-600 gap-1 text-white hover:bg-green-700"><CheckCircle className="h-3 w-3" /> Sucesso</Badge>;
       case "error":
       case "failed":
         return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Erro</Badge>;
