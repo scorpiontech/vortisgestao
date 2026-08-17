@@ -16,6 +16,15 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const event: string = body?.event || "";
     const payment = body?.payment;
+    
+    // Log do webhook para auditoria
+    await admin.from("asaas_webhook_logs").insert({
+      event,
+      payment_id: payment?.id,
+      payload: body,
+      status: "received"
+    });
+
     if (!payment?.id) return json({ received: true, ignored: "no_payment" });
 
     console.log(`[asaas-webhook] event=${event} payment=${payment.id} status=${payment.status}`);
