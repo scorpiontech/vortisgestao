@@ -118,9 +118,10 @@ const Estoque = () => {
           : existingProducts.filter(p => p.id !== editProduct.id);
 
         if (duplicates.length > 0) {
+          const duplicate = duplicates[0];
           toast({
             title: "Produto já existente",
-            description: "Já existe um produto com este nome ou SKU na base. Por favor, realize a atualização através de movimentação de estoque ou edite o produto existente.",
+            description: `O produto "${duplicate.name}" (SKU: ${duplicate.sku}) já está cadastrado. Por favor, realize a atualização através de movimentação de estoque ou edite o item existente.`,
             variant: "destructive",
           });
           return;
