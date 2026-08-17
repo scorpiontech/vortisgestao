@@ -1,58 +1,86 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, Info, Webhook, FileText, XCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface Log {
+interface InvoiceLog {
   id: string;
-  action: string;
+  client_name: string;
+  reference_month: string;
+  amount: number;
+  status: string;
+  error_message: string;
+  error_details: any;
   created_at: string;
-  details: any;
-  entity: string;
-  entity_id: string | null;
-  owner_id: string;
-  user_email: string;
-  user_id: string;
-  user_name: string;
+  source: string;
+}
+
+interface WebhookLog {
+  id: string;
+  event: string;
+  payment_id: string;
+  payload: any;
+  status: string;
+  error_message: string;
+  created_at: string;
 }
 
 export default function AdminLogsFaturas() {
-  const [logs, setLogs] = useState<Log[]>([]);
+  const [invoiceLogs, setInvoiceLogs] = useState<InvoiceLog[]>([]);
+  const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchLogs = async () => {
+  const fetchData = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("audit_logs")
+    
+    // Buscar logs de geração
+    const { data: invData, error: invError } = await supabase
+      .from("invoice_generation_logs")
       .select("*")
-      .eq("entity", "subscription_invoice")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(50);
 
-    if (error) {
-      toast.error("Erro ao carregar logs");
+    if (invError) {
+      toast.error("Erro ao carregar logs de geração");
     } else {
-      setLogs((data as Log[]) || []);
+      setInvoiceLogs(invData || []);
     }
+
+    // Buscar logs de webhook
+    const { data: whData, error: whError } = await supabase
+      .from("asaas_webhook_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (!whError) {
+      setWebhookLogs(whData || []);
+    }
+    
     setLoading(false);
   };
 
-  useEffect(() => { fetchLogs(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  const getStatusBadge = (action: string) => {
-    if (action.includes("erro") || action.includes("error") || action.includes("falha")) {
-      return <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> Erro</Badge>;
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "success":
+      case "received":
+      case "processed":
+        return <Badge variant="default" className="bg-green-600 gap-1"><CheckCircle className="h-3 w-3" /> Sucesso</Badge>;
+      case "error":
+      case "failed":
+        return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Erro</Badge>;
+      default:
+        return <Badge variant="outline" className="gap-1"><Info className="h-3 w-3" /> {status}</Badge>;
     }
-    if (action.includes("sucesso") || action.includes("success") || action.includes("criada")) {
-      return <Badge variant="default" className="bg-green-600 gap-1"><CheckCircle className="h-3 w-3" /> Sucesso</Badge>;
-    }
-    return <Badge variant="outline" className="gap-1"><Info className="h-3 w-3" /> Info</Badge>;
   };
 
   return (
@@ -62,51 +90,114 @@ export default function AdminLogsFaturas() {
           <Button variant="ghost" size="icon" onClick={() => navigate("/admin/dashboard")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold">Logs de Faturamento</h1>
+          <h1 className="text-2xl font-bold">Status da Integração Asaas</h1>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchLogs}>
+        <Button variant="outline" size="sm" onClick={fetchData}>
           <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
         </Button>
       </header>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data/Hora</TableHead>
-                <TableHead>Ação</TableHead>
-                <TableHead>Usuário</TableHead>
-                <TableHead>Detalhes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8">Carregando...</TableCell></TableRow>
-              ) : logs.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhum log encontrado</TableCell></TableRow>
-              ) : logs.map(log => (
-                <TableRow key={log.id}>
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {new Date(log.created_at).toLocaleString("pt-BR")}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(log.action)}</TableCell>
-                  <TableCell className="text-xs">
-                    <div className="font-medium">{log.user_name}</div>
-                    <div className="text-muted-foreground">{log.user_email}</div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-md">
-                    <div className="font-medium text-foreground mb-1">{log.action}</div>
-                    <pre className="whitespace-pre-wrap overflow-hidden">
-                      {JSON.stringify(log.details, null, 2)}
-                    </pre>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="invoices" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="invoices" className="gap-2">
+            <FileText className="h-4 w-4" /> Geração de Faturas
+          </TabsTrigger>
+          <TabsTrigger value="webhooks" className="gap-2">
+            <Webhook className="h-4 w-4" /> Webhooks Recebidos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="invoices">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Geração</CardTitle>
+              <CardDescription>Tentativas de criação automática e manual de faturas via Asaas.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Detalhes/Erro</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8">Carregando...</TableCell></TableRow>
+                  ) : invoiceLogs.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum log encontrado</TableCell></TableRow>
+                  ) : invoiceLogs.map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {new Date(log.created_at).toLocaleString("pt-BR")}
+                      </TableCell>
+                      <TableCell className="text-xs font-medium">{log.client_name}</TableCell>
+                      <TableCell>{getStatusBadge(log.status)}</TableCell>
+                      <TableCell className="text-xs tabular-nums">
+                        {log.amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-md">
+                        {log.error_message && (
+                          <div className="text-destructive font-medium mb-1">{log.error_message}</div>
+                        )}
+                        <pre className="text-[10px] whitespace-pre-wrap overflow-hidden bg-muted/50 p-2 rounded">
+                          {JSON.stringify(log.error_details, null, 2)}
+                        </pre>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="webhooks">
+          <Card>
+            <CardHeader>
+              <CardTitle>Log de Webhooks</CardTitle>
+              <CardDescription>Eventos recebidos do Asaas (Pagamentos, Vencimentos, etc).</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Pagamento ID</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Payload</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8">Carregando...</TableCell></TableRow>
+                  ) : webhookLogs.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum webhook registrado</TableCell></TableRow>
+                  ) : webhookLogs.map(log => (
+                    <TableRow key={log.id}>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {new Date(log.created_at).toLocaleString("pt-BR")}
+                      </TableCell>
+                      <TableCell className="text-xs font-bold">{log.event}</TableCell>
+                      <TableCell className="text-xs font-mono">{log.payment_id}</TableCell>
+                      <TableCell>{getStatusBadge(log.status)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-md">
+                        <pre className="text-[10px] whitespace-pre-wrap overflow-hidden bg-muted/50 p-2 rounded">
+                          {JSON.stringify(log.payload, null, 2)}
+                        </pre>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
