@@ -44,9 +44,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
     const settings = { api_key: asaasKey, ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox" };
 
+    // Refinamento SQL para buscar apenas planos pagantes (tier pro)
     const { data: accounts, error: accErr } = await supabase
       .from("client_accounts")
-      .select("*, subscription_plans(id, name, monthly_value, tier)")
+      .select("*, subscription_plans!inner(id, name, monthly_value, tier)")
       .eq("status", "ativo")
       .eq("blocked", false)
       .neq("subscription_plans.tier", "free");
@@ -87,8 +88,15 @@ Deno.serve(async (req) => {
 
         if (existing) { summary.skipped++; continue; }
 
+        // Validação estrita: Bloquear valores padrão/suspeitos para planos Free que escaparam do filtro SQL
         let amount = Number(acc.subscription_plans?.monthly_value ?? acc.monthly_value);
-        if (amount < 1) amount = 1;
+        
+        if (amount <= 0 || amount === 5.00 || amount === 59.90 || amount === 99.90) {
+          console.warn(`[gen] Bloqueando emissão de valor suspeito/padrão (${amount}) para conta ${acc.id}`);
+          summary.skipped++;
+          continue;
+        }
+
         amount = Math.round(amount * 100) / 100;
 
         const planName = acc.subscription_plans?.name ?? acc.plan ?? "Mensalidade";

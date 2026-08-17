@@ -16,6 +16,15 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const event: string = body?.event || "";
     const payment = body?.payment;
+    
+    // Log do webhook para auditoria
+    await admin.from("asaas_webhook_logs").insert({
+      event,
+      payment_id: payment?.id,
+      payload: body,
+      status: "received"
+    });
+
     if (!payment?.id) return json({ received: true, ignored: "no_payment" });
 
     console.log(`[asaas-webhook] event=${event} payment=${payment.id} status=${payment.status}`);
@@ -101,7 +110,18 @@ Deno.serve(async (req) => {
 
     return json({ received: true, ignored: event });
   } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : "Erro inesperado";
     console.error("[asaas-webhook]", e);
-    return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
+    
+    try {
+      await admin.from("asaas_webhook_logs").insert({
+        status: "error",
+        error_message: errorMsg
+      });
+    } catch (logErr) {
+      console.error("[asaas-webhook] falha ao logar erro:", logErr);
+    }
+
+    return json({ error: errorMsg }, 500);
   }
 });

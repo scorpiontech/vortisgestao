@@ -50,6 +50,36 @@ export type Database = {
         }
         Relationships: []
       }
+      asaas_webhook_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event: string | null
+          id: string
+          payload: Json | null
+          payment_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event?: string | null
+          id?: string
+          payload?: Json | null
+          payment_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event?: string | null
+          id?: string
+          payload?: Json | null
+          payment_id?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
