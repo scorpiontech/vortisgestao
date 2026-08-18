@@ -7,6 +7,8 @@ import { FileUp, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { generateProductBarcode } from "@/lib/barcodeGenerator";
+
 
 interface ParsedProduct {
   name: string;
@@ -124,7 +126,7 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
     if (newItems.length > 0) {
       const payload = newItems.map((p) => ({
         name: p.name,
-        sku: p.sku || `SKU-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        sku: p.sku || generateProductBarcode(),
         price: p.price,
         cost: p.cost,
         unit: p.unit,

@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Barcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { NcmSearch } from "@/components/NcmSearch";
+import { generateProductBarcode } from "@/lib/barcodeGenerator";
+
 
 interface Product {
   id: string;
@@ -93,21 +95,25 @@ const Estoque = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.sku) {
-      toast({ title: "Erro", description: "Preencha nome e SKU", variant: "destructive" });
+    if (!form.name) {
+      toast({ title: "Erro", description: "Preencha o nome do produto", variant: "destructive" });
       return;
     }
+
+    const finalSku = form.sku || generateProductBarcode();
+
 
     // Check for duplicates if it's a new product or if name/sku changed
     const isNew = !editProduct;
     const nameChanged = editProduct && editProduct.name !== form.name;
-    const skuChanged = editProduct && editProduct.sku !== form.sku;
+    const skuChanged = editProduct && editProduct.sku !== finalSku;
+
 
     if (isNew || nameChanged || skuChanged) {
       const { data: existingProducts, error: checkError } = await supabase
         .from("products")
         .select("id, name, sku")
-        .or(`name.eq."${form.name}",sku.eq."${form.sku}"`);
+        .or(`name.eq."${form.name}",sku.eq."${finalSku}"`);
 
       if (checkError) {
         console.error("Erro ao verificar duplicatas:", checkError);
@@ -131,7 +137,8 @@ const Estoque = () => {
 
     const payload = {
       name: form.name,
-      sku: form.sku,
+      sku: finalSku,
+
       category: form.category,
       price: Number(form.price) || 0,
       cost: Number(form.cost) || 0,
@@ -214,7 +221,22 @@ const Estoque = () => {
             <div className="grid gap-3.5 sm:gap-4 py-1 sm:py-2">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">Nome</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="space-y-1.5 min-w-0"><Label className="text-xs sm:text-sm">SKU</Label><Input className="h-11 sm:h-10 text-base sm:text-sm" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} /></div>
+                <div className="space-y-1.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-xs sm:text-sm">SKU / Cód. Barras</Label>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6" 
+                      onClick={() => setForm({ ...form, sku: generateProductBarcode() })}
+                      title="Gerar código automaticamente"
+                    >
+                      <Barcode className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Input className="h-11 sm:h-10 text-base sm:text-sm" placeholder="Opcional - gerado se vazio" value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} />
+                </div>
+
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1.5 min-w-0">
