@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Barcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { NcmSearch } from "@/components/NcmSearch";
+import { generateProductBarcode } from "@/lib/barcodeGenerator";
+
 
 interface Product {
   id: string;
@@ -93,10 +95,13 @@ const Estoque = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.sku) {
-      toast({ title: "Erro", description: "Preencha nome e SKU", variant: "destructive" });
+    if (!form.name) {
+      toast({ title: "Erro", description: "Preencha o nome do produto", variant: "destructive" });
       return;
     }
+
+    const finalSku = form.sku || generateProductBarcode();
+
 
     // Check for duplicates if it's a new product or if name/sku changed
     const isNew = !editProduct;
