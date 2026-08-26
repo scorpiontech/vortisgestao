@@ -277,6 +277,22 @@ const Etiquetas = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label>Modo de impressão</Label>
+                <Select value={printMode} onValueChange={(v) => setPrintMode(v as PrintMode)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="screen">Tela de impressão (escolher impressora)</SelectItem>
+                    <SelectItem value="direct">Abrir diálogo de impressão direto</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Na tela de impressão você confere as etiquetas e clica em imprimir para selecionar a impressora no
+                  diálogo do navegador.
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <Checkbox id="show-name" checked={showName} onCheckedChange={(v) => setShowName(Boolean(v))} />
                 <Label htmlFor="show-name">Exibir nome do produto</Label>
