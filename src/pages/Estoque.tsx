@@ -198,6 +198,37 @@ const Estoque = () => {
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  const exportToExcel = () => {
+    if (products.length === 0) {
+      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
+      return;
+    }
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
+    const rows = filtered.map((p) => ({
+      "Nome": p.name,
+      "SKU / Código de Barras": p.sku,
+      "Categoria": p.category,
+      "Preço Venda": p.price,
+      "Custo": p.cost,
+      "Estoque Atual": p.stock,
+      "Estoque Mínimo": p.min_stock,
+      "Unidade": p.unit,
+      "Fornecedor": p.supplier_id ? supplierMap.get(p.supplier_id) || "" : "",
+      "NCM": p.ncm || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows, {
+      header: ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"],
+    });
+    ws["!cols"] = [
+      { wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
+      { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+    XLSX.writeFile(wb, "estoque-produtos.xlsx");
+    toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
