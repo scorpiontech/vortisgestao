@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2, Barcode } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Barcode, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
@@ -197,6 +198,37 @@ const Estoque = () => {
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  const exportToExcel = () => {
+    if (products.length === 0) {
+      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
+      return;
+    }
+    const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
+    const rows = filtered.map((p) => ({
+      "Nome": p.name,
+      "SKU / Código de Barras": p.sku,
+      "Categoria": p.category,
+      "Preço Venda": p.price,
+      "Custo": p.cost,
+      "Estoque Atual": p.stock,
+      "Estoque Mínimo": p.min_stock,
+      "Unidade": p.unit,
+      "Fornecedor": p.supplier_id ? supplierMap.get(p.supplier_id) || "" : "",
+      "NCM": p.ncm || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows, {
+      header: ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"],
+    });
+    ws["!cols"] = [
+      { wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
+      { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+    XLSX.writeFile(wb, "estoque-produtos.xlsx");
+    toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
@@ -210,6 +242,9 @@ const Estoque = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>*]:w-full sm:[&>*]:w-auto">
             <XmlProductImport onImported={fetchProducts} />
             <ExcelProductImport onImported={fetchProducts} />
+            <Button variant="outline" onClick={exportToExcel} className="w-full sm:w-auto h-11 sm:h-10">
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
             <DialogTrigger asChild>
               <Button onClick={openNew} className="w-full sm:w-auto h-11 sm:h-10">
                 <Plus className="h-4 w-4 mr-2" />Novo Produto
