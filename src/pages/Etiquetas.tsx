@@ -23,6 +23,7 @@ interface Product {
 }
 
 type LayoutType = "a4" | "thermal";
+type PrintMode = "screen" | "direct";
 
 const currency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -34,6 +35,7 @@ const Etiquetas = () => {
   const [search, setSearch] = useState("");
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [layout, setLayout] = useState<LayoutType>("a4");
+  const [printMode, setPrintMode] = useState<PrintMode>("screen");
   const [showName, setShowName] = useState(true);
   const [showPrice, setShowPrice] = useState(true);
   const [companyName, setCompanyName] = useState("");
@@ -151,14 +153,39 @@ const Etiquetas = () => {
       toast.error("Permita pop-ups para imprimir as etiquetas");
       return;
     }
+
+    const toolbarCss = `
+      .toolbar { position: sticky; top: 0; display: flex; gap: 8px; align-items: center; justify-content: center;
+        background: #111827; color: #fff; padding: 10px; font-family: Arial, Helvetica, sans-serif; font-size: 13px; }
+      .toolbar button { font: inherit; padding: 6px 14px; border-radius: 6px; border: 0; cursor: pointer; }
+      .toolbar .primary { background: #2563eb; color: #fff; }
+      .toolbar .ghost { background: transparent; color: #fff; border: 1px solid #4b5563; }
+      @media print { .toolbar { display: none !important; } }`;
+
+    const toolbarHtml =
+      printMode === "screen"
+        ? `<div class="toolbar">
+             <span>${labelList.length} etiqueta(s) · ${isThermal ? "Térmica 80mm" : "A4"}</span>
+             <button class="primary" onclick="window.print()">Escolher impressora e imprimir</button>
+             <button class="ghost" onclick="window.close()">Fechar</button>
+           </div>`
+        : "";
+
+    const autoPrint =
+      printMode === "direct"
+        ? `<script>window.onload = function(){ window.focus(); window.print(); };<\/script>`
+        : "";
+
     win.document.write(`<!doctype html><html><head><meta charset="utf-8" />
-      <title>Etiquetas de Produtos</title><style>${css}</style></head>
+      <title>Etiquetas de Produtos</title><style>${css}${toolbarCss}</style></head>
       <body>
+        ${toolbarHtml}
         <div class="header">${companyName || "Vortis Gestão"}</div>
         <div class="sheet">${labelsHtml}</div>
-        <script>window.onload = function(){ window.focus(); window.print(); };<\/script>
+        ${autoPrint}
       </body></html>`);
     win.document.close();
+    win.focus();
   };
 
   if (loading)
@@ -276,6 +303,22 @@ const Etiquetas = () => {
                     <SelectItem value="thermal">Térmica 80mm (72mm útil)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Modo de impressão</Label>
+                <Select value={printMode} onValueChange={(v) => setPrintMode(v as PrintMode)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="screen">Tela de impressão (escolher impressora)</SelectItem>
+                    <SelectItem value="direct">Abrir diálogo de impressão direto</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Na tela de impressão você confere as etiquetas e clica em imprimir para selecionar a impressora no
+                  diálogo do navegador.
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <Checkbox id="show-name" checked={showName} onCheckedChange={(v) => setShowName(Boolean(v))} />
