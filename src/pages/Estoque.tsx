@@ -242,6 +242,9 @@ const Estoque = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>*]:w-full sm:[&>*]:w-auto">
             <XmlProductImport onImported={fetchProducts} />
             <ExcelProductImport onImported={fetchProducts} />
+            <Button variant="outline" onClick={exportToExcel} className="w-full sm:w-auto h-11 sm:h-10">
+              <Download className="h-4 w-4 mr-2" />Exportar Excel
+            </Button>
             <DialogTrigger asChild>
               <Button onClick={openNew} className="w-full sm:w-auto h-11 sm:h-10">
                 <Plus className="h-4 w-4 mr-2" />Novo Produto
