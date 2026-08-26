@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
+import { ExcelProductImport } from "@/components/ExcelProductImport";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { NcmSearch } from "@/components/NcmSearch";
 import { generateProductBarcode } from "@/lib/barcodeGenerator";
@@ -208,6 +209,7 @@ const Estoque = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>*]:w-full sm:[&>*]:w-auto">
             <XmlProductImport onImported={fetchProducts} />
+            <ExcelProductImport onImported={fetchProducts} />
             <DialogTrigger asChild>
               <Button onClick={openNew} className="w-full sm:w-auto h-11 sm:h-10">
                 <Plus className="h-4 w-4 mr-2" />Novo Produto
