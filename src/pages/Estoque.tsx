@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { motion } from "framer-motion";
 import { XmlProductImport } from "@/components/XmlProductImport";
+import { ExcelProductImport } from "@/components/ExcelProductImport";
 import { PricingCalculator } from "@/components/PricingCalculator";
 import { NcmSearch } from "@/components/NcmSearch";
 import { generateProductBarcode } from "@/lib/barcodeGenerator";
