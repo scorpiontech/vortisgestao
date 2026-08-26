@@ -149,11 +149,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     // Resolve supplier names -> ids
     const supplierNames = Array.from(new Set(selected.map((p) => p.supplier_name).filter(Boolean)));
-    let supplierMap: Record<string, string> = {};
-    if (supplierNames.length > 0) {
-      const { data: supData } = await supabase.from("suppliers").select("id, name").ilike.in?.("name", supplierNames) ?? {};
-      // Fallback: fetch all and match in JS (ilike.in not always supported)
-    }
+    const supplierMap: Record<string, string> = {};
     if (supplierNames.length > 0) {
       const { data: supData } = await supabase.from("suppliers").select("id, name");
       (supData || []).forEach((s: any) => {
