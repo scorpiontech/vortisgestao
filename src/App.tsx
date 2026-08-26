@@ -28,6 +28,7 @@ import ContasReceber from "./pages/ContasReceber";
 import Usuarios from "./pages/Usuarios";
 import Auditoria from "./pages/Auditoria";
 import LogsLeituras from "./pages/LogsLeituras";
+import Etiquetas from "./pages/Etiquetas";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminPlanos from "./pages/AdminPlanos";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/estoque" element={<Estoque />} />
               <Route path="/movimentacao-estoque" element={<MovimentacaoEstoque />} />
+              <Route path="/etiquetas" element={<Etiquetas />} />
               <Route path="/categorias" element={<Categorias />} />
               <Route path="/unidades" element={<Unidades />} />
               <Route path="/financeiro" element={<Financeiro />} />

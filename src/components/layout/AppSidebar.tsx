@@ -22,6 +22,7 @@ import {
   FileText,
   LifeBuoy,
   Wallet,
+  Tags as TagsIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -60,6 +61,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Estoque", url: "/estoque", icon: Package, children: [
     { title: "Movimentação de Estoque", url: "/movimentacao-estoque", icon: ArrowLeftRight },
     { title: "Categorias", url: "/categorias", icon: Tags, masterOnly: true },
+    { title: "Etiquetas de Produtos", url: "/etiquetas", icon: TagsIcon },
     { title: "Unidades de Medida", url: "/unidades", icon: Ruler, masterOnly: true },
   ]},
   { title: "Financeiro", url: "/financeiro", icon: DollarSign, children: [
