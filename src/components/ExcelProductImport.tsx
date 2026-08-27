@@ -137,11 +137,18 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       })
       .filter((p): p is ParsedProduct => p !== null);
 
-    // Consolida linhas repetidas dentro da própria planilha (mesmo SKU ou mesmo nome)
+    // Consolida linhas repetidas dentro da própria planilha
+    // (mesmo SKU, ou mesmo nome E mesmo fabricante — nomes iguais de fabricantes
+    // diferentes são produtos distintos e devem ser importados separadamente)
+    const identity = (p: ParsedProduct) =>
+      p.sku
+        ? `sku:${p.sku}`
+        : `nm:${p.name.trim().toLowerCase()}|fab:${p.manufacturer.trim().toLowerCase()}`;
+
     const map = new Map<string, ParsedProduct>();
     let merged = 0;
     for (const p of parsed) {
-      const key = p.sku ? `sku:${p.sku}` : `name:${p.name.toLowerCase()}`;
+      const key = identity(p);
       const prev = map.get(key);
       if (prev) {
         merged++;
@@ -158,23 +165,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       }
     }
 
-    // Segunda passada: nomes repetidos com SKUs diferentes também violam a unicidade por nome
-    const byName = new Map<string, ParsedProduct>();
-    for (const p of map.values()) {
-      const key = p.name.toLowerCase();
-      const prev = byName.get(key);
-      if (prev) {
-        merged++;
-        prev.stock += p.stock;
-        prev.min_stock = Math.max(prev.min_stock, p.min_stock);
-        if (p.price) prev.price = p.price;
-        if (p.cost) prev.cost = p.cost;
-      } else {
-        byName.set(key, p);
-      }
-    }
-
-    return { products: Array.from(byName.values()), merged };
+    return { products: Array.from(map.values()), merged };
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
