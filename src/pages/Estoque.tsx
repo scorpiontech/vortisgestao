@@ -255,9 +255,15 @@ const Estoque = () => {
       "Fornecedor": p.supplier_id ? supplierMap.get(p.supplier_id) || "" : "",
       "NCM": p.ncm || "",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows, {
-      header: ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"],
-    });
+  };
+
+  const exportToExcel = (scope: "filtered" | "page" = "filtered") => {
+    const rows = buildExportRows(scope);
+    if (rows.length === 0) {
+      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(rows, { header: EXPORT_HEADER });
     ws["!cols"] = [
       { wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
       { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 },
@@ -265,6 +271,26 @@ const Estoque = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
     XLSX.writeFile(wb, "estoque-produtos.xlsx");
+    toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
+  };
+
+  const exportToCsv = (scope: "filtered" | "page" = "filtered") => {
+    const rows = buildExportRows(scope);
+    if (rows.length === 0) {
+      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
+      return;
+    }
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [
+      EXPORT_HEADER.map(esc).join(";"),
+      ...rows.map(r => EXPORT_HEADER.map(h => esc((r as Record<string, unknown>)[h])).join(";")),
+    ].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "estoque-produtos.csv";
+    a.click();
+    URL.revokeObjectURL(url);
     toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
   };
 
