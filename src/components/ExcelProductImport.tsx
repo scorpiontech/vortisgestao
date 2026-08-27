@@ -284,12 +284,13 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
         return code;
       };
       const skuCache = new Map<string, string>();
-      const skuFor = (p: { name: string; sku: string }) => {
+      const skuFor = (p: { name: string; sku: string; manufacturer: string }) => {
         if (p.sku) return p.sku;
-        const cached = skuCache.get(p.name);
+        const key = `${norm(p.name)}|${norm(p.manufacturer)}`;
+        const cached = skuCache.get(key);
         if (cached) return cached;
         const code = nextSku();
-        skuCache.set(p.name, code);
+        skuCache.set(key, code);
         return code;
       };
 
