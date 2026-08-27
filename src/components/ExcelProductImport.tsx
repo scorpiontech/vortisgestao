@@ -224,7 +224,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     const supplierNames = Array.from(new Set(selected.map((p) => p.supplier_name).filter(Boolean)));
     const supplierMap: Record<string, string> = {};
     if (supplierNames.length > 0) {
-      const { data: supData } = await supabase.from("suppliers").select("id, name");
+      const { data: supData } = await supabase.from("suppliers").select("id, name").eq("user_id", effectiveUserId);
       (supData || []).forEach((s: any) => {
         supplierMap[s.name.trim().toLowerCase()] = s.id;
       });
@@ -247,14 +247,23 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     const existingMap = new Map<string, any>();
     for (const part of chunk(names, 100)) {
-      const { data } = await supabase.from("products").select("id, name, sku, stock").in("name", part);
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, stock")
+        .eq("user_id", effectiveUserId)
+        .in("name", part);
       (data || []).forEach((r) => existingMap.set(r.id, r));
     }
     for (const part of chunk(skus, 100)) {
-      const { data } = await supabase.from("products").select("id, name, sku, stock").in("sku", part);
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, stock")
+        .eq("user_id", effectiveUserId)
+        .in("sku", part);
       (data || []).forEach((r) => existingMap.set(r.id, r));
     }
     const existing = Array.from(existingMap.values());
+    const existingSkus = new Set(existing.map((e) => e.sku).filter(Boolean));
 
 
     const duplicates = withSupplier.filter((p) =>
