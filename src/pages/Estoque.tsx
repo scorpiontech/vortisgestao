@@ -295,6 +295,18 @@ const Estoque = () => {
     toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
   };
 
+  const SortHeader = ({ label, k, align = "left" }: { label: string; k: typeof sortKey; align?: "left" | "right" }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(k)}
+      className={`flex items-center gap-1 hover:text-foreground transition-colors ${align === "right" ? "ml-auto" : ""}`}
+    >
+      {label}
+      <ArrowUpDown className={`h-3.5 w-3.5 ${sortKey === k ? "text-primary" : "opacity-40"}`} />
+      {sortKey === k && <span className="text-[10px] text-primary">{sortDir === "asc" ? "A-Z" : "Z-A"}</span>}
+    </button>
+  );
+
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
