@@ -313,7 +313,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
           })
           .eq("id", dbItem.id);
         if (!error) updatedCount++;
-        else rejectedDetails.push({ product: dup.name, error: "Erro ao atualizar estoque", message: error.message });
+        else rejectedDetails.push({ product: dup.name, message: `Erro ao atualizar estoque: ${error.message}` });
       }
     }
 
