@@ -224,7 +224,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     const supplierNames = Array.from(new Set(selected.map((p) => p.supplier_name).filter(Boolean)));
     const supplierMap: Record<string, string> = {};
     if (supplierNames.length > 0) {
-      const { data: supData } = await supabase.from("suppliers").select("id, name");
+      const { data: supData } = await supabase.from("suppliers").select("id, name").eq("user_id", effectiveUserId);
       (supData || []).forEach((s: any) => {
         supplierMap[s.name.trim().toLowerCase()] = s.id;
       });
@@ -247,14 +247,23 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     const existingMap = new Map<string, any>();
     for (const part of chunk(names, 100)) {
-      const { data } = await supabase.from("products").select("id, name, sku, stock").in("name", part);
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, stock")
+        .eq("user_id", effectiveUserId)
+        .in("name", part);
       (data || []).forEach((r) => existingMap.set(r.id, r));
     }
     for (const part of chunk(skus, 100)) {
-      const { data } = await supabase.from("products").select("id, name, sku, stock").in("sku", part);
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, sku, stock")
+        .eq("user_id", effectiveUserId)
+        .in("sku", part);
       (data || []).forEach((r) => existingMap.set(r.id, r));
     }
     const existing = Array.from(existingMap.values());
+    const existingSkus = new Set(existing.map((e) => e.sku).filter(Boolean));
 
 
     const duplicates = withSupplier.filter((p) =>
@@ -270,9 +279,31 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     // 1. Insert new items — em lotes, com fallback item a item
     if (newItems.length > 0) {
+      const usedSkus = new Set(existingSkus);
+      newItems.forEach((p) => p.sku && usedSkus.add(p.sku));
+      const nextSku = () => {
+        let code = generateProductBarcode();
+        let guard = 0;
+        while (usedSkus.has(code) && guard < 20) {
+          code = generateProductBarcode();
+          guard++;
+        }
+        usedSkus.add(code);
+        return code;
+      };
+      const skuCache = new Map<string, string>();
+      const skuFor = (p: { name: string; sku: string }) => {
+        if (p.sku) return p.sku;
+        const cached = skuCache.get(p.name);
+        if (cached) return cached;
+        const code = nextSku();
+        skuCache.set(p.name, code);
+        return code;
+      };
+
       const toPayload = (p: typeof newItems[number]) => ({
         name: p.name,
-        sku: p.sku || generateProductBarcode(),
+        sku: skuFor(p),
         price: p.price,
         cost: p.cost,
         unit: p.unit,
@@ -309,7 +340,10 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
           .from("products")
           .update({
             stock: (dbItem.stock || 0) + dup.stock,
-            cost: dup.cost || undefined,
+            ...(dup.cost ? { cost: dup.cost } : {}),
+            ...(dup.price ? { price: dup.price } : {}),
+            ...(dup.manufacturer ? { manufacturer: dup.manufacturer } : {}),
+            ...(dup.ncm ? { ncm: dup.ncm } : {}),
           })
           .eq("id", dbItem.id);
         if (!error) updatedCount++;
