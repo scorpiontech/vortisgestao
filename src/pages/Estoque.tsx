@@ -426,9 +426,48 @@ const Estoque = () => {
 
       </div>
 
-      <div className="relative w-full sm:max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou SKU..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-11 sm:h-10 text-base sm:text-sm" />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-3">
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome ou código (SKU)..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-11 sm:h-10 text-base sm:text-sm" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:w-auto">
+          <div className="space-y-1 col-span-2 sm:col-span-1">
+            <Label className="text-xs text-muted-foreground">Categoria</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-11 sm:h-10 text-sm min-w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 col-span-2 sm:col-span-1">
+            <Label className="text-xs text-muted-foreground">Situação</Label>
+            <Select value={statusFilter} onValueChange={v => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="h-11 sm:h-10 text-sm min-w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Ativos (com estoque)</SelectItem>
+                <SelectItem value="inactive">Inativos (sem estoque)</SelectItem>
+                <SelectItem value="low">Abaixo do mínimo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Qtd. mín.</Label>
+            <Input type="number" inputMode="numeric" placeholder="0" value={minQty} onChange={e => setMinQty(e.target.value)} className="h-11 sm:h-10 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Qtd. máx.</Label>
+            <Input type="number" inputMode="numeric" placeholder="—" value={maxQty} onChange={e => setMaxQty(e.target.value)} className="h-11 sm:h-10 text-sm" />
+          </div>
+        </div>
+        {(search || categoryFilter !== "__all__" || statusFilter !== "all" || minQty || maxQty) && (
+          <Button variant="ghost" className="h-11 sm:h-10 lg:self-end" onClick={() => { setSearch(""); setCategoryFilter("__all__"); setStatusFilter("all"); setMinQty(""); setMaxQty(""); }}>
+            Limpar filtros
+          </Button>
+        )}
       </div>
 
 
@@ -437,12 +476,12 @@ const Estoque = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Produto</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">SKU</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Categoria</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground"><SortHeader label="Produto" k="name" /></th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell"><SortHeader label="SKU" k="sku" /></th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell"><SortHeader label="Categoria" k="category" /></th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Fornecedor</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Preço</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Estoque</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground"><SortHeader label="Preço" k="price" align="right" /></th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground"><SortHeader label="Estoque" k="stock" align="right" /></th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
