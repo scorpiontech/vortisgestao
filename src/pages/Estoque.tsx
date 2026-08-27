@@ -238,13 +238,12 @@ const Estoque = () => {
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const exportToExcel = () => {
-    if (products.length === 0) {
-      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
-      return;
-    }
+  const EXPORT_HEADER = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"];
+
+  const buildExportRows = (scope: "filtered" | "page") => {
     const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
-    const rows = filtered.map((p) => ({
+    const source = scope === "page" ? paginated : filtered;
+    return source.map((p) => ({
       "Nome": p.name,
       "SKU / Código de Barras": p.sku,
       "Categoria": p.category,
