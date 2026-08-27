@@ -25,9 +25,34 @@ interface ParsedProduct {
   selected: boolean;
 }
 
+const TEMPLATE_HEADERS = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"];
+
+function downloadTemplate() {
+  const ws = XLSX.utils.json_to_sheet(
+    [{
+      "Nome": "Produto Exemplo",
+      "SKU / Código de Barras": "",
+      "Categoria": "Geral",
+      "Preço Venda": 12.9,
+      "Custo": 8.5,
+      "Estoque Atual": 10,
+      "Estoque Mínimo": 2,
+      "Unidade": "un",
+      "Fornecedor": "",
+      "NCM": "",
+    }],
+    { header: TEMPLATE_HEADERS }
+  );
+  ws["!cols"] = [{ wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+  XLSX.writeFile(wb, "modelo-importacao-produtos.xlsx");
+}
+
 interface ExcelProductImportProps {
   onImported: () => void;
 }
+
 
 const HEADER_KEYS: Record<string, keyof ParsedProduct> = {
   nome: "name",
@@ -264,8 +289,9 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
             <Input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} />
             <p className="text-xs text-muted-foreground">
               Colunas: Nome (obrigatório), SKU, Categoria, Preço Venda, Custo, Estoque Atual, Estoque Mínimo, Unidade, Fornecedor, NCM.
-              Baixe o <a className="text-primary underline" href="/documents/modelo-importacao-produtos.xlsx" target="_blank" rel="noopener noreferrer">modelo</a>.
+              Baixe o <button type="button" className="text-primary underline" onClick={downloadTemplate}>modelo</button>.
             </p>
+
           </div>
 
           {products.length > 0 && (
