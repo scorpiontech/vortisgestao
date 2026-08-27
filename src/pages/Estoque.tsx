@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2, Barcode, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Search, Edit2, Trash2, Barcode, Download, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
@@ -79,18 +80,50 @@ const Estoque = () => {
     supabase.from("units").select("id, name, abbreviation").order("name").then(({ data }) => setUnits(data || []));
   }, []);
 
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku.toLowerCase().includes(search.toLowerCase())
-  );
+  const [categoryFilter, setCategoryFilter] = useState("__all__");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "low">("all");
+  const [minQty, setMinQty] = useState("");
+  const [maxQty, setMaxQty] = useState("");
+  const [sortKey, setSortKey] = useState<"sku" | "name" | "category" | "price" | "stock">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const filtered = products
+    .filter(p => {
+      const term = search.trim().toLowerCase();
+      if (term && !p.name.toLowerCase().includes(term) && !p.sku.toLowerCase().includes(term)) return false;
+      if (categoryFilter !== "__all__" && (p.category || "") !== categoryFilter) return false;
+      if (statusFilter === "active" && p.stock <= 0) return false;
+      if (statusFilter === "inactive" && p.stock > 0) return false;
+      if (statusFilter === "low" && !(p.stock <= p.min_stock)) return false;
+      if (minQty !== "" && p.stock < Number(minQty)) return false;
+      if (maxQty !== "" && p.stock > Number(maxQty)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av ?? "").localeCompare(String(bv ?? ""), "pt-BR") * dir;
+    });
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+    setPage(1);
+  };
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(() => {
+    const stored = Number(localStorage.getItem("estoque:pageSize"));
+    return [10, 25, 50, 100].includes(stored) ? stored : 25;
+  });
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  useEffect(() => { setPage(1); }, [search, pageSize]);
+  useEffect(() => { localStorage.setItem("estoque:pageSize", String(pageSize)); }, [pageSize]);
+  useEffect(() => { setPage(1); }, [search, pageSize, categoryFilter, statusFilter, minQty, maxQty]);
 
   const openNew = () => {
     setEditProduct(null);
@@ -206,13 +239,12 @@ const Estoque = () => {
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const exportToExcel = () => {
-    if (products.length === 0) {
-      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
-      return;
-    }
+  const EXPORT_HEADER = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"];
+
+  const buildExportRows = (scope: "filtered" | "page") => {
     const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
-    const rows = filtered.map((p) => ({
+    const source = scope === "page" ? paginated : filtered;
+    return source.map((p) => ({
       "Nome": p.name,
       "SKU / Código de Barras": p.sku,
       "Categoria": p.category,
@@ -224,9 +256,15 @@ const Estoque = () => {
       "Fornecedor": p.supplier_id ? supplierMap.get(p.supplier_id) || "" : "",
       "NCM": p.ncm || "",
     }));
-    const ws = XLSX.utils.json_to_sheet(rows, {
-      header: ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"],
-    });
+  };
+
+  const exportToExcel = (scope: "filtered" | "page" = "filtered") => {
+    const rows = buildExportRows(scope);
+    if (rows.length === 0) {
+      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(rows, { header: EXPORT_HEADER });
     ws["!cols"] = [
       { wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
       { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 },
@@ -236,6 +274,38 @@ const Estoque = () => {
     XLSX.writeFile(wb, "estoque-produtos.xlsx");
     toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
   };
+
+  const exportToCsv = (scope: "filtered" | "page" = "filtered") => {
+    const rows = buildExportRows(scope);
+    if (rows.length === 0) {
+      toast({ title: "Nenhum produto", description: "Não há produtos para exportar.", variant: "destructive" });
+      return;
+    }
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = [
+      EXPORT_HEADER.map(esc).join(";"),
+      ...rows.map(r => EXPORT_HEADER.map(h => esc((r as Record<string, unknown>)[h])).join(";")),
+    ].join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "estoque-produtos.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Exportação concluída", description: `${rows.length} produtos exportados.` });
+  };
+
+  const SortHeader = ({ label, k, align = "left" }: { label: string; k: typeof sortKey; align?: "left" | "right" }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(k)}
+      className={`flex items-center gap-1 hover:text-foreground transition-colors ${align === "right" ? "ml-auto" : ""}`}
+    >
+      {label}
+      <ArrowUpDown className={`h-3.5 w-3.5 ${sortKey === k ? "text-primary" : "opacity-40"}`} />
+      {sortKey === k && <span className="text-[10px] text-primary">{sortDir === "asc" ? "A-Z" : "Z-A"}</span>}
+    </button>
+  );
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
@@ -250,9 +320,19 @@ const Estoque = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center [&>*]:w-full sm:[&>*]:w-auto">
             <XmlProductImport onImported={fetchProducts} />
             <ExcelProductImport onImported={fetchProducts} />
-            <Button variant="outline" onClick={exportToExcel} className="w-full sm:w-auto h-11 sm:h-10">
-              <Download className="h-4 w-4 mr-2" />Exportar Excel
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full sm:w-auto h-11 sm:h-10">
+                  <Download className="h-4 w-4 mr-2" />Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => exportToExcel("filtered")}>Excel — lista filtrada ({filtered.length})</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToExcel("page")}>Excel — página atual ({paginated.length})</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToCsv("filtered")}>CSV — lista filtrada ({filtered.length})</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => exportToCsv("page")}>CSV — página atual ({paginated.length})</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DialogTrigger asChild>
               <Button onClick={openNew} className="w-full sm:w-auto h-11 sm:h-10">
                 <Plus className="h-4 w-4 mr-2" />Novo Produto
@@ -358,9 +438,48 @@ const Estoque = () => {
 
       </div>
 
-      <div className="relative w-full sm:max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou SKU..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-11 sm:h-10 text-base sm:text-sm" />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-3">
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome ou código (SKU)..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 h-11 sm:h-10 text-base sm:text-sm" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:w-auto">
+          <div className="space-y-1 col-span-2 sm:col-span-1">
+            <Label className="text-xs text-muted-foreground">Categoria</Label>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="h-11 sm:h-10 text-sm min-w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1 col-span-2 sm:col-span-1">
+            <Label className="text-xs text-muted-foreground">Situação</Label>
+            <Select value={statusFilter} onValueChange={v => setStatusFilter(v as typeof statusFilter)}>
+              <SelectTrigger className="h-11 sm:h-10 text-sm min-w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Ativos (com estoque)</SelectItem>
+                <SelectItem value="inactive">Inativos (sem estoque)</SelectItem>
+                <SelectItem value="low">Abaixo do mínimo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Qtd. mín.</Label>
+            <Input type="number" inputMode="numeric" placeholder="0" value={minQty} onChange={e => setMinQty(e.target.value)} className="h-11 sm:h-10 text-sm" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Qtd. máx.</Label>
+            <Input type="number" inputMode="numeric" placeholder="—" value={maxQty} onChange={e => setMaxQty(e.target.value)} className="h-11 sm:h-10 text-sm" />
+          </div>
+        </div>
+        {(search || categoryFilter !== "__all__" || statusFilter !== "all" || minQty || maxQty) && (
+          <Button variant="ghost" className="h-11 sm:h-10 lg:self-end" onClick={() => { setSearch(""); setCategoryFilter("__all__"); setStatusFilter("all"); setMinQty(""); setMaxQty(""); }}>
+            Limpar filtros
+          </Button>
+        )}
       </div>
 
 
@@ -369,12 +488,12 @@ const Estoque = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Produto</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">SKU</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Categoria</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground"><SortHeader label="Produto" k="name" /></th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell"><SortHeader label="SKU" k="sku" /></th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell"><SortHeader label="Categoria" k="category" /></th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Fornecedor</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Preço</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Estoque</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground"><SortHeader label="Preço" k="price" align="right" /></th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground"><SortHeader label="Estoque" k="stock" align="right" /></th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
