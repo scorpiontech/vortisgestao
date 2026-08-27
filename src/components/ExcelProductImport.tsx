@@ -240,7 +240,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     for (const part of chunk(names, 100)) {
       const { data } = await supabase
         .from("products")
-        .select("id, name, sku, stock")
+        .select("id, name, sku, stock, manufacturer")
         .eq("user_id", effectiveUserId)
         .in("name", part);
       (data || []).forEach((r) => existingMap.set(r.id, r));
@@ -248,7 +248,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     for (const part of chunk(skus, 100)) {
       const { data } = await supabase
         .from("products")
-        .select("id, name, sku, stock")
+        .select("id, name, sku, stock, manufacturer")
         .eq("user_id", effectiveUserId)
         .in("sku", part);
       (data || []).forEach((r) => existingMap.set(r.id, r));
@@ -256,13 +256,14 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     const existing = Array.from(existingMap.values());
     const existingSkus = new Set(existing.map((e) => e.sku).filter(Boolean));
 
+    const norm = (v?: string | null) => String(v ?? "").trim().toLowerCase();
+    // Só é o mesmo produto quando o SKU coincide, ou quando nome E fabricante coincidem.
+    const sameProduct = (e: any, p: { name: string; sku: string; manufacturer: string }) =>
+      (p.sku && e.sku === p.sku) ||
+      (norm(e.name) === norm(p.name) && norm(e.manufacturer) === norm(p.manufacturer));
 
-    const duplicates = withSupplier.filter((p) =>
-      existing.some((e) => e.name === p.name || (p.sku && e.sku === p.sku))
-    );
-    const newItems = withSupplier.filter(
-      (p) => !existing.some((e) => e.name === p.name || (p.sku && e.sku === p.sku))
-    );
+    const duplicates = withSupplier.filter((p) => existing.some((e) => sameProduct(e, p)));
+    const newItems = withSupplier.filter((p) => !existing.some((e) => sameProduct(e, p)));
 
     let importedCount = 0;
     let updatedCount = 0;
