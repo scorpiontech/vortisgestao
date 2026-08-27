@@ -235,19 +235,27 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       supplier_id: p.supplier_name ? supplierMap[p.supplier_name.trim().toLowerCase()] || null : null,
     }));
 
-    // Check duplicates by name and sku (same logic as XML import)
+    // Duplicidade em blocos usando filtros nativos (evita quebra por vírgulas/parênteses nos nomes)
+    const chunk = <T,>(arr: T[], size: number): T[][] => {
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    };
+
     const names = withSupplier.map((p) => p.name);
     const skus = withSupplier.map((p) => p.sku).filter((s) => s !== "");
 
-    let existing: any[] = [];
-    const filters: string[] = [];
-    if (names.length > 0) filters.push(`name.in.(${names.map((n) => `"${n.replace(/"/g, "")}"`).join(",")})`);
-    if (skus.length > 0) filters.push(`sku.in.(${skus.map((s) => `"${s.replace(/"/g, "")}"`).join(",")})`);
-
-    if (filters.length > 0) {
-      const { data } = await supabase.from("products").select("id, name, sku, stock").or(filters.join(","));
-      existing = data || [];
+    const existingMap = new Map<string, any>();
+    for (const part of chunk(names, 100)) {
+      const { data } = await supabase.from("products").select("id, name, sku, stock").in("name", part);
+      (data || []).forEach((r) => existingMap.set(r.id, r));
     }
+    for (const part of chunk(skus, 100)) {
+      const { data } = await supabase.from("products").select("id, name, sku, stock").in("sku", part);
+      (data || []).forEach((r) => existingMap.set(r.id, r));
+    }
+    const existing = Array.from(existingMap.values());
+
 
     const duplicates = withSupplier.filter((p) =>
       existing.some((e) => e.name === p.name || (p.sku && e.sku === p.sku))
