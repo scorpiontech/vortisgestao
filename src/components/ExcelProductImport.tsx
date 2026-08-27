@@ -266,11 +266,11 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     let importedCount = 0;
     let updatedCount = 0;
-    const rejectedDetails: any[] = [];
+    const rejectedDetails: { product: string; message: string }[] = [];
 
-    // 1. Insert new items
+    // 1. Insert new items — em lotes, com fallback item a item
     if (newItems.length > 0) {
-      const payload = newItems.map((p) => ({
+      const toPayload = (p: typeof newItems[number]) => ({
         name: p.name,
         sku: p.sku || generateProductBarcode(),
         price: p.price,
@@ -283,11 +283,23 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
         ncm: p.ncm || null,
         manufacturer: p.manufacturer,
         user_id: effectiveUserId,
-      }));
-      const { error } = await supabase.from("products").insert(payload);
-      if (!error) importedCount = newItems.length;
-      else rejectedDetails.push({ error: "Erro ao inserir novos itens", message: error.message });
+      });
+
+      for (const batch of chunk(newItems, 50)) {
+        const { error } = await supabase.from("products").insert(batch.map(toPayload));
+        if (!error) {
+          importedCount += batch.length;
+          continue;
+        }
+        // Um item ruim derruba o lote inteiro: tenta um por um
+        for (const item of batch) {
+          const { error: singleError } = await supabase.from("products").insert(toPayload(item));
+          if (!singleError) importedCount++;
+          else rejectedDetails.push({ product: item.name, message: singleError.message });
+        }
+      }
     }
+
 
     // 2. Update existing items (sum stock, update cost)
     for (const dup of duplicates) {
