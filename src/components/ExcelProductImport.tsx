@@ -264,8 +264,9 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
             <Input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} />
             <p className="text-xs text-muted-foreground">
               Colunas: Nome (obrigatório), SKU, Categoria, Preço Venda, Custo, Estoque Atual, Estoque Mínimo, Unidade, Fornecedor, NCM.
-              Baixe o <a className="text-primary underline" href="/documents/modelo-importacao-produtos.xlsx" target="_blank" rel="noopener noreferrer">modelo</a>.
+              Baixe o <button type="button" className="text-primary underline" onClick={downloadTemplate}>modelo</button>.
             </p>
+
           </div>
 
           {products.length > 0 && (
