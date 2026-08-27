@@ -147,31 +147,41 @@ const Estoque = () => {
     const finalSku = form.sku || generateProductBarcode();
 
 
-    // Check for duplicates if it's a new product or if name/sku changed
+    // Duplicidade: mesmo SKU, ou mesmo nome COM o mesmo fabricante.
+    // Nomes iguais de fabricantes diferentes são produtos distintos e são permitidos.
     const isNew = !editProduct;
+    const manufacturer = form.manufacturer.trim();
     const nameChanged = editProduct && editProduct.name !== form.name;
     const skuChanged = editProduct && editProduct.sku !== finalSku;
+    const manufacturerChanged = editProduct && (editProduct.manufacturer || "") !== manufacturer;
 
-
-    if (isNew || nameChanged || skuChanged) {
+    if (isNew || nameChanged || skuChanged || manufacturerChanged) {
       const { data: existingProducts, error: checkError } = await supabase
         .from("products")
-        .select("id, name, sku")
+        .select("id, name, sku, manufacturer")
+        .eq("user_id", effectiveUserId!)
         .or(`name.eq."${form.name}",sku.eq."${finalSku}"`);
 
       if (checkError) {
         console.error("Erro ao verificar duplicatas:", checkError);
       } else if (existingProducts && existingProducts.length > 0) {
-        // Filter out the current product if editing
-        const duplicates = isNew 
-          ? existingProducts 
-          : existingProducts.filter(p => p.id !== editProduct.id);
+        const norm = (v?: string | null) => String(v ?? "").trim().toLowerCase();
+        const duplicates = existingProducts
+          .filter((p) => (isNew ? true : p.id !== editProduct.id))
+          .filter(
+            (p) =>
+              p.sku === finalSku ||
+              (norm(p.name) === norm(form.name) && norm(p.manufacturer) === norm(manufacturer))
+          );
 
         if (duplicates.length > 0) {
           const duplicate = duplicates[0];
+          const sameSku = duplicate.sku === finalSku;
           toast({
             title: "Produto já existente",
-            description: `O produto "${duplicate.name}" (SKU: ${duplicate.sku}) já está cadastrado. Por favor, realize a atualização através de movimentação de estoque ou edite o item existente.`,
+            description: sameSku
+              ? `O código/SKU "${finalSku}" já está em uso pelo produto "${duplicate.name}".`
+              : `O produto "${duplicate.name}" do fabricante "${duplicate.manufacturer || "não informado"}" já está cadastrado. Informe um fabricante diferente ou atualize o item existente por movimentação de estoque.`,
             variant: "destructive",
           });
           return;
