@@ -84,6 +84,14 @@ const Estoque = () => {
     p.sku.toLowerCase().includes(search.toLowerCase())
   );
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => { setPage(1); }, [search, pageSize]);
+
   const openNew = () => {
     setEditProduct(null);
     setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "" });
