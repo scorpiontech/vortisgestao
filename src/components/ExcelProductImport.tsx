@@ -369,10 +369,22 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
           </div>
 
+          {errors.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 max-h-40 overflow-auto space-y-1">
+              <p className="text-sm font-medium text-destructive">{errors.length} produto(s) não importado(s)</p>
+              {errors.map((e, i) => (
+                <p key={i} className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{e.product}</span>: {e.message}
+                </p>
+              ))}
+            </div>
+          )}
+
           {products.length > 0 && (
             <>
               <p className="text-sm text-muted-foreground">
                 {products.filter((p) => p.selected).length} de {products.length} produtos selecionados
+                {mergedCount > 0 && ` · ${mergedCount} linha(s) repetida(s) unificada(s)`}
               </p>
               <div className="overflow-auto flex-1 border rounded-md">
                 <table className="w-full text-sm">
