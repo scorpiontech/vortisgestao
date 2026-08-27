@@ -100,6 +100,8 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<ParsedProduct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [mergedCount, setMergedCount] = useState(0);
+  const [errors, setErrors] = useState<{ product: string; message: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const parseSheet = (data: Uint8Array) => {
@@ -135,7 +137,44 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       })
       .filter((p): p is ParsedProduct => p !== null);
 
-    return parsed;
+    // Consolida linhas repetidas dentro da própria planilha (mesmo SKU ou mesmo nome)
+    const map = new Map<string, ParsedProduct>();
+    let merged = 0;
+    for (const p of parsed) {
+      const key = p.sku ? `sku:${p.sku}` : `name:${p.name.toLowerCase()}`;
+      const prev = map.get(key);
+      if (prev) {
+        merged++;
+        prev.stock += p.stock;
+        prev.min_stock = Math.max(prev.min_stock, p.min_stock);
+        if (p.price) prev.price = p.price;
+        if (p.cost) prev.cost = p.cost;
+        if (p.category) prev.category = p.category;
+        if (p.manufacturer) prev.manufacturer = p.manufacturer;
+        if (p.supplier_name) prev.supplier_name = p.supplier_name;
+        if (p.ncm) prev.ncm = p.ncm;
+      } else {
+        map.set(key, { ...p });
+      }
+    }
+
+    // Segunda passada: nomes repetidos com SKUs diferentes também violam a unicidade por nome
+    const byName = new Map<string, ParsedProduct>();
+    for (const p of map.values()) {
+      const key = p.name.toLowerCase();
+      const prev = byName.get(key);
+      if (prev) {
+        merged++;
+        prev.stock += p.stock;
+        prev.min_stock = Math.max(prev.min_stock, p.min_stock);
+        if (p.price) prev.price = p.price;
+        if (p.cost) prev.cost = p.cost;
+      } else {
+        byName.set(key, p);
+      }
+    }
+
+    return { products: Array.from(byName.values()), merged };
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -149,10 +188,13 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     reader.onload = (ev) => {
       const data = new Uint8Array(ev.target?.result as ArrayBuffer);
       try {
-        const parsed = parseSheet(data);
+        const { products: parsed, merged } = parseSheet(data);
         if (parsed.length === 0) {
           toast({ title: "Nenhum produto encontrado", description: "Verifique se a planilha tem a coluna 'Nome' preenchida.", variant: "destructive" });
+        } else if (merged > 0) {
+          toast({ title: "Linhas unificadas", description: `${merged} linha(s) repetida(s) na planilha foram unificadas (estoque somado).` });
         }
+        setMergedCount(merged);
         setProducts(parsed);
       } catch (err) {
         toast({ title: "Erro ao ler planilha", description: "Arquivo inválido ou corrompido.", variant: "destructive" });
@@ -193,19 +235,27 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       supplier_id: p.supplier_name ? supplierMap[p.supplier_name.trim().toLowerCase()] || null : null,
     }));
 
-    // Check duplicates by name and sku (same logic as XML import)
+    // Duplicidade em blocos usando filtros nativos (evita quebra por vírgulas/parênteses nos nomes)
+    const chunk = <T,>(arr: T[], size: number): T[][] => {
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+      return out;
+    };
+
     const names = withSupplier.map((p) => p.name);
     const skus = withSupplier.map((p) => p.sku).filter((s) => s !== "");
 
-    let existing: any[] = [];
-    const filters: string[] = [];
-    if (names.length > 0) filters.push(`name.in.(${names.map((n) => `"${n.replace(/"/g, "")}"`).join(",")})`);
-    if (skus.length > 0) filters.push(`sku.in.(${skus.map((s) => `"${s.replace(/"/g, "")}"`).join(",")})`);
-
-    if (filters.length > 0) {
-      const { data } = await supabase.from("products").select("id, name, sku, stock").or(filters.join(","));
-      existing = data || [];
+    const existingMap = new Map<string, any>();
+    for (const part of chunk(names, 100)) {
+      const { data } = await supabase.from("products").select("id, name, sku, stock").in("name", part);
+      (data || []).forEach((r) => existingMap.set(r.id, r));
     }
+    for (const part of chunk(skus, 100)) {
+      const { data } = await supabase.from("products").select("id, name, sku, stock").in("sku", part);
+      (data || []).forEach((r) => existingMap.set(r.id, r));
+    }
+    const existing = Array.from(existingMap.values());
+
 
     const duplicates = withSupplier.filter((p) =>
       existing.some((e) => e.name === p.name || (p.sku && e.sku === p.sku))
@@ -216,11 +266,11 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     let importedCount = 0;
     let updatedCount = 0;
-    const rejectedDetails: any[] = [];
+    const rejectedDetails: { product: string; message: string }[] = [];
 
-    // 1. Insert new items
+    // 1. Insert new items — em lotes, com fallback item a item
     if (newItems.length > 0) {
-      const payload = newItems.map((p) => ({
+      const toPayload = (p: typeof newItems[number]) => ({
         name: p.name,
         sku: p.sku || generateProductBarcode(),
         price: p.price,
@@ -233,11 +283,23 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
         ncm: p.ncm || null,
         manufacturer: p.manufacturer,
         user_id: effectiveUserId,
-      }));
-      const { error } = await supabase.from("products").insert(payload);
-      if (!error) importedCount = newItems.length;
-      else rejectedDetails.push({ error: "Erro ao inserir novos itens", message: error.message });
+      });
+
+      for (const batch of chunk(newItems, 50)) {
+        const { error } = await supabase.from("products").insert(batch.map(toPayload));
+        if (!error) {
+          importedCount += batch.length;
+          continue;
+        }
+        // Um item ruim derruba o lote inteiro: tenta um por um
+        for (const item of batch) {
+          const { error: singleError } = await supabase.from("products").insert(toPayload(item));
+          if (!singleError) importedCount++;
+          else rejectedDetails.push({ product: item.name, message: singleError.message });
+        }
+      }
     }
+
 
     // 2. Update existing items (sum stock, update cost)
     for (const dup of duplicates) {
@@ -251,7 +313,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
           })
           .eq("id", dbItem.id);
         if (!error) updatedCount++;
-        else rejectedDetails.push({ product: dup.name, error: "Erro ao atualizar estoque", message: error.message });
+        else rejectedDetails.push({ product: dup.name, message: `Erro ao atualizar estoque: ${error.message}` });
       }
     }
 
@@ -262,26 +324,32 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       filename: fileRef.current?.files?.[0]?.name || "importacao.xlsx",
       total_items: selected.length,
       imported_items: importedCount,
-      rejected_items: duplicates.length - updatedCount,
+      rejected_items: rejectedDetails.length,
       details: { updated: updatedCount, new: importedCount, rejected: rejectedDetails },
     });
 
     setLoading(false);
+    setErrors(rejectedDetails);
     toast({
-      title: "Importação concluída",
-      description: `${importedCount} novos, ${updatedCount} atualizados. Os existentes tiveram o estoque somado.`,
+      title: rejectedDetails.length > 0 ? "Importação concluída com falhas" : "Importação concluída",
+      description: `${importedCount} novos, ${updatedCount} atualizados, ${rejectedDetails.length} rejeitados.`,
+      variant: rejectedDetails.length > 0 ? "destructive" : undefined,
     });
 
-    setProducts([]);
-    setOpen(false);
-    if (fileRef.current) fileRef.current.value = "";
     onImported();
+
+    if (rejectedDetails.length === 0) {
+      setProducts([]);
+      setMergedCount(0);
+      setOpen(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setProducts([]); }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setProducts([]); setErrors([]); setMergedCount(0); } }}>
       <DialogTrigger asChild>
         <Button variant="outline"><FileSpreadsheet className="h-4 w-4 mr-2" />Importar Excel</Button>
       </DialogTrigger>
@@ -301,10 +369,22 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
           </div>
 
+          {errors.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 max-h-40 overflow-auto space-y-1">
+              <p className="text-sm font-medium text-destructive">{errors.length} produto(s) não importado(s)</p>
+              {errors.map((e, i) => (
+                <p key={i} className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{e.product}</span>: {e.message}
+                </p>
+              ))}
+            </div>
+          )}
+
           {products.length > 0 && (
             <>
               <p className="text-sm text-muted-foreground">
                 {products.filter((p) => p.selected).length} de {products.length} produtos selecionados
+                {mergedCount > 0 && ` · ${mergedCount} linha(s) repetida(s) unificada(s)`}
               </p>
               <div className="overflow-auto flex-1 border rounded-md">
                 <table className="w-full text-sm">
