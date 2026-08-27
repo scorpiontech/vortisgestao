@@ -100,6 +100,8 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
   const [open, setOpen] = useState(false);
   const [products, setProducts] = useState<ParsedProduct[]>([]);
   const [loading, setLoading] = useState(false);
+  const [mergedCount, setMergedCount] = useState(0);
+  const [errors, setErrors] = useState<{ product: string; message: string }[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const parseSheet = (data: Uint8Array) => {
