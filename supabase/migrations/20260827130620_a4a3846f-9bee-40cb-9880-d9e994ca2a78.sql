@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS manufacturer text NOT NULL DEFAULT '';

@@ -1084,6 +1084,7 @@ export type Database = {
           cost: number
           created_at: string
           id: string
+          manufacturer: string
           min_stock: number
           name: string
           ncm: string | null
@@ -1100,6 +1101,7 @@ export type Database = {
           cost?: number
           created_at?: string
           id?: string
+          manufacturer?: string
           min_stock?: number
           name: string
           ncm?: string | null
@@ -1116,6 +1118,7 @@ export type Database = {
           cost?: number
           created_at?: string
           id?: string
+          manufacturer?: string
           min_stock?: number
           name?: string
           ncm?: string | null
