@@ -428,6 +428,17 @@ const Estoque = () => {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs sm:text-sm">Fabricante</Label>
+                  <Input
+                    className="h-11 sm:h-10 text-base sm:text-sm"
+                    placeholder="Ex.: Nestlé"
+                    value={form.manufacturer}
+                    onChange={e => setForm({ ...form, manufacturer: e.target.value })}
+                  />
+                </div>
+              </div>
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto h-11 sm:h-10">Cancelar</Button>
                 <Button onClick={handleSave} className="w-full sm:w-auto h-11 sm:h-10">{editProduct ? "Salvar Alterações" : "Cadastrar"}</Button>
