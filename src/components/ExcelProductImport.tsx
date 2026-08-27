@@ -340,7 +340,10 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
           .from("products")
           .update({
             stock: (dbItem.stock || 0) + dup.stock,
-            cost: dup.cost || undefined,
+            ...(dup.cost ? { cost: dup.cost } : {}),
+            ...(dup.price ? { price: dup.price } : {}),
+            ...(dup.manufacturer ? { manufacturer: dup.manufacturer } : {}),
+            ...(dup.ncm ? { ncm: dup.ncm } : {}),
           })
           .eq("id", dbItem.id);
         if (!error) updatedCount++;
