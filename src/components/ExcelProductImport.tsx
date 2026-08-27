@@ -279,9 +279,31 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     // 1. Insert new items — em lotes, com fallback item a item
     if (newItems.length > 0) {
+      const usedSkus = new Set(existingSkus);
+      newItems.forEach((p) => p.sku && usedSkus.add(p.sku));
+      const nextSku = () => {
+        let code = generateProductBarcode();
+        let guard = 0;
+        while (usedSkus.has(code) && guard < 20) {
+          code = generateProductBarcode();
+          guard++;
+        }
+        usedSkus.add(code);
+        return code;
+      };
+      const skuCache = new Map<string, string>();
+      const skuFor = (p: { name: string; sku: string }) => {
+        if (p.sku) return p.sku;
+        const cached = skuCache.get(p.name);
+        if (cached) return cached;
+        const code = nextSku();
+        skuCache.set(p.name, code);
+        return code;
+      };
+
       const toPayload = (p: typeof newItems[number]) => ({
         name: p.name,
-        sku: p.sku || generateProductBarcode(),
+        sku: skuFor(p),
         price: p.price,
         cost: p.cost,
         unit: p.unit,
