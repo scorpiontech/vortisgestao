@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit2, Trash2, Barcode, Download } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Barcode, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
@@ -83,6 +83,14 @@ const Estoque = () => {
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.sku.toLowerCase().includes(search.toLowerCase())
   );
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => { setPage(1); }, [search, pageSize]);
 
   const openNew = () => {
     setEditProduct(null);
@@ -371,7 +379,7 @@ const Estoque = () => {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map(p => (
+              {paginated.map(p => (
                 <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{p.name}</td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{p.sku}</td>
@@ -395,6 +403,30 @@ const Estoque = () => {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+              <span>
+                {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de {filtered.length}
+              </span>
+              <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+                <SelectTrigger className="h-9 w-[110px] text-xs sm:text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n} / página</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <Button variant="outline" size="sm" className="h-9" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
+                <ChevronLeft className="h-4 w-4 mr-1" />Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground sm:text-sm">Página {currentPage} de {totalPages}</span>
+              <Button variant="outline" size="sm" className="h-9" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>
+                Próxima<ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
