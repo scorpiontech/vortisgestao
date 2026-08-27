@@ -324,20 +324,26 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
       filename: fileRef.current?.files?.[0]?.name || "importacao.xlsx",
       total_items: selected.length,
       imported_items: importedCount,
-      rejected_items: duplicates.length - updatedCount,
+      rejected_items: rejectedDetails.length,
       details: { updated: updatedCount, new: importedCount, rejected: rejectedDetails },
     });
 
     setLoading(false);
+    setErrors(rejectedDetails);
     toast({
-      title: "Importação concluída",
-      description: `${importedCount} novos, ${updatedCount} atualizados. Os existentes tiveram o estoque somado.`,
+      title: rejectedDetails.length > 0 ? "Importação concluída com falhas" : "Importação concluída",
+      description: `${importedCount} novos, ${updatedCount} atualizados, ${rejectedDetails.length} rejeitados.`,
+      variant: rejectedDetails.length > 0 ? "destructive" : undefined,
     });
 
-    setProducts([]);
-    setOpen(false);
-    if (fileRef.current) fileRef.current.value = "";
     onImported();
+
+    if (rejectedDetails.length === 0) {
+      setProducts([]);
+      setMergedCount(0);
+      setOpen(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
