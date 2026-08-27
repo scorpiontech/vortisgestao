@@ -379,7 +379,7 @@ const Estoque = () => {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map(p => (
+              {paginated.map(p => (
                 <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{p.name}</td>
                   <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{p.sku}</td>
