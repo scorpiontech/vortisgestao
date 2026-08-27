@@ -403,6 +403,30 @@ const Estoque = () => {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+              <span>
+                {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} de {filtered.length}
+              </span>
+              <Select value={String(pageSize)} onValueChange={v => setPageSize(Number(v))}>
+                <SelectTrigger className="h-9 w-[110px] text-xs sm:text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n} / página</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <Button variant="outline" size="sm" className="h-9" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>
+                <ChevronLeft className="h-4 w-4 mr-1" />Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground sm:text-sm">Página {currentPage} de {totalPages}</span>
+              <Button variant="outline" size="sm" className="h-9" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>
+                Próxima<ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
