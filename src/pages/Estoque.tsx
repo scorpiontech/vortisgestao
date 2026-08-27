@@ -33,6 +33,7 @@ interface Product {
   unit: string;
   supplier_id: string | null;
   ncm: string | null;
+  manufacturer: string | null;
 }
 
 interface Supplier {
@@ -64,7 +65,7 @@ const Estoque = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [units, setUnits] = useState<UnitItem[]>([]);
-  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "" });
+  const [form, setForm] = useState({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "", manufacturer: "" });
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from("products").select("*").order("name");
@@ -127,13 +128,13 @@ const Estoque = () => {
 
   const openNew = () => {
     setEditProduct(null);
-    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "" });
+    setForm({ name: "", sku: "", category: "", price: "", cost: "", stock: "", min_stock: "", unit: "un", supplier_id: "", ncm: "", manufacturer: "" });
     setDialogOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditProduct(p);
-    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit, supplier_id: p.supplier_id || "", ncm: p.ncm || "" });
+    setForm({ name: p.name, sku: p.sku, category: p.category, price: String(p.price), cost: String(p.cost), stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit, supplier_id: p.supplier_id || "", ncm: p.ncm || "", manufacturer: p.manufacturer || "" });
     setDialogOpen(true);
   };
 
@@ -190,6 +191,7 @@ const Estoque = () => {
       unit: form.unit,
       supplier_id: form.supplier_id || null,
       ncm: form.ncm.replace(/\D/g, "") || null,
+      manufacturer: form.manufacturer.trim(),
       user_id: effectiveUserId!,
     };
 
@@ -239,7 +241,7 @@ const Estoque = () => {
 
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  const EXPORT_HEADER = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"];
+  const EXPORT_HEADER = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM", "Fabricante"];
 
   const buildExportRows = (scope: "filtered" | "page") => {
     const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]));
@@ -255,6 +257,7 @@ const Estoque = () => {
       "Unidade": p.unit,
       "Fornecedor": p.supplier_id ? supplierMap.get(p.supplier_id) || "" : "",
       "NCM": p.ncm || "",
+      "Fabricante": p.manufacturer || "",
     }));
   };
 
@@ -267,7 +270,7 @@ const Estoque = () => {
     const ws = XLSX.utils.json_to_sheet(rows, { header: EXPORT_HEADER });
     ws["!cols"] = [
       { wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
-      { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 },
+      { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 }, { wch: 22 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Produtos");
@@ -425,6 +428,17 @@ const Estoque = () => {
                     placeholder="00000000"
                     value={form.ncm}
                     onChange={e => setForm({ ...form, ncm: e.target.value.replace(/\D/g, "").slice(0, 8) })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="space-y-1.5 min-w-0">
+                  <Label className="text-xs sm:text-sm">Fabricante</Label>
+                  <Input
+                    className="h-11 sm:h-10 text-base sm:text-sm"
+                    placeholder="Ex.: Nestlé"
+                    value={form.manufacturer}
+                    onChange={e => setForm({ ...form, manufacturer: e.target.value })}
                   />
                 </div>
               </div>

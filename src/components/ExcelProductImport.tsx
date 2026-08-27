@@ -22,10 +22,11 @@ interface ParsedProduct {
   supplier_name: string;
   supplier_id: string | null;
   ncm: string;
+  manufacturer: string;
   selected: boolean;
 }
 
-const TEMPLATE_HEADERS = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM"];
+const TEMPLATE_HEADERS = ["Nome", "SKU / Código de Barras", "Categoria", "Preço Venda", "Custo", "Estoque Atual", "Estoque Mínimo", "Unidade", "Fornecedor", "NCM", "Fabricante"];
 
 function downloadTemplate() {
   const ws = XLSX.utils.json_to_sheet(
@@ -40,10 +41,11 @@ function downloadTemplate() {
       "Unidade": "un",
       "Fornecedor": "",
       "NCM": "",
+      "Fabricante": "",
     }],
     { header: TEMPLATE_HEADERS }
   );
-  ws["!cols"] = [{ wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 }];
+  ws["!cols"] = [{ wch: 30 }, { wch: 22 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 10 }, { wch: 22 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Produtos");
   XLSX.writeFile(wb, "modelo-importacao-produtos.xlsx");
@@ -79,6 +81,9 @@ const HEADER_KEYS: Record<string, keyof ParsedProduct> = {
   fornecedor: "supplier_name",
   supplier: "supplier_name",
   ncm: "ncm",
+  fabricante: "manufacturer",
+  manufacturer: "manufacturer",
+  marca: "manufacturer",
 };
 
 function num(v: any): number {
@@ -124,6 +129,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
           supplier_name: String(obj.supplier_name ?? "").trim(),
           supplier_id: null,
           ncm,
+          manufacturer: String(obj.manufacturer ?? "").trim(),
           selected: true,
         } as ParsedProduct;
       })
@@ -225,6 +231,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
         category: p.category,
         supplier_id: p.supplier_id,
         ncm: p.ncm || null,
+        manufacturer: p.manufacturer,
         user_id: effectiveUserId,
       }));
       const { error } = await supabase.from("products").insert(payload);
@@ -288,7 +295,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
             <Label>Arquivo Excel (.xlsx)</Label>
             <Input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFile} />
             <p className="text-xs text-muted-foreground">
-              Colunas: Nome (obrigatório), SKU, Categoria, Preço Venda, Custo, Estoque Atual, Estoque Mínimo, Unidade, Fornecedor, NCM.
+              Colunas: Nome (obrigatório), SKU, Categoria, Preço Venda, Custo, Estoque Atual, Estoque Mínimo, Unidade, Fornecedor, NCM, Fabricante.
               Baixe o <button type="button" className="text-primary underline" onClick={downloadTemplate}>modelo</button>.
             </p>
 
