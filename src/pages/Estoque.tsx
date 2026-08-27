@@ -79,18 +79,50 @@ const Estoque = () => {
     supabase.from("units").select("id, name, abbreviation").order("name").then(({ data }) => setUnits(data || []));
   }, []);
 
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku.toLowerCase().includes(search.toLowerCase())
-  );
+  const [categoryFilter, setCategoryFilter] = useState("__all__");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "low">("all");
+  const [minQty, setMinQty] = useState("");
+  const [maxQty, setMaxQty] = useState("");
+  const [sortKey, setSortKey] = useState<"sku" | "name" | "category" | "price" | "stock">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const filtered = products
+    .filter(p => {
+      const term = search.trim().toLowerCase();
+      if (term && !p.name.toLowerCase().includes(term) && !p.sku.toLowerCase().includes(term)) return false;
+      if (categoryFilter !== "__all__" && (p.category || "") !== categoryFilter) return false;
+      if (statusFilter === "active" && p.stock <= 0) return false;
+      if (statusFilter === "inactive" && p.stock > 0) return false;
+      if (statusFilter === "low" && !(p.stock <= p.min_stock)) return false;
+      if (minQty !== "" && p.stock < Number(minQty)) return false;
+      if (maxQty !== "" && p.stock > Number(maxQty)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av ?? "").localeCompare(String(bv ?? ""), "pt-BR") * dir;
+    });
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+    setPage(1);
+  };
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(() => {
+    const stored = Number(localStorage.getItem("estoque:pageSize"));
+    return [10, 25, 50, 100].includes(stored) ? stored : 25;
+  });
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  useEffect(() => { setPage(1); }, [search, pageSize]);
+  useEffect(() => { localStorage.setItem("estoque:pageSize", String(pageSize)); }, [pageSize]);
+  useEffect(() => { setPage(1); }, [search, pageSize, categoryFilter, statusFilter, minQty, maxQty]);
 
   const openNew = () => {
     setEditProduct(null);
