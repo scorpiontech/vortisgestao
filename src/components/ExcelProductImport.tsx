@@ -327,7 +327,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
 
     // 2. Update existing items (sum stock, update cost)
     for (const dup of duplicates) {
-      const dbItem = existing.find((e) => e.name === dup.name || (dup.sku && e.sku === dup.sku));
+      const dbItem = existing.find((e) => sameProduct(e, dup));
       if (dbItem) {
         const { error } = await supabase
           .from("products")
