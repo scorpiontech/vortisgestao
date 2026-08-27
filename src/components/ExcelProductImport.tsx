@@ -186,10 +186,13 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
     reader.onload = (ev) => {
       const data = new Uint8Array(ev.target?.result as ArrayBuffer);
       try {
-        const parsed = parseSheet(data);
+        const { products: parsed, merged } = parseSheet(data);
         if (parsed.length === 0) {
           toast({ title: "Nenhum produto encontrado", description: "Verifique se a planilha tem a coluna 'Nome' preenchida.", variant: "destructive" });
+        } else if (merged > 0) {
+          toast({ title: "Linhas unificadas", description: `${merged} linha(s) repetida(s) na planilha foram unificadas (estoque somado).` });
         }
+        setMergedCount(merged);
         setProducts(parsed);
       } catch (err) {
         toast({ title: "Erro ao ler planilha", description: "Arquivo inválido ou corrompido.", variant: "destructive" });
