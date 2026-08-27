@@ -349,7 +349,7 @@ export function ExcelProductImport({ onImported }: ExcelProductImportProps) {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setProducts([]); }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setProducts([]); setErrors([]); setMergedCount(0); } }}>
       <DialogTrigger asChild>
         <Button variant="outline"><FileSpreadsheet className="h-4 w-4 mr-2" />Importar Excel</Button>
       </DialogTrigger>
