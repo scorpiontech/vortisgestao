@@ -3,7 +3,7 @@
  */
 
 export interface ThermalLine {
-  label: string;
+  label?: string;
   value?: string;
   bold?: boolean;
   /** Linha separadora */
