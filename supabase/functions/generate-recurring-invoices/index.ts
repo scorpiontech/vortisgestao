@@ -143,6 +143,7 @@ Deno.serve(async (req) => {
         }
 
         let asaasCustomerId: string | null = null;
+        let payment: any = null;
         try {
           const customers = await asaasFetch(settings, `/customers?email=${encodeURIComponent(acc.email)}&limit=1`);
           const existing = customers?.data?.[0];
@@ -161,7 +162,7 @@ Deno.serve(async (req) => {
             asaasCustomerId = created.id;
           }
 
-          const payment = await asaasFetch(settings, "/payments", {
+          payment = await asaasFetch(settings, "/payments", {
             method: "POST",
             body: JSON.stringify({
               customer: asaasCustomerId,
