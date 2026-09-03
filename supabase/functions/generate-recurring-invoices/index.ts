@@ -114,14 +114,16 @@ Deno.serve(async (req) => {
 
         if (existing) { summary.skipped++; continue; }
 
-        // Validação estrita: Bloquear valores padrão/suspeitos para planos Free que escaparam do filtro SQL
-        let amount = Number(acc.subscription_plans?.monthly_value ?? acc.monthly_value);
-        
-        if (amount <= 0 || amount === 5.00 || amount === 59.90 || amount === 99.90) {
-          console.warn(`[gen] Bloqueando emissão de valor suspeito/padrão (${amount}) para conta ${acc.id}`);
+        // Valor SEMPRE vindo do plano Pro configurado (nunca de valores padrão da conta)
+        const planValue = Number(acc.subscription_plans?.monthly_value);
+        let amount = planValue;
+
+        if (!acc.plan_id || !acc.subscription_plans?.id || !Number.isFinite(planValue) || planValue <= 0) {
+          console.warn(`[gen] Conta ${acc.id} sem plano pago válido — emissão bloqueada`);
           summary.skipped++;
           continue;
         }
+
 
         amount = Math.round(amount * 100) / 100;
 
