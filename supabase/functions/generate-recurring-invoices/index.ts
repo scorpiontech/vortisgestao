@@ -34,15 +34,41 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const asaasKey = Deno.env.get("ASAAS_ADMIN_KEY");
-    if (!asaasKey) {
-      return new Response(JSON.stringify({ error: "ASAAS_ADMIN_KEY não configurado" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    // Configuração do Asaas administrativo: primeiro a tela Painel Admin > Asaas Admin
+    // (asaas_settings do usuário admin), depois o secret global como fallback.
+    let settings: { api_key: string; ambiente: string } | null = null;
+
+    const { data: admins } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+    const adminIds = (admins || []).map((a: any) => a.user_id);
+    if (adminIds.length) {
+      const { data: adminSettings } = await supabase
+        .from("asaas_settings")
+        .select("api_key, ambiente, active")
+        .in("owner_id", adminIds)
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+      if (adminSettings?.api_key) {
+        settings = { api_key: adminSettings.api_key, ambiente: adminSettings.ambiente || "sandbox" };
+      }
+    }
+
+    if (!settings) {
+      const asaasKey = Deno.env.get("ASAAS_ADMIN_KEY");
+      if (asaasKey) settings = { api_key: asaasKey, ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox" };
+    }
+
+    if (!settings) {
+      return new Response(JSON.stringify({
+        error: "Integração Asaas não configurada. Acesse Painel Administrativo > Asaas Admin e informe a chave de API.",
+      }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabase = createClient(supabaseUrl, serviceKey);
-    const settings = { api_key: asaasKey, ambiente: Deno.env.get("ASAAS_ADMIN_ENV") || "sandbox" };
+
 
     // Refinamento SQL para buscar apenas planos pagantes (tier pro)
     const { data: accounts, error: accErr } = await supabase
@@ -88,14 +114,16 @@ Deno.serve(async (req) => {
 
         if (existing) { summary.skipped++; continue; }
 
-        // Validação estrita: Bloquear valores padrão/suspeitos para planos Free que escaparam do filtro SQL
-        let amount = Number(acc.subscription_plans?.monthly_value ?? acc.monthly_value);
-        
-        if (amount <= 0 || amount === 5.00 || amount === 59.90 || amount === 99.90) {
-          console.warn(`[gen] Bloqueando emissão de valor suspeito/padrão (${amount}) para conta ${acc.id}`);
+        // Valor SEMPRE vindo do plano Pro configurado (nunca de valores padrão da conta)
+        const planValue = Number(acc.subscription_plans?.monthly_value);
+        let amount = planValue;
+
+        if (!acc.plan_id || !acc.subscription_plans?.id || !Number.isFinite(planValue) || planValue <= 0) {
+          console.warn(`[gen] Conta ${acc.id} sem plano pago válido — emissão bloqueada`);
           summary.skipped++;
           continue;
         }
+
 
         amount = Math.round(amount * 100) / 100;
 
@@ -115,6 +143,7 @@ Deno.serve(async (req) => {
         }
 
         let asaasCustomerId: string | null = null;
+        let payment: any = null;
         try {
           const customers = await asaasFetch(settings, `/customers?email=${encodeURIComponent(acc.email)}&limit=1`);
           const existing = customers?.data?.[0];
@@ -133,7 +162,7 @@ Deno.serve(async (req) => {
             asaasCustomerId = created.id;
           }
 
-          const payment = await asaasFetch(settings, "/payments", {
+          payment = await asaasFetch(settings, "/payments", {
             method: "POST",
             body: JSON.stringify({
               customer: asaasCustomerId,

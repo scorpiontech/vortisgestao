@@ -36,6 +36,129 @@ interface PeriodState {
 
 const emptyPeriod: PeriodState = { from: "", to: "" };
 
+const PeriodFilter = ({
+  period,
+  setPeriod,
+  extra,
+  onClearExtra,
+}: {
+  period: PeriodState;
+  setPeriod: (p: PeriodState) => void;
+  extra?: React.ReactNode;
+  onClearExtra?: () => void;
+}) => (
+  <div className="space-y-2 mb-3">
+    <div className="flex flex-wrap gap-1.5">
+      {PERIOD_PRESETS.map((p) => {
+        const range = resolvePeriodPreset(p.key as PeriodPresetKey);
+        const active = range.from === period.from && range.to === period.to;
+        return (
+          <Button
+            key={p.key}
+            type="button"
+            size="sm"
+            variant={active ? "default" : "outline"}
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setPeriod(range)}
+          >
+            {p.label}
+          </Button>
+        );
+      })}
+    </div>
+    <div className="flex flex-wrap items-end gap-3">
+      <div>
+        <Label className="text-xs">De</Label>
+        <Input
+          type="date"
+          value={period.from}
+          onChange={(e) => setPeriod({ ...period, from: e.target.value })}
+          className="w-36 h-8 text-xs"
+        />
+      </div>
+      <div>
+        <Label className="text-xs">Até</Label>
+        <Input
+          type="date"
+          value={period.to}
+          onChange={(e) => setPeriod({ ...period, to: e.target.value })}
+          className="w-36 h-8 text-xs"
+        />
+      </div>
+      {extra}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 text-xs"
+        onClick={() => {
+          setPeriod(emptyPeriod);
+          onClearExtra?.();
+        }}
+      >
+        <X className="h-3.5 w-3.5 mr-1" />Limpar filtros
+      </Button>
+    </div>
+  </div>
+);
+
+const SelectFilter = ({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) => (
+  <div>
+    <Label className="text-xs">{label}</Label>
+    <select
+      className="h-8 text-xs border rounded px-2 bg-background block w-full min-w-[130px]"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">Todos</option>
+      {options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const Card = ({
+  title,
+  count,
+  actions,
+  children,
+  delay = 0,
+}: {
+  title: string;
+  count?: number;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+  delay?: number;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    className="bg-card rounded-lg shadow-card border p-5"
+  >
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+      <h2 className="font-semibold">
+        {title}
+        {count !== undefined && <span className="text-muted-foreground font-normal text-sm"> ({count})</span>}
+      </h2>
+      {actions}
+    </div>
+    {children}
+  </motion.div>
+);
+
 const Relatorios = () => {
   const sellerName = useSellerName();
   const { isMaster, effectiveUserId } = useUserRole();
@@ -827,128 +950,6 @@ const Relatorios = () => {
   };
 
   // ============ UI ============
-  const PeriodFilter = ({
-    period,
-    setPeriod,
-    extra,
-    onClearExtra,
-  }: {
-    period: PeriodState;
-    setPeriod: (p: PeriodState) => void;
-    extra?: React.ReactNode;
-    onClearExtra?: () => void;
-  }) => (
-    <div className="space-y-2 mb-3">
-      <div className="flex flex-wrap gap-1.5">
-        {PERIOD_PRESETS.map((p) => {
-          const range = resolvePeriodPreset(p.key as PeriodPresetKey);
-          const active = range.from === period.from && range.to === period.to;
-          return (
-            <Button
-              key={p.key}
-              type="button"
-              size="sm"
-              variant={active ? "default" : "outline"}
-              className="h-7 px-2.5 text-xs"
-              onClick={() => setPeriod(range)}
-            >
-              {p.label}
-            </Button>
-          );
-        })}
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <Label className="text-xs">De</Label>
-          <Input
-            type="date"
-            value={period.from}
-            onChange={(e) => setPeriod({ ...period, from: e.target.value })}
-            className="w-36 h-8 text-xs"
-          />
-        </div>
-        <div>
-          <Label className="text-xs">Até</Label>
-          <Input
-            type="date"
-            value={period.to}
-            onChange={(e) => setPeriod({ ...period, to: e.target.value })}
-            className="w-36 h-8 text-xs"
-          />
-        </div>
-        {extra}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 text-xs"
-          onClick={() => {
-            setPeriod(emptyPeriod);
-            onClearExtra?.();
-          }}
-        >
-          <X className="h-3.5 w-3.5 mr-1" />Limpar filtros
-        </Button>
-      </div>
-    </div>
-  );
-
-  const SelectFilter = ({
-    label,
-    value,
-    onChange,
-    options,
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    options: { value: string; label: string }[];
-  }) => (
-    <div>
-      <Label className="text-xs">{label}</Label>
-      <select
-        className="h-8 text-xs border rounded px-2 bg-background block w-full min-w-[130px]"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        <option value="">Todos</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-
-  const Card = ({
-    title,
-    count,
-    actions,
-    children,
-    delay = 0,
-  }: {
-    title: string;
-    count?: number;
-    actions?: React.ReactNode;
-    children: React.ReactNode;
-    delay?: number;
-  }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="bg-card rounded-lg shadow-card border p-5"
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-        <h2 className="font-semibold">
-          {title}
-          {count !== undefined && <span className="text-muted-foreground font-normal text-sm"> ({count})</span>}
-        </h2>
-        {actions}
-      </div>
-      {children}
-    </motion.div>
-  );
 
   if (loading)
     return (
