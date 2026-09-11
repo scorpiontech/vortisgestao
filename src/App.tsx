@@ -14,6 +14,19 @@ import MovimentacaoEstoque from "./pages/MovimentacaoEstoque";
 import Financeiro from "./pages/Financeiro";
 import Vendas from "./pages/Vendas";
 import Relatorios from "./pages/Relatorios";
+import RelatorioFinanceiro from "./pages/relatorios/RelatorioFinanceiro";
+import RelatorioVendas from "./pages/relatorios/RelatorioVendas";
+import RelatorioMaisVendidos from "./pages/relatorios/RelatorioMaisVendidos";
+import RelatorioVendedores from "./pages/relatorios/RelatorioVendedores";
+import RelatorioMargem from "./pages/relatorios/RelatorioMargem";
+import RelatorioCurvaAbc from "./pages/relatorios/RelatorioCurvaAbc";
+import RelatorioEstoque from "./pages/relatorios/RelatorioEstoque";
+import RelatorioGiro from "./pages/relatorios/RelatorioGiro";
+import RelatorioClientes from "./pages/relatorios/RelatorioClientes";
+import RelatorioContas from "./pages/relatorios/RelatorioContas";
+import RelatorioCobrancas from "./pages/relatorios/RelatorioCobrancas";
+import RelatorioDre from "./pages/relatorios/RelatorioDre";
+import RelatorioCaixa from "./pages/relatorios/RelatorioCaixa";
 import HistoricoCliente from "./pages/HistoricoCliente";
 import Clientes from "./pages/Clientes";
 import Fornecedores from "./pages/Fornecedores";
@@ -71,6 +84,20 @@ const App = () => (
               <Route path="/vendas" element={<Vendas />} />
               <Route path="/historico-cliente" element={<HistoricoCliente />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/relatorios/financeiro" element={<RelatorioFinanceiro />} />
+              <Route path="/relatorios/dre" element={<RelatorioDre />} />
+              <Route path="/relatorios/caixa" element={<RelatorioCaixa />} />
+              <Route path="/relatorios/contas-pagar" element={<RelatorioContas type="pagar" />} />
+              <Route path="/relatorios/contas-receber" element={<RelatorioContas type="receber" />} />
+              <Route path="/relatorios/cobrancas" element={<RelatorioCobrancas />} />
+              <Route path="/relatorios/vendas" element={<RelatorioVendas />} />
+              <Route path="/relatorios/mais-vendidos" element={<RelatorioMaisVendidos />} />
+              <Route path="/relatorios/vendedores" element={<RelatorioVendedores />} />
+              <Route path="/relatorios/margem" element={<RelatorioMargem />} />
+              <Route path="/relatorios/curva-abc" element={<RelatorioCurvaAbc />} />
+              <Route path="/relatorios/estoque" element={<RelatorioEstoque />} />
+              <Route path="/relatorios/giro" element={<RelatorioGiro />} />
+              <Route path="/relatorios/clientes" element={<RelatorioClientes />} />
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/fornecedores" element={<Fornecedores />} />
               <Route path="/caixa" element={<Caixa />} />
