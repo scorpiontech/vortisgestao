@@ -84,6 +84,20 @@ const App = () => (
               <Route path="/vendas" element={<Vendas />} />
               <Route path="/historico-cliente" element={<HistoricoCliente />} />
               <Route path="/relatorios" element={<Relatorios />} />
+              <Route path="/relatorios/financeiro" element={<RelatorioFinanceiro />} />
+              <Route path="/relatorios/dre" element={<RelatorioDre />} />
+              <Route path="/relatorios/caixa" element={<RelatorioCaixa />} />
+              <Route path="/relatorios/contas-pagar" element={<RelatorioContas type="pagar" />} />
+              <Route path="/relatorios/contas-receber" element={<RelatorioContas type="receber" />} />
+              <Route path="/relatorios/cobrancas" element={<RelatorioCobrancas />} />
+              <Route path="/relatorios/vendas" element={<RelatorioVendas />} />
+              <Route path="/relatorios/mais-vendidos" element={<RelatorioMaisVendidos />} />
+              <Route path="/relatorios/vendedores" element={<RelatorioVendedores />} />
+              <Route path="/relatorios/margem" element={<RelatorioMargem />} />
+              <Route path="/relatorios/curva-abc" element={<RelatorioCurvaAbc />} />
+              <Route path="/relatorios/estoque" element={<RelatorioEstoque />} />
+              <Route path="/relatorios/giro" element={<RelatorioGiro />} />
+              <Route path="/relatorios/clientes" element={<RelatorioClientes />} />
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/fornecedores" element={<Fornecedores />} />
               <Route path="/caixa" element={<Caixa />} />
