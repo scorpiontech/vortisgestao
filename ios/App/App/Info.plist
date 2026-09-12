@@ -66,5 +66,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O Vortis usa a câmera para leitura de códigos de barra dos produtos.</string>
 </dict>
 </plist>
