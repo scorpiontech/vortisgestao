@@ -28,6 +28,7 @@ export interface NovaCobrancaDefaults {
   items?: ChargeItemPayload[];
   discount?: number;
   installments?: number;
+  dueDate?: string;
   lockAmount?: boolean;
   createReceivables?: boolean;
 }

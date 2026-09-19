@@ -98,8 +98,8 @@ const Estoque = () => {
   const filtered = products
     .filter(p => {
       const term = search.trim().toLowerCase();
-      if (term && !p.name.toLowerCase().includes(term) && !p.sku.toLowerCase().includes(term)) return false;
-      if (categoryFilter !== "__all__" && (p.category || "") !== categoryFilter) return false;
+      if (term && !(p.name || "").toLowerCase().includes(term) && !(p.sku || "").toLowerCase().includes(term)) return false;
+      if (categoryFilter !== "__all__" && (p.category || "").trim().toLowerCase() !== categoryFilter.trim().toLowerCase()) return false;
       if (statusFilter === "active" && p.stock <= 0) return false;
       if (statusFilter === "inactive" && p.stock > 0) return false;
       if (statusFilter === "low" && !(p.stock <= p.min_stock)) return false;
