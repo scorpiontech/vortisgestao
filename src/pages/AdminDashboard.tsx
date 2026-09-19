@@ -67,6 +67,7 @@ export default function AdminDashboard() {
   const [chargeForm, setChargeForm] = useState({ due_date: "", reference_month: "", custom_amount: "" });
   const [generating, setGenerating] = useState(false);
   const [unreadLogs, setUnreadLogs] = useState(0);
+  const [onlyMissingDoc, setOnlyMissingDoc] = useState(false);
 
   const navigate = useNavigate();
 
