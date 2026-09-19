@@ -1091,11 +1091,7 @@ const Vendas = () => {
                         size="sm"
                         variant="destructive"
                         disabled={cancellingSaleId === s.id}
-                        onClick={() => {
-                          if (window.confirm(`Cancelar a venda #${s.id.slice(0, 8)}? O estoque e o caixa serão revertidos.`)) {
-                            cancelSale(s.id);
-                          }
-                        }}
+                        onClick={() => setCancelTarget({ id: s.id, total: Number(s.total) })}
                       >
                         {cancellingSaleId === s.id ? "Cancelando..." : "Cancelar"}
                       </Button>
