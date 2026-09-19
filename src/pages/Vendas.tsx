@@ -757,7 +757,7 @@ const Vendas = () => {
                     <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
                   </Button>
                 ) : (
-                  <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
+                  <Button onClick={() => finalizeSale()} size="lg" disabled={items.length === 0}>
                     <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
                   </Button>
                 )}
