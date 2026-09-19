@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
+import { PixPaymentDialog } from "@/components/cobrancas/PixPaymentDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
