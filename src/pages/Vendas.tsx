@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
+import { Trash2, Printer, Plus, Minus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { PixPaymentDialog } from "@/components/cobrancas/PixPaymentDialog";
@@ -257,6 +257,11 @@ const Vendas = () => {
   };
 
   const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
+
+  const updateItemQuantity = (productId: string, qty: number) => {
+    const q = Math.max(1, Math.floor(Number(qty) || 1));
+    setItems(items.map(i => i.productId === productId ? { ...i, quantity: q, total: q * i.unitPrice } : i));
+  };
 
   const handleBarcodeScan = async (code: string, format?: string) => {
     const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
@@ -594,7 +599,24 @@ const Vendas = () => {
                       {items.map(i => (
                         <tr key={i.productId}>
                           <td className="px-4 py-2">{i.productName}</td>
-                          <td className="px-4 py-2 text-center">{i.quantity}</td>
+                          <td className="px-2 py-2">
+                            <div className="flex items-center justify-center gap-1">
+                              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateItemQuantity(i.productId, i.quantity - 1)} aria-label="Diminuir quantidade">
+                                <Minus className="h-3.5 w-3.5" />
+                              </Button>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={i.quantity}
+                                onChange={e => updateItemQuantity(i.productId, Number(e.target.value))}
+                                className="h-7 w-16 text-center px-1"
+                                aria-label={`Quantidade de ${i.productName}`}
+                              />
+                              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateItemQuantity(i.productId, i.quantity + 1)} aria-label="Aumentar quantidade">
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
                           <td className="px-4 py-2 text-right">{formatCurrency(i.unitPrice)}</td>
                           <td className="px-4 py-2 text-right font-medium">{formatCurrency(i.total)}</td>
                           <td className="px-2 py-2"><Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeItem(i.productId)}><Trash2 className="h-3.5 w-3.5" /></Button></td>
