@@ -266,50 +266,58 @@ const Vendas = () => {
     toast({ title: `${product.name} adicionado` });
   };
 
-  const finalizeSale = async (autoPrint = false) => {
+  const finalizeSale = async (opts: { autoPrint?: boolean; existingSaleId?: string | null } = {}) => {
+    const { autoPrint = false, existingSaleId = null } = opts;
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
 
-    const { data: sale, error: saleError } = await supabase.from("sales").insert({
-      user_id: effectiveUserId!,
-      customer_name: customerName || null,
-      payment_method: paymentMethod,
-      total,
-      discount: discountValue,
-      installments: inst,
-    } as any).select().single();
+    // Quando a cobrança Asaas já registrou a venda no servidor, apenas reaproveitamos
+    // o registro existente — evita venda, estoque e caixa em duplicidade.
+    let sale: any = existingSaleId ? { id: existingSaleId } : null;
 
-    if (saleError || !sale) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
+    if (!sale) {
+      const { data: created, error: saleError } = await supabase.from("sales").insert({
+        user_id: effectiveUserId!,
+        customer_name: customerName || null,
+        payment_method: paymentMethod,
+        total,
+        discount: discountValue,
+        installments: inst,
+      } as any).select().single();
 
-    const saleItems = items.map(i => ({
-      sale_id: (sale as any).id,
-      product_id: i.realProductId,
-      product_name: i.productName,
-      quantity: i.quantity,
-      unit_price: i.unitPrice,
-      total: i.total,
-    }));
-    await supabase.from("sale_items").insert(saleItems);
+      if (saleError || !created) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
+      sale = created;
 
-    const txDescription = pending
-      ? `${pending.source === "quote" ? "Venda (Orçamento)" : "Venda (OS)"} #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`
-      : `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`;
+      const saleItems = items.map(i => ({
+        sale_id: (sale as any).id,
+        product_id: i.realProductId,
+        product_name: i.productName,
+        quantity: i.quantity,
+        unit_price: i.unitPrice,
+        total: i.total,
+      }));
+      await supabase.from("sale_items").insert(saleItems);
 
-    await supabase.from("transactions").insert({
-      user_id: effectiveUserId!,
-      type: "entrada",
-      description: txDescription,
-      amount: total,
-      category: pending?.source === "service_order" ? "Ordem de Serviço" : "Vendas",
-      payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
-    });
+      const txDescription = pending
+        ? `${pending.source === "quote" ? "Venda (Orçamento)" : "Venda (OS)"} #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`
+        : `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`;
 
-    for (const item of items) {
-      if (!item.realProductId) continue;
-      const prod = products.find(p => p.id === item.realProductId);
-      if (prod) {
-        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.realProductId);
+      await supabase.from("transactions").insert({
+        user_id: effectiveUserId!,
+        type: "entrada",
+        description: txDescription,
+        amount: total,
+        category: pending?.source === "service_order" ? "Ordem de Serviço" : "Vendas",
+        payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
+      });
+
+      for (const item of items) {
+        if (!item.realProductId) continue;
+        const prod = products.find(p => p.id === item.realProductId);
+        if (prod) {
+          await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.realProductId);
+        }
       }
     }
 
