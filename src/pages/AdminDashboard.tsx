@@ -310,11 +310,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const filtered = accounts.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const isMissingDoc = (a: ClientAccount) => (a.document || "").replace(/\D/g, "").length < 11;
 
+  const filtered = accounts.filter(a => {
+    const term = search.toLowerCase();
+    const matches =
+      a.name.toLowerCase().includes(term) ||
+      a.email.toLowerCase().includes(term) ||
+      (a.document || "").includes(search.replace(/\D/g, ""));
+    return matches && (!onlyMissingDoc || isMissingDoc(a));
+  });
+
+  const totalSemDocumento = accounts.filter(isMissingDoc).length;
   const totalAtivos = accounts.filter(a => !a.blocked && a.status === "ativo").length;
   const totalBloqueados = accounts.filter(a => a.blocked).length;
   const receitaMensal = accounts.filter(a => !a.blocked).reduce((sum, a) => sum + Number(a.monthly_value), 0);
