@@ -733,9 +733,22 @@ const Vendas = () => {
                   {showInstallments && installmentsNum > 1 && (
                     <p className="text-sm text-muted-foreground">{installmentsNum}x de {formatCurrency(total / installmentsNum)}</p>
                   )}
+                  {isBoletoAsaas && asaasInstallmentsNum > 1 && (
+                    <p className="text-sm text-muted-foreground">{asaasInstallmentsNum} boletos de {formatCurrency(total / asaasInstallmentsNum)}</p>
+                  )}
                 </div>
                 {isAsaasPayment ? (
-                  <Button onClick={() => setCobrancaOpen(true)} size="lg" disabled={items.length === 0}>
+                  <Button
+                    onClick={() => {
+                      if (!selectedCustomerId) {
+                        toast({ title: "Selecione o cliente", description: "A cobrança precisa de um cliente cadastrado.", variant: "destructive" });
+                        return;
+                      }
+                      setCobrancaOpen(true);
+                    }}
+                    size="lg"
+                    disabled={items.length === 0 || !selectedCustomerId}
+                  >
                     <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
                   </Button>
                 ) : (
