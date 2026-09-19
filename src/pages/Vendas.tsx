@@ -100,6 +100,11 @@ const Vendas = () => {
   const [approvedQuotes, setApprovedQuotes] = useState<Array<{ id: string; customer_id: string | null; customer_name: string | null; total: number; created_at: string; payment_method: string | null; installments: number | null; discount: number | null }>>([]);
   const [quotesDialogOpen, setQuotesDialogOpen] = useState(false);
   const [quoteSearch, setQuoteSearch] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
+  const finalizingRef = useRef(false);
+  const [salesDialogOpen, setSalesDialogOpen] = useState(false);
+  const [recentSales, setRecentSales] = useState<Array<{ id: string; customer_name: string | null; payment_method: string; total: number; date: string }>>([]);
+  const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -288,9 +293,46 @@ const Vendas = () => {
     toast({ title: `${product.name} adicionado` });
   };
 
+  const fetchRecentSales = async () => {
+    const { data } = await supabase
+      .from("sales")
+      .select("id, customer_name, payment_method, total, date")
+      .order("date", { ascending: false })
+      .limit(30);
+    setRecentSales((data as any) || []);
+  };
+
+  const cancelSale = async (id: string) => {
+    setCancellingSaleId(id);
+    const { error } = await supabase.rpc("cancel_sale" as any, { _sale_id: id });
+    setCancellingSaleId(null);
+    if (error) {
+      toast({ title: "Não foi possível cancelar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Venda cancelada", description: "Estoque e caixa foram revertidos." });
+    logAudit({ action: "sale_cancel", entity: "sale", entityId: id, details: {} });
+    if (saleId === id) { setShowReceipt(false); setSaleId(null); }
+    fetchRecentSales();
+    supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
+  };
+
   const finalizeSale = async (opts: { autoPrint?: boolean; existingSaleId?: string | null } = {}) => {
     const { autoPrint = false, existingSaleId = null } = opts;
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
+    // Trava contra duplo clique: impede registrar a mesma venda duas vezes.
+    if (finalizingRef.current) return;
+    finalizingRef.current = true;
+    setFinalizing(true);
+    try {
+      await runFinalizeSale(autoPrint, existingSaleId);
+    } finally {
+      finalizingRef.current = false;
+      setFinalizing(false);
+    }
+  };
+
+  const runFinalizeSale = async (autoPrint: boolean, existingSaleId: string | null) => {
 
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
 
@@ -443,13 +485,23 @@ const Vendas = () => {
           <h1 className="text-2xl font-bold">PDV</h1>
           <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
         </div>
-        {approvedQuotes.length > 0 && !showReceipt && (
-          <Button variant="outline" onClick={() => setQuotesDialogOpen(true)} className="gap-2">
+        <div className="flex flex-wrap gap-2">
+          {approvedQuotes.length > 0 && !showReceipt && (
+            <Button variant="outline" onClick={() => setQuotesDialogOpen(true)} className="gap-2">
+              <ListChecks className="h-4 w-4" />
+              Pré-vendas aprovadas
+              <Badge variant="secondary" className="ml-1">{approvedQuotes.length}</Badge>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => { setSalesDialogOpen(true); fetchRecentSales(); }}
+          >
             <ListChecks className="h-4 w-4" />
-            Pré-vendas aprovadas
-            <Badge variant="secondary" className="ml-1">{approvedQuotes.length}</Badge>
+            Vendas recentes
           </Button>
-        )}
+        </div>
       </div>
 
       {pending && !showReceipt && (
@@ -805,8 +857,9 @@ const Vendas = () => {
                     <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
                   </Button>
                 ) : (
-                  <Button onClick={() => finalizeSale()} size="lg" disabled={items.length === 0}>
-                    <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
+                  <Button onClick={() => finalizeSale()} size="lg" disabled={items.length === 0 || finalizing}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {finalizing ? "Registrando..." : "Finalizar Venda"}
                   </Button>
                 )}
               </div>
@@ -970,6 +1023,67 @@ const Vendas = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={salesDialogOpen} onOpenChange={setSalesDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Vendas recentes</DialogTitle>
+            <DialogDescription>
+              Vendas repetidas aparecem destacadas. Cancelar uma venda devolve o estoque e remove a entrada do caixa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2">
+            {recentSales.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma venda registrada.</p>
+            )}
+            {recentSales.map((s) => {
+              const dup = recentSales.some(
+                (o) =>
+                  o.id !== s.id &&
+                  Number(o.total) === Number(s.total) &&
+                  (o.customer_name || "") === (s.customer_name || "") &&
+                  Math.abs(new Date(o.date).getTime() - new Date(s.date).getTime()) < 5 * 60 * 1000,
+              );
+              return (
+                <div
+                  key={s.id}
+                  className={cn(
+                    "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2",
+                    dup && "border-destructive/40 bg-destructive/5",
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      #{s.id.slice(0, 8)} — {s.customer_name || "Consumidor"}
+                      {dup && <Badge variant="destructive" className="ml-2">Possível duplicidade</Badge>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(s.date).toLocaleString("pt-BR")} · {s.payment_method}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold">{formatCurrency(Number(s.total))}</span>
+                    {(isMaster || isGerente) && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={cancellingSaleId === s.id}
+                        onClick={() => {
+                          if (window.confirm(`Cancelar a venda #${s.id.slice(0, 8)}? O estoque e o caixa serão revertidos.`)) {
+                            cancelSale(s.id);
+                          }
+                        }}
+                      >
+                        {cancellingSaleId === s.id ? "Cancelando..." : "Cancelar"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

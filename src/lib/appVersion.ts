@@ -32,9 +32,12 @@ export async function reloadToLatest() {
     /* ignora */
   }
   try {
+    // Atualiza o service worker sem removê-lo — remover desabilitaria a
+    // instalação do app no desktop.
     if ("serviceWorker" in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
+      await Promise.all(regs.map((r) => r.update().catch(() => undefined)));
+      navigator.serviceWorker.controller?.postMessage("clear-cache");
     }
   } catch {
     /* ignora */
