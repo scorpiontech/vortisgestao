@@ -28,6 +28,8 @@ export interface NovaCobrancaDefaults {
   items?: ChargeItemPayload[];
   discount?: number;
   installments?: number;
+  dueDate?: string;
+  billingType?: "BOLETO" | "PIX";
   lockAmount?: boolean;
   createReceivables?: boolean;
 }
@@ -77,7 +79,8 @@ export function NovaCobrancaDialog({ open, onOpenChange, defaults, onCreated }: 
     setDescription(defaults?.description || "");
     setAmount(defaults?.amount ? String(defaults.amount.toFixed(2)) : "");
     setInstallments(String(defaults?.installments && defaults.installments > 1 ? defaults.installments : 1));
-    setDueDate(todayPlus(5));
+    setBillingType(defaults?.billingType || "BOLETO");
+    setDueDate(defaults?.dueDate || todayPlus(5));
     setSearch("");
     setDocument("");
     setEmail("");

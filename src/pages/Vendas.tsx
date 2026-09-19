@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePlanTier } from "@/hooks/usePlanTier";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,7 @@ interface CompanyInfo {
 const Vendas = () => {
   const { user } = useAuth();
   const { effectiveUserId, isMaster, isGerente } = useUserRole();
+  const { isPro } = usePlanTier();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
@@ -76,6 +78,12 @@ const Vendas = () => {
   const [discount, setDiscount] = useState("0");
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
+  const [asaasInstallments, setAsaasInstallments] = useState("1");
+  const [asaasDueDate, setAsaasDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 5);
+    return d.toISOString().slice(0, 10);
+  });
   const [cobrancaOpen, setCobrancaOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
   const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
@@ -208,7 +216,10 @@ const Vendas = () => {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const showInstallments = paymentMethod === "Cartão Crédito";
-  const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && (isMaster || isGerente);
+  const canUseAsaas = (isMaster || isGerente) && isPro;
+  const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && canUseAsaas;
+  const isBoletoAsaas = paymentMethod === "Boleto (Asaas)" && canUseAsaas;
+  const asaasInstallmentsNum = Math.max(1, Number(asaasInstallments) || 1);
 
   const addProductById = (productId: string, qty: number = 1) => {
     const product = products.find(p => p.id === productId);
@@ -629,7 +640,7 @@ const Vendas = () => {
                       <SelectItem value="PIX">PIX</SelectItem>
                       <SelectItem value="Cartão Crédito">Cartão Crédito</SelectItem>
                       <SelectItem value="Cartão Débito">Cartão Débito</SelectItem>
-                      {(isMaster || isGerente) && (
+                      {canUseAsaas && (
                         <>
                           <SelectItem value="Boleto (Asaas)">Boleto (cobrança Asaas)</SelectItem>
                           <SelectItem value="PIX (Asaas)">PIX (cobrança Asaas)</SelectItem>
@@ -679,7 +690,35 @@ const Vendas = () => {
                     </Select>
                   </div>
                 )}
+
+                {isBoletoAsaas && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>Parcelas do boleto</Label>
+                      <Select value={asaasInstallments} onValueChange={setAsaasInstallments}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                            <SelectItem key={n} value={String(n)}>
+                              {n}x {formatCurrency(total / n)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pdv-venc">1º vencimento</Label>
+                      <Input id="pdv-venc" type="date" value={asaasDueDate} onChange={e => setAsaasDueDate(e.target.value)} />
+                    </div>
+                  </>
+                )}
               </div>
+
+              {isAsaasPayment && !selectedCustomerId && (
+                <p className="text-sm text-destructive">
+                  Selecione um cliente cadastrado para gerar a cobrança — os dados (CPF/CNPJ, e-mail e telefone) vêm do cadastro do cliente.
+                </p>
+              )}
 
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
@@ -694,9 +733,22 @@ const Vendas = () => {
                   {showInstallments && installmentsNum > 1 && (
                     <p className="text-sm text-muted-foreground">{installmentsNum}x de {formatCurrency(total / installmentsNum)}</p>
                   )}
+                  {isBoletoAsaas && asaasInstallmentsNum > 1 && (
+                    <p className="text-sm text-muted-foreground">{asaasInstallmentsNum} boletos de {formatCurrency(total / asaasInstallmentsNum)}</p>
+                  )}
                 </div>
                 {isAsaasPayment ? (
-                  <Button onClick={() => setCobrancaOpen(true)} size="lg" disabled={items.length === 0}>
+                  <Button
+                    onClick={() => {
+                      if (!selectedCustomerId) {
+                        toast({ title: "Selecione o cliente", description: "A cobrança precisa de um cliente cadastrado.", variant: "destructive" });
+                        return;
+                      }
+                      setCobrancaOpen(true);
+                    }}
+                    size="lg"
+                    disabled={items.length === 0 || !selectedCustomerId}
+                  >
                     <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
                   </Button>
                 ) : (
@@ -881,6 +933,9 @@ const Vendas = () => {
           lockAmount: true,
           discount: discountValue,
           createReceivables: false,
+          billingType: isBoletoAsaas ? "BOLETO" : "PIX",
+          installments: isBoletoAsaas ? asaasInstallmentsNum : 1,
+          dueDate: isBoletoAsaas ? asaasDueDate : undefined,
           items: items.map(i => ({
             product_id: i.realProductId,
             product_name: i.productName,

@@ -82,6 +82,13 @@ const Estoque = () => {
   }, []);
 
   const [categoryFilter, setCategoryFilter] = useState("__all__");
+  // Opções do filtro: categorias cadastradas + categorias já usadas nos produtos
+  const categoryOptions = Array.from(
+    new Set([
+      ...categories.map(c => (c.name || "").trim()),
+      ...products.map(p => (p.category || "").trim()),
+    ].filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "low">("all");
   const [minQty, setMinQty] = useState("");
   const [maxQty, setMaxQty] = useState("");
@@ -91,8 +98,8 @@ const Estoque = () => {
   const filtered = products
     .filter(p => {
       const term = search.trim().toLowerCase();
-      if (term && !p.name.toLowerCase().includes(term) && !p.sku.toLowerCase().includes(term)) return false;
-      if (categoryFilter !== "__all__" && (p.category || "") !== categoryFilter) return false;
+      if (term && !(p.name || "").toLowerCase().includes(term) && !(p.sku || "").toLowerCase().includes(term)) return false;
+      if (categoryFilter !== "__all__" && (p.category || "").trim().toLowerCase() !== categoryFilter.trim().toLowerCase()) return false;
       if (statusFilter === "active" && p.stock <= 0) return false;
       if (statusFilter === "inactive" && p.stock > 0) return false;
       if (statusFilter === "low" && !(p.stock <= p.min_stock)) return false;
@@ -474,7 +481,7 @@ const Estoque = () => {
               <SelectTrigger className="h-11 sm:h-10 text-sm min-w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todas</SelectItem>
-                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                {categoryOptions.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
