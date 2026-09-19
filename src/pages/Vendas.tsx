@@ -87,6 +87,9 @@ const Vendas = () => {
   const [cobrancaOpen, setCobrancaOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
   const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixChargeId, setPixChargeId] = useState<string | null>(null);
+  const [pixInstallment, setPixInstallment] = useState<ChargeInstallment | null>(null);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
