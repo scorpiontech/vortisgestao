@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash2, Printer, Plus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
+import { PixPaymentDialog } from "@/components/cobrancas/PixPaymentDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +88,9 @@ const Vendas = () => {
   const [cobrancaOpen, setCobrancaOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
   const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
+  const [pixOpen, setPixOpen] = useState(false);
+  const [pixChargeId, setPixChargeId] = useState<string | null>(null);
+  const [pixInstallment, setPixInstallment] = useState<ChargeInstallment | null>(null);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
@@ -219,6 +223,7 @@ const Vendas = () => {
   const canUseAsaas = (isMaster || isGerente) && isPro;
   const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && canUseAsaas;
   const isBoletoAsaas = paymentMethod === "Boleto (Asaas)" && canUseAsaas;
+  const isPixAsaas = paymentMethod === "PIX (Asaas)" && canUseAsaas;
   const asaasInstallmentsNum = Math.max(1, Number(asaasInstallments) || 1);
 
   const addProductById = (productId: string, qty: number = 1) => {
@@ -261,7 +266,7 @@ const Vendas = () => {
     toast({ title: `${product.name} adicionado` });
   };
 
-  const finalizeSale = async () => {
+  const finalizeSale = async (autoPrint = false) => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
@@ -355,6 +360,7 @@ const Vendas = () => {
 
     setSaleId((sale as any).id);
     setShowReceipt(true);
+    if (autoPrint) setTimeout(() => window.print(), 700);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
     logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
     fetchApprovedQuotes();
@@ -752,7 +758,7 @@ const Vendas = () => {
                     <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
                   </Button>
                 ) : (
-                  <Button onClick={finalizeSale} size="lg" disabled={items.length === 0}>
+                  <Button onClick={() => finalizeSale()} size="lg" disabled={items.length === 0}>
                     <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
                   </Button>
                 )}
@@ -944,13 +950,33 @@ const Vendas = () => {
             total: i.total,
           })),
         }}
-        onCreated={(_charge, installments) => {
-          setChargeInstallments(installments as ChargeInstallment[]);
+        onCreated={(charge, installments) => {
+          const list = installments as ChargeInstallment[];
+          if (isPixAsaas) {
+            // PIX: abre a tela do QR Code e só finaliza a venda após a confirmação
+            setPixChargeId((charge as any)?.id || null);
+            setPixInstallment(list[0] || null);
+            setPixOpen(true);
+            return;
+          }
+          setChargeInstallments(list);
           setLinksOpen(true);
           setItems([]);
           setDiscount("0");
           setInstallments("1");
           toast({ title: "Cobrança enviada", description: "A venda será registrada automaticamente após a confirmação do pagamento." });
+        }}
+      />
+
+      <PixPaymentDialog
+        open={pixOpen}
+        onOpenChange={setPixOpen}
+        chargeId={pixChargeId}
+        installment={pixInstallment}
+        amount={total}
+        onPaid={async () => {
+          setPixOpen(false);
+          await finalizeSale(true);
         }}
       />
 
