@@ -266,7 +266,7 @@ const Vendas = () => {
     toast({ title: `${product.name} adicionado` });
   };
 
-  const finalizeSale = async () => {
+  const finalizeSale = async (autoPrint = false) => {
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
