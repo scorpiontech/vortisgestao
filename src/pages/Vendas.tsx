@@ -933,6 +933,9 @@ const Vendas = () => {
           lockAmount: true,
           discount: discountValue,
           createReceivables: false,
+          billingType: isBoletoAsaas ? "BOLETO" : "PIX",
+          installments: isBoletoAsaas ? asaasInstallmentsNum : 1,
+          dueDate: isBoletoAsaas ? asaasDueDate : undefined,
           items: items.map(i => ({
             product_id: i.realProductId,
             product_name: i.productName,
