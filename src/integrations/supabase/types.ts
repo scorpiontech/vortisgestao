@@ -1870,9 +1870,10 @@ export type Database = {
     }
     Functions: {
       can_emit_nfce: { Args: { _owner_id: string }; Returns: boolean }
-      cancel_sale:
-        | { Args: { _sale_id: string }; Returns: Json }
-        | { Args: { _reason?: string; _sale_id: string }; Returns: Json }
+      cancel_sale: {
+        Args: { _reason?: string; _sale_id: string }
+        Returns: Json
+      }
       check_nfce_quota: { Args: { _owner_id: string }; Returns: Json }
       cleanup_old_barcode_scan_logs: { Args: never; Returns: number }
       get_effective_user_id: { Args: { _user_id: string }; Returns: string }
