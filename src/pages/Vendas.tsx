@@ -258,6 +258,11 @@ const Vendas = () => {
 
   const removeItem = (productId: string) => setItems(items.filter(i => i.productId !== productId));
 
+  const updateItemQuantity = (productId: string, qty: number) => {
+    const q = Math.max(1, Math.floor(Number(qty) || 1));
+    setItems(items.map(i => i.productId === productId ? { ...i, quantity: q, total: q * i.unitPrice } : i));
+  };
+
   const handleBarcodeScan = async (code: string, format?: string) => {
     const product = products.find(p => p.sku.toLowerCase() === code.toLowerCase());
     // Log the scan (always, matched or not) for auditing
