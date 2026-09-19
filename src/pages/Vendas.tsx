@@ -216,7 +216,10 @@ const Vendas = () => {
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const showInstallments = paymentMethod === "Cartão Crédito";
-  const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && (isMaster || isGerente);
+  const canUseAsaas = (isMaster || isGerente) && isPro;
+  const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && canUseAsaas;
+  const isBoletoAsaas = paymentMethod === "Boleto (Asaas)" && canUseAsaas;
+  const asaasInstallmentsNum = Math.max(1, Number(asaasInstallments) || 1);
 
   const addProductById = (productId: string, qty: number = 1) => {
     const product = products.find(p => p.id === productId);
