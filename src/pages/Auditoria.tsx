@@ -35,6 +35,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   cash_open: { label: "Abertura Caixa", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" },
   cash_close: { label: "Fechamento Caixa", color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20" },
   mark_paid: { label: "Marcou Pago", color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
+  sale_cancel: { label: "Cancelamento de Venda", color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20" },
 };
 
 const ENTITY_LABELS: Record<string, string> = {
