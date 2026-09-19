@@ -360,6 +360,7 @@ const Vendas = () => {
 
     setSaleId((sale as any).id);
     setShowReceipt(true);
+    if (autoPrint) setTimeout(() => window.print(), 700);
     toast({ title: "Venda finalizada!", description: `Total: ${formatCurrency(total)}` });
     logAudit({ action: "sale", entity: "sale", entityId: (sale as any).id, details: { total, paymentMethod, items: items.length, customer: customerName || "Consumidor" } });
     fetchApprovedQuotes();
