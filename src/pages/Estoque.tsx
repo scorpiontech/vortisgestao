@@ -82,6 +82,13 @@ const Estoque = () => {
   }, []);
 
   const [categoryFilter, setCategoryFilter] = useState("__all__");
+  // Opções do filtro: categorias cadastradas + categorias já usadas nos produtos
+  const categoryOptions = Array.from(
+    new Set([
+      ...categories.map(c => (c.name || "").trim()),
+      ...products.map(p => (p.category || "").trim()),
+    ].filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b, "pt-BR"));
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "low">("all");
   const [minQty, setMinQty] = useState("");
   const [maxQty, setMaxQty] = useState("");
