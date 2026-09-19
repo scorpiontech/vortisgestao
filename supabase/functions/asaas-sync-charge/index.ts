@@ -137,7 +137,20 @@ Deno.serve(async (req) => {
     else if (overdue) status = "overdue";
     await admin.from("customer_charges").update({ status }).eq("id", charge_id);
 
-    return json({ synced: true, status, results });
+    // Devolve a venda já registrada pelo servidor para o PDV não duplicar o lançamento
+    const { data: finalCharge } = await admin
+      .from("customer_charges")
+      .select("sale_id, finalized_at")
+      .eq("id", charge_id)
+      .maybeSingle();
+
+    return json({
+      synced: true,
+      status,
+      results,
+      sale_id: finalCharge?.sale_id ?? null,
+      finalized_at: finalCharge?.finalized_at ?? null,
+    });
   } catch (e) {
     console.error("[asaas-sync-charge]", e);
     return json({ error: e instanceof Error ? e.message : "Erro inesperado" }, 500);
