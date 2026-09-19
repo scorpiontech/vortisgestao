@@ -62,6 +62,7 @@ interface CompanyInfo {
 const Vendas = () => {
   const { user } = useAuth();
   const { effectiveUserId, isMaster, isGerente } = useUserRole();
+  const { isPro } = usePlanTier();
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<SaleItem[]>([]);
@@ -77,6 +78,12 @@ const Vendas = () => {
   const [discount, setDiscount] = useState("0");
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
   const [installments, setInstallments] = useState("1");
+  const [asaasInstallments, setAsaasInstallments] = useState("1");
+  const [asaasDueDate, setAsaasDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 5);
+    return d.toISOString().slice(0, 10);
+  });
   const [cobrancaOpen, setCobrancaOpen] = useState(false);
   const [linksOpen, setLinksOpen] = useState(false);
   const [chargeInstallments, setChargeInstallments] = useState<ChargeInstallment[]>([]);
