@@ -49,7 +49,10 @@ export const createAsaasCharge = (input: CreateChargeInput) =>
   callFn<{ charge: any; installments: any[] }>("asaas-create-charge", input);
 
 export const syncAsaasCharge = (charge_id: string) =>
-  callFn<{ synced: boolean; status: string }>("asaas-sync-charge", { charge_id });
+  callFn<{ synced: boolean; status: string; sale_id?: string | null; finalized_at?: string | null }>(
+    "asaas-sync-charge",
+    { charge_id },
+  );
 
 export const cancelAsaasCharge = (charge_id: string) =>
   callFn<{ cancelled: boolean }>("asaas-sync-charge", { charge_id, action: "cancel" });
