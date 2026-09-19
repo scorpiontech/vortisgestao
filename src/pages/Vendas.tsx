@@ -690,7 +690,35 @@ const Vendas = () => {
                     </Select>
                   </div>
                 )}
+
+                {isBoletoAsaas && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label>Parcelas do boleto</Label>
+                      <Select value={asaasInstallments} onValueChange={setAsaasInstallments}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map(n => (
+                            <SelectItem key={n} value={String(n)}>
+                              {n}x {formatCurrency(total / n)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pdv-venc">1º vencimento</Label>
+                      <Input id="pdv-venc" type="date" value={asaasDueDate} onChange={e => setAsaasDueDate(e.target.value)} />
+                    </div>
+                  </>
+                )}
               </div>
+
+              {isAsaasPayment && !selectedCustomerId && (
+                <p className="text-sm text-destructive">
+                  Selecione um cliente cadastrado para gerar a cobrança — os dados (CPF/CNPJ, e-mail e telefone) vêm do cadastro do cliente.
+                </p>
+              )}
 
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
