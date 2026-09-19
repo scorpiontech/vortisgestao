@@ -1284,6 +1284,66 @@ export type Database = {
           },
         ]
       }
+      sale_cancellations: {
+        Row: {
+          cancelled_by: string | null
+          cancelled_by_email: string
+          cancelled_by_name: string
+          cash_reverted: number
+          created_at: string
+          customer_name: string
+          id: string
+          items: Json
+          owner_id: string
+          payment_method: string
+          reason: string
+          sale_date: string | null
+          sale_discount: number
+          sale_id: string
+          sale_total: number
+          stock_returned_qty: number
+          transactions_removed: number
+        }
+        Insert: {
+          cancelled_by?: string | null
+          cancelled_by_email?: string
+          cancelled_by_name?: string
+          cash_reverted?: number
+          created_at?: string
+          customer_name?: string
+          id?: string
+          items?: Json
+          owner_id: string
+          payment_method?: string
+          reason?: string
+          sale_date?: string | null
+          sale_discount?: number
+          sale_id: string
+          sale_total?: number
+          stock_returned_qty?: number
+          transactions_removed?: number
+        }
+        Update: {
+          cancelled_by?: string | null
+          cancelled_by_email?: string
+          cancelled_by_name?: string
+          cash_reverted?: number
+          created_at?: string
+          customer_name?: string
+          id?: string
+          items?: Json
+          owner_id?: string
+          payment_method?: string
+          reason?: string
+          sale_date?: string | null
+          sale_discount?: number
+          sale_id?: string
+          sale_total?: number
+          stock_returned_qty?: number
+          transactions_removed?: number
+        }
+        Relationships: []
+      }
       sale_items: {
         Row: {
           id: string
@@ -1810,7 +1870,9 @@ export type Database = {
     }
     Functions: {
       can_emit_nfce: { Args: { _owner_id: string }; Returns: boolean }
-      cancel_sale: { Args: { _sale_id: string }; Returns: Json }
+      cancel_sale:
+        | { Args: { _sale_id: string }; Returns: Json }
+        | { Args: { _reason?: string; _sale_id: string }; Returns: Json }
       check_nfce_quota: { Args: { _owner_id: string }; Returns: Json }
       cleanup_old_barcode_scan_logs: { Args: never; Returns: number }
       get_effective_user_id: { Args: { _user_id: string }; Returns: string }
