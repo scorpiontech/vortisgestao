@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, Minus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
+import { Trash2, Printer, Plus, Minus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet, ScrollText } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { PixPaymentDialog } from "@/components/cobrancas/PixPaymentDialog";
+import { CancelSaleDialog } from "@/components/vendas/CancelSaleDialog";
+import { SaleCancellationsDialog } from "@/components/vendas/SaleCancellationsDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
@@ -105,6 +107,8 @@ const Vendas = () => {
   const [salesDialogOpen, setSalesDialogOpen] = useState(false);
   const [recentSales, setRecentSales] = useState<Array<{ id: string; customer_name: string | null; payment_method: string; total: number; date: string }>>([]);
   const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; total: number } | null>(null);
+  const [cancelHistoryOpen, setCancelHistoryOpen] = useState(false);
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -302,16 +306,32 @@ const Vendas = () => {
     setRecentSales((data as any) || []);
   };
 
-  const cancelSale = async (id: string) => {
+  const cancelSale = async (id: string, reason: string) => {
     setCancellingSaleId(id);
-    const { error } = await supabase.rpc("cancel_sale" as any, { _sale_id: id });
+    const { data, error } = await supabase.rpc("cancel_sale" as any, { _sale_id: id, _reason: reason });
     setCancellingSaleId(null);
     if (error) {
       toast({ title: "Não foi possível cancelar", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Venda cancelada", description: "Estoque e caixa foram revertidos." });
-    logAudit({ action: "sale_cancel", entity: "sale", entityId: id, details: {} });
+    const res = (data as any) || {};
+    setCancelTarget(null);
+    toast({
+      title: "Venda cancelada",
+      description: `Estoque devolvido: ${Number(res.stock_returned_qty || 0)} un. · Caixa: -${formatCurrency(Number(res.cash_reverted || 0))}`,
+    });
+    logAudit({
+      action: "sale_cancel",
+      entity: "sale",
+      entityId: id,
+      details: {
+        motivo: reason,
+        total: Number(res.total || 0),
+        estoque_devolvido: Number(res.stock_returned_qty || 0),
+        caixa_revertido: Number(res.cash_reverted || 0),
+        itens: res.items || [],
+      },
+    });
     if (saleId === id) { setShowReceipt(false); setSaleId(null); }
     fetchRecentSales();
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
@@ -501,6 +521,12 @@ const Vendas = () => {
             <ListChecks className="h-4 w-4" />
             Vendas recentes
           </Button>
+          {(isMaster || isGerente) && (
+            <Button variant="outline" className="gap-2" onClick={() => setCancelHistoryOpen(true)}>
+              <ScrollText className="h-4 w-4" />
+              Cancelamentos
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1071,11 +1097,7 @@ const Vendas = () => {
                         size="sm"
                         variant="destructive"
                         disabled={cancellingSaleId === s.id}
-                        onClick={() => {
-                          if (window.confirm(`Cancelar a venda #${s.id.slice(0, 8)}? O estoque e o caixa serão revertidos.`)) {
-                            cancelSale(s.id);
-                          }
-                        }}
+                        onClick={() => setCancelTarget({ id: s.id, total: Number(s.total) })}
                       >
                         {cancellingSaleId === s.id ? "Cancelando..." : "Cancelar"}
                       </Button>
@@ -1087,6 +1109,17 @@ const Vendas = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CancelSaleDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => { if (!o) setCancelTarget(null); }}
+        saleLabel={cancelTarget ? `#${cancelTarget.id.slice(0, 8)}` : ""}
+        saleTotal={cancelTarget?.total || 0}
+        loading={!!cancelTarget && cancellingSaleId === cancelTarget.id}
+        onConfirm={(reason) => { if (cancelTarget) cancelSale(cancelTarget.id, reason); }}
+      />
+
+      <SaleCancellationsDialog open={cancelHistoryOpen} onOpenChange={setCancelHistoryOpen} />
 
       <NovaCobrancaDialog
         open={cobrancaOpen}
