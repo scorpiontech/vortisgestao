@@ -485,13 +485,23 @@ const Vendas = () => {
           <h1 className="text-2xl font-bold">PDV</h1>
           <p className="text-sm text-muted-foreground">Ponto de Venda — registre vendas e emita cupons</p>
         </div>
-        {approvedQuotes.length > 0 && !showReceipt && (
-          <Button variant="outline" onClick={() => setQuotesDialogOpen(true)} className="gap-2">
+        <div className="flex flex-wrap gap-2">
+          {approvedQuotes.length > 0 && !showReceipt && (
+            <Button variant="outline" onClick={() => setQuotesDialogOpen(true)} className="gap-2">
+              <ListChecks className="h-4 w-4" />
+              Pré-vendas aprovadas
+              <Badge variant="secondary" className="ml-1">{approvedQuotes.length}</Badge>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => { setSalesDialogOpen(true); fetchRecentSales(); }}
+          >
             <ListChecks className="h-4 w-4" />
-            Pré-vendas aprovadas
-            <Badge variant="secondary" className="ml-1">{approvedQuotes.length}</Badge>
+            Vendas recentes
           </Button>
-        )}
+        </div>
       </div>
 
       {pending && !showReceipt && (
@@ -847,8 +857,9 @@ const Vendas = () => {
                     <Wallet className="h-4 w-4 mr-2" />Gerar Cobrança
                   </Button>
                 ) : (
-                  <Button onClick={() => finalizeSale()} size="lg" disabled={items.length === 0}>
-                    <ShoppingCart className="h-4 w-4 mr-2" />Finalizar Venda
+                  <Button onClick={() => finalizeSale()} size="lg" disabled={items.length === 0 || finalizing}>
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {finalizing ? "Registrando..." : "Finalizar Venda"}
                   </Button>
                 )}
               </div>
