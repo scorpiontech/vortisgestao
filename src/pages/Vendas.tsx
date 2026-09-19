@@ -1027,6 +1027,67 @@ const Vendas = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={salesDialogOpen} onOpenChange={setSalesDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Vendas recentes</DialogTitle>
+            <DialogDescription>
+              Vendas repetidas aparecem destacadas. Cancelar uma venda devolve o estoque e remove a entrada do caixa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2">
+            {recentSales.length === 0 && (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma venda registrada.</p>
+            )}
+            {recentSales.map((s) => {
+              const dup = recentSales.some(
+                (o) =>
+                  o.id !== s.id &&
+                  Number(o.total) === Number(s.total) &&
+                  (o.customer_name || "") === (s.customer_name || "") &&
+                  Math.abs(new Date(o.date).getTime() - new Date(s.date).getTime()) < 5 * 60 * 1000,
+              );
+              return (
+                <div
+                  key={s.id}
+                  className={cn(
+                    "flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2",
+                    dup && "border-destructive/40 bg-destructive/5",
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      #{s.id.slice(0, 8)} — {s.customer_name || "Consumidor"}
+                      {dup && <Badge variant="destructive" className="ml-2">Possível duplicidade</Badge>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(s.date).toLocaleString("pt-BR")} · {s.payment_method}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold">{formatCurrency(Number(s.total))}</span>
+                    {(isMaster || isGerente) && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={cancellingSaleId === s.id}
+                        onClick={() => {
+                          if (window.confirm(`Cancelar a venda #${s.id.slice(0, 8)}? O estoque e o caixa serão revertidos.`)) {
+                            cancelSale(s.id);
+                          }
+                        }}
+                      >
+                        {cancellingSaleId === s.id ? "Cancelando..." : "Cancelar"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <NovaCobrancaDialog
         open={cobrancaOpen}
         onOpenChange={setCobrancaOpen}
