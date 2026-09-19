@@ -223,6 +223,7 @@ const Vendas = () => {
   const canUseAsaas = (isMaster || isGerente) && isPro;
   const isAsaasPayment = (paymentMethod === "Boleto (Asaas)" || paymentMethod === "PIX (Asaas)") && canUseAsaas;
   const isBoletoAsaas = paymentMethod === "Boleto (Asaas)" && canUseAsaas;
+  const isPixAsaas = paymentMethod === "PIX (Asaas)" && canUseAsaas;
   const asaasInstallmentsNum = Math.max(1, Number(asaasInstallments) || 1);
 
   const addProductById = (productId: string, qty: number = 1) => {
