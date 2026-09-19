@@ -12,6 +12,8 @@ import { Trash2, Printer, Plus, Minus, ShoppingCart, Users, ScanBarcode, Percent
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { PixPaymentDialog } from "@/components/cobrancas/PixPaymentDialog";
+import { CancelSaleDialog } from "@/components/vendas/CancelSaleDialog";
+import { SaleCancellationsDialog } from "@/components/vendas/SaleCancellationsDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { useToast } from "@/hooks/use-toast";
@@ -105,6 +107,8 @@ const Vendas = () => {
   const [salesDialogOpen, setSalesDialogOpen] = useState(false);
   const [recentSales, setRecentSales] = useState<Array<{ id: string; customer_name: string | null; payment_method: string; total: number; date: string }>>([]);
   const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; total: number } | null>(null);
+  const [cancelHistoryOpen, setCancelHistoryOpen] = useState(false);
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -302,16 +306,32 @@ const Vendas = () => {
     setRecentSales((data as any) || []);
   };
 
-  const cancelSale = async (id: string) => {
+  const cancelSale = async (id: string, reason: string) => {
     setCancellingSaleId(id);
-    const { error } = await supabase.rpc("cancel_sale" as any, { _sale_id: id });
+    const { data, error } = await supabase.rpc("cancel_sale" as any, { _sale_id: id, _reason: reason });
     setCancellingSaleId(null);
     if (error) {
       toast({ title: "Não foi possível cancelar", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Venda cancelada", description: "Estoque e caixa foram revertidos." });
-    logAudit({ action: "sale_cancel", entity: "sale", entityId: id, details: {} });
+    const res = (data as any) || {};
+    setCancelTarget(null);
+    toast({
+      title: "Venda cancelada",
+      description: `Estoque devolvido: ${Number(res.stock_returned_qty || 0)} un. · Caixa: -${formatCurrency(Number(res.cash_reverted || 0))}`,
+    });
+    logAudit({
+      action: "sale_cancel",
+      entity: "sale",
+      entityId: id,
+      details: {
+        motivo: reason,
+        total: Number(res.total || 0),
+        estoque_devolvido: Number(res.stock_returned_qty || 0),
+        caixa_revertido: Number(res.cash_reverted || 0),
+        itens: res.items || [],
+      },
+    });
     if (saleId === id) { setShowReceipt(false); setSaleId(null); }
     fetchRecentSales();
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
