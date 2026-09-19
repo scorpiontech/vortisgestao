@@ -100,6 +100,11 @@ const Vendas = () => {
   const [approvedQuotes, setApprovedQuotes] = useState<Array<{ id: string; customer_id: string | null; customer_name: string | null; total: number; created_at: string; payment_method: string | null; installments: number | null; discount: number | null }>>([]);
   const [quotesDialogOpen, setQuotesDialogOpen] = useState(false);
   const [quoteSearch, setQuoteSearch] = useState("");
+  const [finalizing, setFinalizing] = useState(false);
+  const finalizingRef = useRef(false);
+  const [salesDialogOpen, setSalesDialogOpen] = useState(false);
+  const [recentSales, setRecentSales] = useState<Array<{ id: string; customer_name: string | null; payment_method: string; total: number; date: string }>>([]);
+  const [cancellingSaleId, setCancellingSaleId] = useState<string | null>(null);
   const sellerName = useSellerName();
   const receiptRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -288,9 +293,46 @@ const Vendas = () => {
     toast({ title: `${product.name} adicionado` });
   };
 
+  const fetchRecentSales = async () => {
+    const { data } = await supabase
+      .from("sales")
+      .select("id, customer_name, payment_method, total, date")
+      .order("date", { ascending: false })
+      .limit(30);
+    setRecentSales((data as any) || []);
+  };
+
+  const cancelSale = async (id: string) => {
+    setCancellingSaleId(id);
+    const { error } = await supabase.rpc("cancel_sale" as any, { _sale_id: id });
+    setCancellingSaleId(null);
+    if (error) {
+      toast({ title: "Não foi possível cancelar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Venda cancelada", description: "Estoque e caixa foram revertidos." });
+    logAudit({ action: "sale_cancel", entity: "sale", entityId: id, details: {} });
+    if (saleId === id) { setShowReceipt(false); setSaleId(null); }
+    fetchRecentSales();
+    supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
+  };
+
   const finalizeSale = async (opts: { autoPrint?: boolean; existingSaleId?: string | null } = {}) => {
     const { autoPrint = false, existingSaleId = null } = opts;
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
+    // Trava contra duplo clique: impede registrar a mesma venda duas vezes.
+    if (finalizingRef.current) return;
+    finalizingRef.current = true;
+    setFinalizing(true);
+    try {
+      await runFinalizeSale(autoPrint, existingSaleId);
+    } finally {
+      finalizingRef.current = false;
+      setFinalizing(false);
+    }
+  };
+
+  const runFinalizeSale = async (autoPrint: boolean, existingSaleId: string | null) => {
 
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
 
