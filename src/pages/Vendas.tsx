@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
 import { getPdvPending, clearPdvPending, type PdvPending } from "@/lib/pdvPending";
+import { getPdvPixPending, setPdvPixPending, clearPdvPixPending, PIX_EXPIRATION_MINUTES } from "@/lib/pdvPixPending";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -91,6 +92,7 @@ const Vendas = () => {
   const [pixOpen, setPixOpen] = useState(false);
   const [pixChargeId, setPixChargeId] = useState<string | null>(null);
   const [pixInstallment, setPixInstallment] = useState<ChargeInstallment | null>(null);
+  const [pixExpiresAt, setPixExpiresAt] = useState<number | null>(null);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
@@ -189,6 +191,19 @@ const Vendas = () => {
     // Pre-load cart if PDV was opened from Orçamento or Ordem de Serviço
     const p = getPdvPending();
     if (p) applyPending(p);
+
+    // Retoma uma cobrança PIX que ficou pendente (recarregamento da página ou falha na confirmação)
+    const pix = getPdvPixPending();
+    if (pix) {
+      setPixChargeId(pix.chargeId);
+      setPixInstallment(pix.installment);
+      setPixExpiresAt(pix.expiresAt);
+      setPixOpen(true);
+      toast({
+        title: "Cobrança PIX pendente",
+        description: "Retomamos a última cobrança em aberto para confirmar ou cancelar.",
+      });
+    }
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
