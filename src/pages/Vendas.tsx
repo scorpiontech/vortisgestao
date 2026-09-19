@@ -1110,6 +1110,17 @@ const Vendas = () => {
         </DialogContent>
       </Dialog>
 
+      <CancelSaleDialog
+        open={!!cancelTarget}
+        onOpenChange={(o) => { if (!o) setCancelTarget(null); }}
+        saleLabel={cancelTarget ? `#${cancelTarget.id.slice(0, 8)}` : ""}
+        saleTotal={cancelTarget?.total || 0}
+        loading={!!cancelTarget && cancellingSaleId === cancelTarget.id}
+        onConfirm={(reason) => { if (cancelTarget) cancelSale(cancelTarget.id, reason); }}
+      />
+
+      <SaleCancellationsDialog open={cancelHistoryOpen} onOpenChange={setCancelHistoryOpen} />
+
       <NovaCobrancaDialog
         open={cobrancaOpen}
         onOpenChange={setCobrancaOpen}
