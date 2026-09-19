@@ -29,6 +29,7 @@ export interface NovaCobrancaDefaults {
   discount?: number;
   installments?: number;
   dueDate?: string;
+  billingType?: "BOLETO" | "PIX";
   lockAmount?: boolean;
   createReceivables?: boolean;
 }
