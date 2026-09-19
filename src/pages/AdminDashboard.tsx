@@ -67,6 +67,7 @@ export default function AdminDashboard() {
   const [chargeForm, setChargeForm] = useState({ due_date: "", reference_month: "", custom_amount: "" });
   const [generating, setGenerating] = useState(false);
   const [unreadLogs, setUnreadLogs] = useState(0);
+  const [onlyMissingDoc, setOnlyMissingDoc] = useState(false);
 
   const navigate = useNavigate();
 
@@ -310,11 +311,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const filtered = accounts.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const isMissingDoc = (a: ClientAccount) => (a.document || "").replace(/\D/g, "").length < 11;
 
+  const filtered = accounts.filter(a => {
+    const term = search.toLowerCase();
+    const matches =
+      a.name.toLowerCase().includes(term) ||
+      a.email.toLowerCase().includes(term) ||
+      (a.document || "").includes(search.replace(/\D/g, ""));
+    return matches && (!onlyMissingDoc || isMissingDoc(a));
+  });
+
+  const totalSemDocumento = accounts.filter(isMissingDoc).length;
   const totalAtivos = accounts.filter(a => !a.blocked && a.status === "ativo").length;
   const totalBloqueados = accounts.filter(a => a.blocked).length;
   const receitaMensal = accounts.filter(a => !a.blocked).reduce((sum, a) => sum + Number(a.monthly_value), 0);
@@ -364,7 +372,7 @@ export default function AdminDashboard() {
       </header>
 
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total de Contas</CardTitle>
@@ -395,13 +403,28 @@ export default function AdminDashboard() {
               <div className="text-2xl font-bold">{receitaMensal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
             </CardContent>
           </Card>
+          <Card className={onlyMissingDoc ? "border-destructive" : undefined}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Sem CPF/CNPJ</CardTitle>
+              <Ban className="h-4 w-4 text-destructive" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-destructive">{totalSemDocumento}</div>
+              <Button variant="link" size="sm" className="px-0 h-auto text-xs" onClick={() => setOnlyMissingDoc(v => !v)}>
+                {onlyMissingDoc ? "Ver todas as contas" : "Ver apenas estas"}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[220px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome ou email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Buscar por nome, email ou CPF/CNPJ..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
           </div>
+          <Button variant={onlyMissingDoc ? "destructive" : "outline"} onClick={() => setOnlyMissingDoc(v => !v)}>
+            Sem CPF/CNPJ ({totalSemDocumento})
+          </Button>
           <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Conta</Button>
         </div>
 

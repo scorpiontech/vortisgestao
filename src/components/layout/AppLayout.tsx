@@ -4,6 +4,7 @@ import { Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "../NotificationBell";
+import { CompleteProfileNotice } from "../CompleteProfileNotice";
 
 export function AppLayout() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
+      <CompleteProfileNotice />
       <div className="min-h-screen flex w-full safe-area-x">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
