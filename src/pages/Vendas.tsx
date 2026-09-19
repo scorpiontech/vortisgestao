@@ -199,6 +199,7 @@ const Vendas = () => {
       setPixChargeId(pix.chargeId);
       setPixInstallment(pix.installment);
       setPixExpiresAt(pix.expiresAt);
+      setPixAmount(Number(pix.amount) || 0);
       setPixOpen(true);
       toast({
         title: "Cobrança PIX pendente",
