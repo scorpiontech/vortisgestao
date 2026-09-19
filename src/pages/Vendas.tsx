@@ -950,13 +950,33 @@ const Vendas = () => {
             total: i.total,
           })),
         }}
-        onCreated={(_charge, installments) => {
-          setChargeInstallments(installments as ChargeInstallment[]);
+        onCreated={(charge, installments) => {
+          const list = installments as ChargeInstallment[];
+          if (isPixAsaas) {
+            // PIX: abre a tela do QR Code e só finaliza a venda após a confirmação
+            setPixChargeId((charge as any)?.id || null);
+            setPixInstallment(list[0] || null);
+            setPixOpen(true);
+            return;
+          }
+          setChargeInstallments(list);
           setLinksOpen(true);
           setItems([]);
           setDiscount("0");
           setInstallments("1");
           toast({ title: "Cobrança enviada", description: "A venda será registrada automaticamente após a confirmação do pagamento." });
+        }}
+      />
+
+      <PixPaymentDialog
+        open={pixOpen}
+        onOpenChange={setPixOpen}
+        chargeId={pixChargeId}
+        installment={pixInstallment}
+        amount={total}
+        onPaid={async () => {
+          setPixOpen(false);
+          await finalizeSale(true);
         }}
       />
 
