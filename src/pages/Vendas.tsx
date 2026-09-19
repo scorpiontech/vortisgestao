@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Printer, Plus, Minus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet } from "lucide-react";
+import { Trash2, Printer, Plus, Minus, ShoppingCart, Users, ScanBarcode, Percent, Search, AlertTriangle, X, FileText, ClipboardList, Wrench, ListChecks, Wallet, ScrollText } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { PixPaymentDialog } from "@/components/cobrancas/PixPaymentDialog";
@@ -521,6 +521,12 @@ const Vendas = () => {
             <ListChecks className="h-4 w-4" />
             Vendas recentes
           </Button>
+          {(isMaster || isGerente) && (
+            <Button variant="outline" className="gap-2" onClick={() => setCancelHistoryOpen(true)}>
+              <ScrollText className="h-4 w-4" />
+              Cancelamentos
+            </Button>
+          )}
         </div>
       </div>
 
