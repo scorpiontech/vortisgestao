@@ -481,7 +481,7 @@ const Estoque = () => {
               <SelectTrigger className="h-11 sm:h-10 text-sm min-w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todas</SelectItem>
-                {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                {categoryOptions.map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
