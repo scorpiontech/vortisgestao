@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { UpdateAvailableBanner } from "@/components/UpdateAvailableBanner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -81,6 +82,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <UpdateAvailableBanner />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Login />} />
