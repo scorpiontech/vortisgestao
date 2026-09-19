@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
 import { getPdvPending, clearPdvPending, type PdvPending } from "@/lib/pdvPending";
+import { getPdvPixPending, setPdvPixPending, clearPdvPixPending, PIX_EXPIRATION_MINUTES } from "@/lib/pdvPixPending";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -91,6 +92,8 @@ const Vendas = () => {
   const [pixOpen, setPixOpen] = useState(false);
   const [pixChargeId, setPixChargeId] = useState<string | null>(null);
   const [pixInstallment, setPixInstallment] = useState<ChargeInstallment | null>(null);
+  const [pixExpiresAt, setPixExpiresAt] = useState<number | null>(null);
+  const [pixAmount, setPixAmount] = useState(0);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
@@ -189,6 +192,20 @@ const Vendas = () => {
     // Pre-load cart if PDV was opened from Orçamento or Ordem de Serviço
     const p = getPdvPending();
     if (p) applyPending(p);
+
+    // Retoma uma cobrança PIX que ficou pendente (recarregamento da página ou falha na confirmação)
+    const pix = getPdvPixPending();
+    if (pix) {
+      setPixChargeId(pix.chargeId);
+      setPixInstallment(pix.installment);
+      setPixExpiresAt(pix.expiresAt);
+      setPixAmount(Number(pix.amount) || 0);
+      setPixOpen(true);
+      toast({
+        title: "Cobrança PIX pendente",
+        description: "Retomamos a última cobrança em aberto para confirmar ou cancelar.",
+      });
+    }
   }, []);
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
@@ -266,50 +283,58 @@ const Vendas = () => {
     toast({ title: `${product.name} adicionado` });
   };
 
-  const finalizeSale = async (autoPrint = false) => {
+  const finalizeSale = async (opts: { autoPrint?: boolean; existingSaleId?: string | null } = {}) => {
+    const { autoPrint = false, existingSaleId = null } = opts;
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
 
     const inst = showInstallments ? Math.max(1, Number(installments) || 1) : 1;
 
-    const { data: sale, error: saleError } = await supabase.from("sales").insert({
-      user_id: effectiveUserId!,
-      customer_name: customerName || null,
-      payment_method: paymentMethod,
-      total,
-      discount: discountValue,
-      installments: inst,
-    } as any).select().single();
+    // Quando a cobrança Asaas já registrou a venda no servidor, apenas reaproveitamos
+    // o registro existente — evita venda, estoque e caixa em duplicidade.
+    let sale: any = existingSaleId ? { id: existingSaleId } : null;
 
-    if (saleError || !sale) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
+    if (!sale) {
+      const { data: created, error: saleError } = await supabase.from("sales").insert({
+        user_id: effectiveUserId!,
+        customer_name: customerName || null,
+        payment_method: paymentMethod,
+        total,
+        discount: discountValue,
+        installments: inst,
+      } as any).select().single();
 
-    const saleItems = items.map(i => ({
-      sale_id: (sale as any).id,
-      product_id: i.realProductId,
-      product_name: i.productName,
-      quantity: i.quantity,
-      unit_price: i.unitPrice,
-      total: i.total,
-    }));
-    await supabase.from("sale_items").insert(saleItems);
+      if (saleError || !created) { toast({ title: "Erro ao registrar venda", description: saleError?.message, variant: "destructive" }); return; }
+      sale = created;
 
-    const txDescription = pending
-      ? `${pending.source === "quote" ? "Venda (Orçamento)" : "Venda (OS)"} #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`
-      : `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`;
+      const saleItems = items.map(i => ({
+        sale_id: (sale as any).id,
+        product_id: i.realProductId,
+        product_name: i.productName,
+        quantity: i.quantity,
+        unit_price: i.unitPrice,
+        total: i.total,
+      }));
+      await supabase.from("sale_items").insert(saleItems);
 
-    await supabase.from("transactions").insert({
-      user_id: effectiveUserId!,
-      type: "entrada",
-      description: txDescription,
-      amount: total,
-      category: pending?.source === "service_order" ? "Ordem de Serviço" : "Vendas",
-      payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
-    });
+      const txDescription = pending
+        ? `${pending.source === "quote" ? "Venda (Orçamento)" : "Venda (OS)"} #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`
+        : `Venda #${(sale as any).id.slice(0, 8)}${customerName ? ` - ${customerName}` : ""}`;
 
-    for (const item of items) {
-      if (!item.realProductId) continue;
-      const prod = products.find(p => p.id === item.realProductId);
-      if (prod) {
-        await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.realProductId);
+      await supabase.from("transactions").insert({
+        user_id: effectiveUserId!,
+        type: "entrada",
+        description: txDescription,
+        amount: total,
+        category: pending?.source === "service_order" ? "Ordem de Serviço" : "Vendas",
+        payment_method: paymentMethod + (inst > 1 ? ` ${inst}x` : ""),
+      });
+
+      for (const item of items) {
+        if (!item.realProductId) continue;
+        const prod = products.find(p => p.id === item.realProductId);
+        if (prod) {
+          await supabase.from("products").update({ stock: Math.max(0, prod.stock - item.quantity) }).eq("id", item.realProductId);
+        }
       }
     }
 
@@ -954,9 +979,23 @@ const Vendas = () => {
           const list = installments as ChargeInstallment[];
           if (isPixAsaas) {
             // PIX: abre a tela do QR Code e só finaliza a venda após a confirmação
-            setPixChargeId((charge as any)?.id || null);
+            const chargeId = (charge as any)?.id || null;
+            const expiresAt = Date.now() + PIX_EXPIRATION_MINUTES * 60 * 1000;
+            setPixChargeId(chargeId);
             setPixInstallment(list[0] || null);
+            setPixExpiresAt(expiresAt);
+            setPixAmount(total);
             setPixOpen(true);
+            if (chargeId) {
+              setPdvPixPending({
+                chargeId,
+                installment: list[0] || null,
+                amount: total,
+                customerName,
+                createdAt: Date.now(),
+                expiresAt,
+              });
+            }
             return;
           }
           setChargeInstallments(list);
@@ -973,10 +1012,27 @@ const Vendas = () => {
         onOpenChange={setPixOpen}
         chargeId={pixChargeId}
         installment={pixInstallment}
-        amount={total}
-        onPaid={async () => {
+        amount={pixAmount || total}
+        expiresAt={pixExpiresAt}
+        onPaid={async (serverSaleId) => {
           setPixOpen(false);
-          await finalizeSale(true);
+          clearPdvPixPending();
+          if (items.length === 0) {
+            // Cobrança retomada sem carrinho: a venda já foi registrada pelo servidor
+            if (serverSaleId) setSaleId(serverSaleId);
+            toast({ title: "Pagamento confirmado", description: "A venda já está registrada. Use Imprimir Cupom se precisar." });
+            if (serverSaleId) setShowReceipt(true);
+            return;
+          }
+          await finalizeSale({ autoPrint: true, existingSaleId: serverSaleId });
+        }}
+        onCancelled={() => {
+          setPixOpen(false);
+          clearPdvPixPending();
+          setPixChargeId(null);
+          setPixInstallment(null);
+          setPixExpiresAt(null);
+          toast({ title: "Cobrança encerrada", description: "Você pode gerar uma nova cobrança para esta venda." });
         }}
       />
 
