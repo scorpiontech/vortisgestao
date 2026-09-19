@@ -93,6 +93,7 @@ const Vendas = () => {
   const [pixChargeId, setPixChargeId] = useState<string | null>(null);
   const [pixInstallment, setPixInstallment] = useState<ChargeInstallment | null>(null);
   const [pixExpiresAt, setPixExpiresAt] = useState<number | null>(null);
+  const [pixAmount, setPixAmount] = useState(0);
   const [caixaAberto, setCaixaAberto] = useState<boolean | null>(null);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [pending, setPending] = useState<PdvPending | null>(null);
@@ -977,9 +978,23 @@ const Vendas = () => {
           const list = installments as ChargeInstallment[];
           if (isPixAsaas) {
             // PIX: abre a tela do QR Code e só finaliza a venda após a confirmação
-            setPixChargeId((charge as any)?.id || null);
+            const chargeId = (charge as any)?.id || null;
+            const expiresAt = Date.now() + PIX_EXPIRATION_MINUTES * 60 * 1000;
+            setPixChargeId(chargeId);
             setPixInstallment(list[0] || null);
+            setPixExpiresAt(expiresAt);
+            setPixAmount(total);
             setPixOpen(true);
+            if (chargeId) {
+              setPdvPixPending({
+                chargeId,
+                installment: list[0] || null,
+                amount: total,
+                customerName,
+                createdAt: Date.now(),
+                expiresAt,
+              });
+            }
             return;
           }
           setChargeInstallments(list);
@@ -996,10 +1011,27 @@ const Vendas = () => {
         onOpenChange={setPixOpen}
         chargeId={pixChargeId}
         installment={pixInstallment}
-        amount={total}
-        onPaid={async () => {
+        amount={pixAmount || total}
+        expiresAt={pixExpiresAt}
+        onPaid={async (serverSaleId) => {
           setPixOpen(false);
-          await finalizeSale(true);
+          clearPdvPixPending();
+          if (items.length === 0) {
+            // Cobrança retomada sem carrinho: a venda já foi registrada pelo servidor
+            if (serverSaleId) setSaleId(serverSaleId);
+            toast({ title: "Pagamento confirmado", description: "A venda já está registrada. Use Imprimir Cupom se precisar." });
+            if (serverSaleId) setShowReceipt(true);
+            return;
+          }
+          await finalizeSale({ autoPrint: true, existingSaleId: serverSaleId });
+        }}
+        onCancelled={() => {
+          setPixOpen(false);
+          clearPdvPixPending();
+          setPixChargeId(null);
+          setPixInstallment(null);
+          setPixExpiresAt(null);
+          toast({ title: "Cobrança encerrada", description: "Você pode gerar uma nova cobrança para esta venda." });
         }}
       />
 
