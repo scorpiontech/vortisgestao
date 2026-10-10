@@ -20,7 +20,7 @@ export async function logAudit({ action, entity, entityId, details }: AuditLogPa
       .eq("active", true)
       .maybeSingle();
 
-    const ownerId = member?.role === "vendedor" ? member.owner_id : user.id;
+    const ownerId = member?.owner_id ?? user.id;
 
     await supabase.from("audit_logs").insert({
       user_id: user.id,
