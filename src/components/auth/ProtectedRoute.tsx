@@ -44,7 +44,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       }
 
       // 2) Conta da empresa bloqueada por inadimplência
-      const effectiveOwnerId = member?.role === "vendedor" ? member.owner_id : user.id;
+      // Qualquer subusuário (vendedor, master, gerente, caixa) usa a conta do proprietário
+      const effectiveOwnerId = member?.owner_id ?? user.id;
       const { data: account } = await supabase
         .from("client_accounts")
         .select("blocked, plan_id, subscription_plans(tier)")
