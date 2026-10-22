@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, FileText, CheckCircle2, XCircle, Send, ShoppingCart, History, Edit, Download } from "lucide-react";
+import { Plus, Trash2, Search, FileText, CheckCircle2, XCircle, Send, ShoppingCart, History, Edit, Download, MessageCircle } from "lucide-react";
+import { normalizeWhatsappPhone, openWhatsapp } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
@@ -21,7 +22,7 @@ import { motion } from "framer-motion";
 type Status = "rascunho" | "enviado" | "aprovado" | "recusado" | "expirado" | "convertido";
 
 interface Product { id: string; name: string; price: number; stock: number; sku: string; }
-interface Customer { id: string; name: string; document: string; document_type: string; }
+interface Customer { id: string; name: string; document: string; document_type: string; phone?: string | null; }
 interface QuoteItem {
   id?: string;
   product_id: string;
@@ -112,7 +113,7 @@ export default function Orcamentos() {
     const [q, p, c, comp] = await Promise.all([
       supabase.from("quotes").select("*").order("created_at", { ascending: false }),
       supabase.from("products").select("id, name, price, stock, sku").order("name"),
-      supabase.from("customers").select("id, name, document, document_type").order("name"),
+      supabase.from("customers").select("id, name, document, document_type, phone").order("name"),
       supabase.from("company_registrations").select("name, document, phone, email, street, number, neighborhood, city, state, zip_code").limit(1).maybeSingle(),
     ]);
     const quotesData = (q.data || []) as any[];
@@ -130,6 +131,50 @@ export default function Orcamentos() {
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  const handleWhatsapp = async (q: Quote) => {
+    const cust = q.customer_id ? customers.find(c => c.id === q.customer_id) : null;
+    let phone = normalizeWhatsappPhone(cust?.phone);
+    if (!phone) {
+      const typed = window.prompt("Cliente sem celular válido no cadastro. Informe o WhatsApp com DDD:", cust?.phone || "");
+      if (typed === null) return;
+      phone = normalizeWhatsappPhone(typed);
+      if (!phone) {
+        toast({ title: "Número inválido", description: "Informe DDD + número, ex.: (11) 91234-5678", variant: "destructive" });
+        return;
+      }
+    }
+    const { data: qItems } = await supabase.from("quote_items").select("*").eq("quote_id", q.id);
+    const sortedAsc = [...quotes].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const number = `ORC-${String(sortedAsc.findIndex(x => x.id === q.id) + 1).padStart(5, "0")}`;
+    const lines: string[] = [];
+    lines.push(`*${companyInfo?.name || "Orçamento"}*`);
+    lines.push(`Orçamento *${number}*`);
+    lines.push("");
+    lines.push(`Olá${q.customer_name ? `, ${q.customer_name}` : ""}! Segue o seu orçamento:`);
+    lines.push("");
+    for (const it of (qItems || []) as any[]) {
+      lines.push(`• ${Number(it.quantity)}x ${it.product_name} — ${fmt(Number(it.total))}`);
+    }
+    lines.push("");
+    if (Number(q.discount) > 0) {
+      lines.push(`Subtotal: ${fmt(Number(q.subtotal))}`);
+      lines.push(`Desconto: -${fmt(Number(q.discount))}`);
+    }
+    lines.push(`*Total: ${fmt(Number(q.total))}*`);
+    if (q.payment_method) {
+      lines.push(`Pagamento: ${q.payment_method}${Number(q.installments) > 1 ? ` em ${q.installments}x` : ""}`);
+    }
+    if (q.valid_until) {
+      lines.push(`Válido até: ${new Date(q.valid_until + "T00:00:00").toLocaleDateString("pt-BR")}`);
+    }
+    if (q.notes) { lines.push(""); lines.push(`Obs.: ${q.notes}`); }
+    lines.push("");
+    lines.push(`Atendente: ${sellerName || "—"}`);
+    lines.push("Qualquer dúvida, estamos à disposição!");
+    openWhatsapp(phone, lines.join("\n"));
+    logAudit({ action: "whatsapp_send", entity: "quote", entityId: q.id, details: { total: q.total } });
+  };
 
   const handleDownloadPdf = async (q: Quote) => {
     const { data: qItems } = await supabase
@@ -495,6 +540,9 @@ export default function Orcamentos() {
                   <td className="px-4 py-2 text-right font-medium">{fmt(Number(q.total))}</td>
                   <td className="px-4 py-2">
                     <div className="flex gap-1 justify-end">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleWhatsapp(q)} title="Enviar por WhatsApp" aria-label="Enviar por WhatsApp">
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadPdf(q)} title="Baixar PDF">
                         <Download className="h-4 w-4" />
                       </Button>
