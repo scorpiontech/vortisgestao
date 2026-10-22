@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Search, FileText, CheckCircle2, XCircle, Send, ShoppingCart, History, Edit, Download, MessageCircle } from "lucide-react";
-import { normalizeWhatsappPhone, openWhatsapp } from "@/lib/whatsapp";
+import { normalizeWhatsappPhone, openWhatsapp, prepareWhatsappWindow } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
@@ -171,7 +171,7 @@ export default function Orcamentos() {
       lines.push(`Válido até: ${new Date(q.valid_until + "T00:00:00").toLocaleDateString("pt-BR")}`);
     }
     if (q.notes) { lines.push(""); lines.push(`Obs.: ${q.notes}`); }
-    const win = window.open("", "_blank");
+    const win = prepareWhatsappWindow();
     toast({ title: "Gerando PDF do orçamento..." });
     const pdfData = await buildQuotePdfData(q);
     const blob = generateQuotePdf(pdfData).output("blob");
@@ -180,8 +180,7 @@ export default function Orcamentos() {
     lines.push("");
     lines.push(`Atendente: ${sellerName || "—"}`);
     lines.push("Qualquer dúvida, estamos à disposição!");
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
-    if (win) win.location.href = url; else openWhatsapp(phone, lines.join("\n"));
+    openWhatsapp(phone, lines.join("\n"), win);
     logAudit({ action: "whatsapp_send", entity: "quote", entityId: q.id, details: { total: q.total, pdf: !!link } });
   };
 

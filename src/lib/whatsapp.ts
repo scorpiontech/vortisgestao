@@ -8,27 +8,42 @@ export function normalizeWhatsappPhone(raw: string | null | undefined): string |
   return null;
 }
 
+export type WhatsappMode = "desktop" | "web";
+const MODE_KEY = "vortis:wa_mode";
 const WA_WINDOW_NAME = "vortis_whatsapp";
-let waWindow: Window | null = null;
 
-/** Abre o WhatsApp reaproveitando sempre a mesma aba (no celular usa o app). */
-export function openWhatsapp(phone: string, message: string) {
+export function getWhatsappMode(): WhatsappMode {
+  return localStorage.getItem(MODE_KEY) === "web" ? "web" : "desktop";
+}
+export function setWhatsappMode(m: WhatsappMode) {
+  localStorage.setItem(MODE_KEY, m);
+}
+
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+/**
+ * Chamar no clique (antes de qualquer await). No modo navegador reserva a aba
+ * nomeada para não ser bloqueada como pop-up. No modo app não abre nada.
+ */
+export function prepareWhatsappWindow(): Window | null {
+  if (isMobile() || getWhatsappMode() === "desktop") return null;
+  return window.open("", WA_WINDOW_NAME);
+}
+
+/** Envia a mensagem: app instalado (sem abas), celular (app) ou aba única do WhatsApp Web. */
+export function openWhatsapp(phone: string, message: string, win?: Window | null) {
   const text = encodeURIComponent(message);
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  if (isMobile) {
+  if (isMobile()) {
     window.location.href = `https://wa.me/${phone}?text=${text}`;
     return;
   }
-  const url = `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
-  if (waWindow && !waWindow.closed) {
-    try {
-      waWindow.location.href = url;
-      waWindow.focus();
-      return;
-    } catch {
-      /* cai para abertura nomeada */
-    }
+  if (getWhatsappMode() === "desktop") {
+    window.location.href = `whatsapp://send?phone=${phone}&text=${text}`;
+    return;
   }
-  waWindow = window.open(url, WA_WINDOW_NAME);
-  waWindow?.focus();
+  const url = `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+  if (win && !win.closed) {
+    try { win.location.href = url; win.focus(); return; } catch { /* segue */ }
+  }
+  window.open(url, WA_WINDOW_NAME)?.focus();
 }
