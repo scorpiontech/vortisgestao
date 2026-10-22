@@ -16,7 +16,8 @@ import { normalizeWhatsappPhone, openWhatsapp } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { logAudit } from "@/lib/auditLog";
 import { useSellerName } from "@/hooks/useSellerName";
-import { downloadQuotePdf } from "@/lib/quotePdf";
+import { downloadQuotePdf, generateQuotePdf } from "@/lib/quotePdf";
+import { uploadSharedPdf, useWhatsappEnabled } from "@/lib/sharedDocs";
 import { motion } from "framer-motion";
 
 type Status = "rascunho" | "enviado" | "aprovado" | "recusado" | "expirado" | "convertido";
@@ -169,25 +170,28 @@ export default function Orcamentos() {
       lines.push(`Válido até: ${new Date(q.valid_until + "T00:00:00").toLocaleDateString("pt-BR")}`);
     }
     if (q.notes) { lines.push(""); lines.push(`Obs.: ${q.notes}`); }
+    const win = window.open("", "_blank");
+    toast({ title: "Gerando PDF do orçamento..." });
+    const pdfData = await buildQuotePdfData(q);
+    const blob = generateQuotePdf(pdfData).output("blob");
+    const link = await uploadSharedPdf(`orcamento-${q.id}.pdf`, blob);
+    if (link) { lines.push(""); lines.push(`📄 Orçamento em PDF: ${link}`); }
     lines.push("");
     lines.push(`Atendente: ${sellerName || "—"}`);
     lines.push("Qualquer dúvida, estamos à disposição!");
-    openWhatsapp(phone, lines.join("\n"));
-    logAudit({ action: "whatsapp_send", entity: "quote", entityId: q.id, details: { total: q.total } });
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
+    if (win) win.location.href = url; else openWhatsapp(phone, lines.join("\n"));
+    logAudit({ action: "whatsapp_send", entity: "quote", entityId: q.id, details: { total: q.total, pdf: !!link } });
   };
 
-  const handleDownloadPdf = async (q: Quote) => {
+  const buildQuotePdfData = async (q: Quote) => {
     const { data: qItems } = await supabase
       .from("quote_items").select("*").eq("quote_id", q.id);
     const cust = q.customer_id ? customers.find(c => c.id === q.customer_id) : null;
-    // Position in chronological order for friendly number
     const sortedAsc = [...quotes].sort((a, b) => a.created_at.localeCompare(b.created_at));
     const idx = sortedAsc.findIndex(x => x.id === q.id);
     const number = `ORC-${String(idx + 1).padStart(5, "0")}`;
-    // Taxes: not stored on quote; default 0 (placeholder lines in PDF)
-    const taxRate = 0;
-    const taxAmount = 0;
-    downloadQuotePdf({
+    return {
       id: q.id,
       number,
       status: q.status,
@@ -199,8 +203,8 @@ export default function Orcamentos() {
       notes: q.notes,
       subtotal: Number(q.subtotal),
       discount: Number(q.discount),
-      tax_rate: taxRate,
-      tax_amount: taxAmount,
+      tax_rate: 0,
+      tax_amount: 0,
       total: Number(q.total),
       created_at: q.created_at,
       items: (qItems || []).map((it: any) => ({
@@ -212,7 +216,11 @@ export default function Orcamentos() {
       negotiation_log: q.negotiation_log || [],
       company: companyInfo || undefined,
       sellerName: sellerName || undefined,
-    });
+    };
+  };
+
+  const handleDownloadPdf = async (q: Quote) => {
+    downloadQuotePdf(await buildQuotePdfData(q));
     logAudit({ action: "download_pdf", entity: "quote", entityId: q.id });
   };
 
