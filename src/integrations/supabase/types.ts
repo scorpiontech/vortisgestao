@@ -472,6 +472,24 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          owner_id: string
+          updated_at: string
+          whatsapp_enabled: boolean
+        }
+        Insert: {
+          owner_id: string
+          updated_at?: string
+          whatsapp_enabled?: boolean
+        }
+        Update: {
+          owner_id?: string
+          updated_at?: string
+          whatsapp_enabled?: boolean
+        }
+        Relationships: []
+      }
       customer_charge_installments: {
         Row: {
           amount: number
