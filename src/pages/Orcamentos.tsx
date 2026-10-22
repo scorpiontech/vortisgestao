@@ -109,6 +109,7 @@ export default function Orcamentos() {
 
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const sellerName = useSellerName();
+  const { enabled: whatsappEnabled } = useWhatsappEnabled();
 
   const loadAll = async () => {
     const [q, p, c, comp] = await Promise.all([
@@ -548,9 +549,11 @@ export default function Orcamentos() {
                   <td className="px-4 py-2 text-right font-medium">{fmt(Number(q.total))}</td>
                   <td className="px-4 py-2">
                     <div className="flex gap-1 justify-end">
+                      {whatsappEnabled && (
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleWhatsapp(q)} title="Enviar por WhatsApp" aria-label="Enviar por WhatsApp">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
+                      )}
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadPdf(q)} title="Baixar PDF">
                         <Download className="h-4 w-4" />
                       </Button>
