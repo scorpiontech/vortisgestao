@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { formatCPF, formatCNPJ, formatPhone, formatCEP, validateCPF, validateCNPJ } from "@/lib/validators";
+import { Switch } from "@/components/ui/switch";
+import { useWhatsappEnabled } from "@/lib/sharedDocs";
 
 interface Registration {
   id: string;
@@ -48,6 +50,7 @@ export default function Cadastro() {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
   const { toast } = useToast();
+  const whatsapp = useWhatsappEnabled();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -164,6 +167,24 @@ export default function Cadastro() {
         <h1 className="text-2xl font-bold text-foreground">Cadastro</h1>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Novo Cadastro</Button>
       </div>
+
+      <Card>
+        <CardContent className="flex items-center justify-between gap-4 pt-6">
+          <div>
+            <p className="font-medium text-foreground">Envio por WhatsApp</p>
+            <p className="text-sm text-muted-foreground">Mostra o botão de WhatsApp em Orçamentos e Ordens de Serviço, com link do PDF.</p>
+          </div>
+          <Switch
+            checked={whatsapp.enabled}
+            aria-label="Habilitar envio por WhatsApp"
+            onCheckedChange={async (v) => {
+              const ok = await whatsapp.save(v);
+              toast({ title: ok ? (v ? "WhatsApp habilitado" : "WhatsApp desabilitado") : "Não foi possível salvar", variant: ok ? undefined : "destructive" });
+            }}
+          />
+        </CardContent>
+      </Card>
+
 
       <Card>
         <CardHeader><CardTitle>Cadastros</CardTitle></CardHeader>
