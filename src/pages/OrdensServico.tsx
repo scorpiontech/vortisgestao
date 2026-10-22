@@ -15,9 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, DollarSign, Search, Printer, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, DollarSign, Search, Printer, X, MessageCircle } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
 import { useSellerName } from "@/hooks/useSellerName";
+import { normalizeWhatsappPhone, openWhatsapp } from "@/lib/whatsapp";
+import { generateOsPdf } from "@/lib/osPdf";
+import { uploadSharedPdf, useWhatsappEnabled } from "@/lib/sharedDocs";
 
 interface ServiceOrder {
   id: string;
@@ -48,6 +51,7 @@ interface Material {
 interface Customer {
   id: string;
   name: string;
+  phone?: string | null;
 }
 
 interface Product {
@@ -84,6 +88,7 @@ export default function OrdensServico() {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
   const sellerName = useSellerName();
+  const { enabled: whatsappEnabled } = useWhatsappEnabled();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -107,7 +112,7 @@ export default function OrdensServico() {
     if (!user) return;
     const [ordersRes, custRes, prodRes] = await Promise.all([
       supabase.from("service_orders").select("*").eq("user_id", user.id).order("opened_at", { ascending: false }),
-      supabase.from("customers").select("id, name").eq("user_id", user.id).order("name"),
+      supabase.from("customers").select("id, name, phone").eq("user_id", user.id).order("name"),
       supabase.from("products").select("id, name, price").eq("user_id", user.id).order("name"),
     ]);
     if (ordersRes.data) setOrders(ordersRes.data as ServiceOrder[]);
@@ -419,6 +424,51 @@ export default function OrdensServico() {
     });
   };
 
+  const handleWhatsapp = async (order: ServiceOrder) => {
+    const cust = order.customer_id ? customers.find(c => c.id === order.customer_id) : null;
+    let phone = normalizeWhatsappPhone(cust?.phone);
+    if (!phone) {
+      const typed = window.prompt("Cliente sem celular válido no cadastro. Informe o WhatsApp com DDD:", cust?.phone || "");
+      if (typed === null) return;
+      phone = normalizeWhatsappPhone(typed);
+      if (!phone) { toast.error("Número inválido. Informe DDD + número."); return; }
+    }
+    const win = window.open("", "_blank");
+    toast.info("Gerando PDF da ordem de serviço...");
+    const [{ data: mats }, { data: comp }] = await Promise.all([
+      supabase.from("service_order_materials").select("*").eq("service_order_id", order.id),
+      supabase.from("company_registrations").select("name").limit(1).maybeSingle(),
+    ]);
+    const sortedAsc = [...orders].sort((a, b) => a.opened_at.localeCompare(b.opened_at));
+    const number = `OS-${String(sortedAsc.findIndex(x => x.id === order.id) + 1).padStart(5, "0")}`;
+    const materialsList = ((mats || []) as Material[]).map(m => ({
+      product_name: m.product_name, quantity: Number(m.quantity), unit_price: Number(m.unit_price), total: Number(m.total),
+    }));
+    const blob = generateOsPdf({ ...order, number, companyName: comp?.name, sellerName, materials: materialsList, budget_total: Number(order.budget_total) }).output("blob");
+    const link = await uploadSharedPdf(`os-${order.id}.pdf`, blob);
+    const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const lines = [
+      `*${comp?.name || "Ordem de Serviço"}*`,
+      `Ordem de Serviço *${number}*`,
+      "",
+      `Olá, ${order.customer_name}! Segue a sua ordem de serviço:`,
+      `Serviço: ${order.service_type}`,
+      `Status: ${order.status === "finalizada" ? "Finalizada" : order.paid ? "Paga" : "Aberta"}`,
+    ];
+    if (order.problem_description) lines.push(`Problema: ${order.problem_description}`);
+    if (order.resolution_description) lines.push(`Resolução: ${order.resolution_description}`);
+    if (materialsList.length) {
+      lines.push("");
+      materialsList.forEach(m => lines.push(`• ${m.quantity}x ${m.product_name} — ${fmtBRL(m.total)}`));
+    }
+    lines.push("", `*Total: ${fmtBRL(Number(order.budget_total))}*`);
+    if (link) lines.push("", `📄 OS em PDF: ${link}`);
+    lines.push("", `Atendente: ${sellerName || "—"}`, "Qualquer dúvida, estamos à disposição!");
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
+    if (win) win.location.href = url; else openWhatsapp(phone, lines.join("\n"));
+    logAudit({ action: "whatsapp_send", entity: "service_order", entityId: order.id, details: { total: order.budget_total, pdf: !!link } });
+  };
+
   const statusBadge = (s: string, paid: boolean) => {
     if (s === "finalizada") return <Badge className="bg-green-600">Finalizada</Badge>;
     if (paid) return <Badge className="bg-blue-600">Paga</Badge>;
@@ -473,6 +523,7 @@ export default function OrdensServico() {
                     <TableCell className="text-right">R$ {Number(order.budget_total).toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {whatsappEnabled && <Button size="icon" variant="ghost" className="text-primary" onClick={() => handleWhatsapp(order)} title="Enviar por WhatsApp" aria-label="Enviar por WhatsApp"><MessageCircle className="h-4 w-4" /></Button>}
                         <Button size="icon" variant="ghost" onClick={() => openView(order)} title="Visualizar"><Eye className="h-4 w-4" /></Button>
                         {order.status !== "finalizada" && !order.paid && (
                           <>
