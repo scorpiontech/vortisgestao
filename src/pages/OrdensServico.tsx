@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Eye, DollarSign, Search, Printer, X, MessageCircle } from "lucide-react";
 import { printA4 } from "@/lib/printA4";
 import { useSellerName } from "@/hooks/useSellerName";
-import { normalizeWhatsappPhone, openWhatsapp } from "@/lib/whatsapp";
+import { normalizeWhatsappPhone, openWhatsapp, prepareWhatsappWindow } from "@/lib/whatsapp";
 import { generateOsPdf } from "@/lib/osPdf";
 import { uploadSharedPdf, useWhatsappEnabled } from "@/lib/sharedDocs";
 
@@ -433,7 +433,7 @@ export default function OrdensServico() {
       phone = normalizeWhatsappPhone(typed);
       if (!phone) { toast.error("Número inválido. Informe DDD + número."); return; }
     }
-    const win = window.open("", "_blank");
+    const win = prepareWhatsappWindow();
     toast.info("Gerando PDF da ordem de serviço...");
     const [{ data: mats }, { data: comp }] = await Promise.all([
       supabase.from("service_order_materials").select("*").eq("service_order_id", order.id),
@@ -464,8 +464,7 @@ export default function OrdensServico() {
     lines.push("", `*Total: ${fmtBRL(Number(order.budget_total))}*`);
     if (link) lines.push("", `📄 OS em PDF: ${link}`);
     lines.push("", `Atendente: ${sellerName || "—"}`, "Qualquer dúvida, estamos à disposição!");
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
-    if (win) win.location.href = url; else openWhatsapp(phone, lines.join("\n"));
+    openWhatsapp(phone, lines.join("\n"), win);
     logAudit({ action: "whatsapp_send", entity: "service_order", entityId: order.id, details: { total: order.budget_total, pdf: !!link } });
   };
 

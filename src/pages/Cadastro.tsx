@@ -1,3 +1,4 @@
+import { getWhatsappMode, setWhatsappMode, type WhatsappMode } from "@/lib/whatsapp";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +52,7 @@ export default function Cadastro() {
   const { effectiveUserId } = useUserRole();
   const { toast } = useToast();
   const whatsapp = useWhatsappEnabled();
+  const [waMode, setWaMode] = useState<WhatsappMode>(getWhatsappMode());
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -182,6 +184,21 @@ export default function Cadastro() {
               toast({ title: ok ? (v ? "WhatsApp habilitado" : "WhatsApp desabilitado") : "Não foi possível salvar", variant: ok ? undefined : "destructive" });
             }}
           />
+        </CardContent>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4 pt-0">
+          <div>
+            <p className="font-medium text-foreground">Abrir WhatsApp no computador</p>
+            <p className="text-sm text-muted-foreground">"Aplicativo instalado" não abre abas no navegador. Configuração deste computador.</p>
+          </div>
+          <select
+            aria-label="Forma de abrir o WhatsApp"
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            value={waMode}
+            onChange={(e) => { const m = e.target.value as WhatsappMode; setWhatsappMode(m); setWaMode(m); }}
+          >
+            <option value="desktop">Aplicativo instalado</option>
+            <option value="web">WhatsApp Web (mesma aba)</option>
+          </select>
         </CardContent>
       </Card>
 
