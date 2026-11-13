@@ -1828,6 +1828,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence: {
+        Row: {
+          created_at: string
+          device: string
+          ip_address: string
+          last_seen_at: string
+          online: boolean
+          owner_id: string
+          user_agent: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device?: string
+          ip_address?: string
+          last_seen_at?: string
+          online?: boolean
+          owner_id: string
+          user_agent?: string
+          user_email?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device?: string
+          ip_address?: string
+          last_seen_at?: string
+          online?: boolean
+          owner_id?: string
+          user_agent?: string
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1842,6 +1878,48 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_session_logs: {
+        Row: {
+          device: string
+          ended_at: string | null
+          id: string
+          ip_address: string
+          last_seen_at: string
+          owner_id: string
+          session_key: string
+          started_at: string
+          user_agent: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          device?: string
+          ended_at?: string | null
+          id?: string
+          ip_address?: string
+          last_seen_at?: string
+          owner_id: string
+          session_key: string
+          started_at?: string
+          user_agent?: string
+          user_email?: string
+          user_id: string
+        }
+        Update: {
+          device?: string
+          ended_at?: string | null
+          id?: string
+          ip_address?: string
+          last_seen_at?: string
+          owner_id?: string
+          session_key?: string
+          started_at?: string
+          user_agent?: string
+          user_email?: string
           user_id?: string
         }
         Relationships: []
