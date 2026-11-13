@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye } from "lucide-react";
+import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye, Search, X } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,10 @@ interface ContasPagarReceberProps {
 
 const PAYMENT_METHODS = ["PIX", "Dinheiro", "Cartão de Débito", "Cartão de Crédito"];
 
+// deixa a busca ignorar acentos e diferenças de maiúsculas/minúsculas
+const normalizeText = (v: string) =>
+  v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
 const emptyForm = { description: "", amount: "", due_date: undefined as Date | undefined, payment_method: "" };
 
 const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
@@ -48,6 +52,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "pago" | "atrasado" | "pendente">("all");
+  const [search, setSearch] = useState("");
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [cobrancaBill, setCobrancaBill] = useState<Bill | null>(null);
@@ -68,7 +73,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchBills(); }, [type]);
+  useEffect(() => { setSearch(""); setStatusFilter("all"); fetchBills(); }, [type]);
 
   const getStatus = (bill: Bill): "pago" | "atrasado" | "pendente" => {
     if (bill.paid) return "pago";
@@ -76,7 +81,12 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
     return "pendente";
   };
 
-  const filtered = statusFilter === "all" ? bills : bills.filter(b => getStatus(b) === statusFilter);
+  const term = normalizeText(search);
+  const filtered = bills.filter(b => {
+    if (statusFilter !== "all" && getStatus(b) !== statusFilter) return false;
+    if (term && !normalizeText(b.description || "").includes(term)) return false;
+    return true;
+  });
 
   const totalPago = bills.filter(b => b.paid).reduce((s, b) => s + Number(b.amount), 0);
   const totalAtrasado = bills.filter(b => !b.paid && isPast(parseISO(b.due_date))).reduce((s, b) => s + Number(b.amount), 0);
@@ -263,12 +273,40 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2">
-        {(["all", "pago", "atrasado", "pendente"] as const).map(f => (
-          <Button key={f} variant={statusFilter === f ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(f)}>
-            {f === "all" ? "Todas" : f === "pago" ? "Pagas" : f === "atrasado" ? "Atrasadas" : "Pendentes"}
-          </Button>
-        ))}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por descrição..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            aria-label="Buscar conta por descrição"
+            className="pl-9 pr-9 h-11 sm:h-10 text-base sm:text-sm"
+          />
+          {search && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearch("")}
+              aria-label="Limpar busca"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["all", "pago", "atrasado", "pendente"] as const).map(f => (
+            <Button key={f} variant={statusFilter === f ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(f)}>
+              {f === "all" ? "Todas" : f === "pago" ? "Pagas" : f === "atrasado" ? "Atrasadas" : "Pendentes"}
+            </Button>
+          ))}
+        </div>
+        {(search || statusFilter !== "all") && (
+          <p className="text-sm text-muted-foreground lg:ml-auto">
+            {filtered.length} {filtered.length === 1 ? "conta encontrada" : "contas encontradas"}
+          </p>
+        )}
       </div>
 
       {/* Table */}
@@ -329,7 +367,11 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
               );
             })}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma conta encontrada</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                {search.trim()
+                  ? `Nenhuma conta com a descrição "${search.trim()}"`
+                  : "Nenhuma conta encontrada"}
+              </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
