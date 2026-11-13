@@ -5,9 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "../NotificationBell";
 import { CompleteProfileNotice } from "../CompleteProfileNotice";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 
 export function AppLayout() {
   const { user } = useAuth();
+  usePresenceHeartbeat();
   const initials = user?.email?.slice(0, 2).toUpperCase() || "US";
 
   return (
