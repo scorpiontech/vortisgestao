@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye } from "lucide-react";
+import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye, Search, X } from "lucide-react";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,10 @@ interface ContasPagarReceberProps {
 }
 
 const PAYMENT_METHODS = ["PIX", "Dinheiro", "Cartão de Débito", "Cartão de Crédito"];
+
+// deixa a busca ignorar acentos e diferenças de maiúsculas/minúsculas
+const normalizeText = (v: string) =>
+  v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
 const emptyForm = { description: "", amount: "", due_date: undefined as Date | undefined, payment_method: "" };
 
