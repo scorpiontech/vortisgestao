@@ -52,6 +52,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "pago" | "atrasado" | "pendente">("all");
+  const [search, setSearch] = useState("");
   const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [cobrancaBill, setCobrancaBill] = useState<Bill | null>(null);
@@ -72,7 +73,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchBills(); }, [type]);
+  useEffect(() => { setSearch(""); setStatusFilter("all"); fetchBills(); }, [type]);
 
   const getStatus = (bill: Bill): "pago" | "atrasado" | "pendente" => {
     if (bill.paid) return "pago";
@@ -80,7 +81,12 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
     return "pendente";
   };
 
-  const filtered = statusFilter === "all" ? bills : bills.filter(b => getStatus(b) === statusFilter);
+  const term = normalizeText(search);
+  const filtered = bills.filter(b => {
+    if (statusFilter !== "all" && getStatus(b) !== statusFilter) return false;
+    if (term && !normalizeText(b.description || "").includes(term)) return false;
+    return true;
+  });
 
   const totalPago = bills.filter(b => b.paid).reduce((s, b) => s + Number(b.amount), 0);
   const totalAtrasado = bills.filter(b => !b.paid && isPast(parseISO(b.due_date))).reduce((s, b) => s + Number(b.amount), 0);
