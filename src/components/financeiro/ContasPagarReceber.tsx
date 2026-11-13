@@ -273,12 +273,40 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2">
-        {(["all", "pago", "atrasado", "pendente"] as const).map(f => (
-          <Button key={f} variant={statusFilter === f ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(f)}>
-            {f === "all" ? "Todas" : f === "pago" ? "Pagas" : f === "atrasado" ? "Atrasadas" : "Pendentes"}
-          </Button>
-        ))}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por descrição..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            aria-label="Buscar conta por descrição"
+            className="pl-9 pr-9 h-11 sm:h-10 text-base sm:text-sm"
+          />
+          {search && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearch("")}
+              aria-label="Limpar busca"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["all", "pago", "atrasado", "pendente"] as const).map(f => (
+            <Button key={f} variant={statusFilter === f ? "default" : "outline"} size="sm" onClick={() => setStatusFilter(f)}>
+              {f === "all" ? "Todas" : f === "pago" ? "Pagas" : f === "atrasado" ? "Atrasadas" : "Pendentes"}
+            </Button>
+          ))}
+        </div>
+        {(search || statusFilter !== "all") && (
+          <p className="text-sm text-muted-foreground lg:ml-auto">
+            {filtered.length} {filtered.length === 1 ? "conta encontrada" : "contas encontradas"}
+          </p>
+        )}
       </div>
 
       {/* Table */}
@@ -339,7 +367,11 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
               );
             })}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma conta encontrada</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                {search.trim()
+                  ? `Nenhuma conta com a descrição "${search.trim()}"`
+                  : "Nenhuma conta encontrada"}
+              </TableCell></TableRow>
             )}
           </TableBody>
         </Table>
