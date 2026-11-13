@@ -11,7 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText, Bell, Wallet } from "lucide-react";
+import { SessionHistoryDialog } from "@/components/admin/SessionHistoryDialog";
+import { isOnline } from "@/lib/presence";
+import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText, Bell, Wallet, History } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -68,6 +70,24 @@ export default function AdminDashboard() {
   const [generating, setGenerating] = useState(false);
   const [unreadLogs, setUnreadLogs] = useState(0);
   const [onlyMissingDoc, setOnlyMissingDoc] = useState(false);
+  const [onlyOnline, setOnlyOnline] = useState(false);
+  const [presence, setPresence] = useState<{ user_id: string; owner_id: string; user_email: string; ip_address: string; device: string; online: boolean; last_seen_at: string }[]>([]);
+  const [historyAcc, setHistoryAcc] = useState<ClientAccount | null>(null);
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const load = () => supabase.from("user_presence").select("*").then(({ data }) => setPresence((data as any) || []));
+    load();
+    const id = setInterval(() => { load(); setTick(t => t + 1); }, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const presenceOf = (a: ClientAccount) => {
+    const list = presence.filter(p => p.owner_id === a.user_id || p.user_id === a.user_id);
+    const on = list.filter(p => isOnline(p));
+    const latest = [...list].sort((x, y) => y.last_seen_at.localeCompare(x.last_seen_at))[0];
+    return { online: on.length > 0, onlineCount: on.length, latest: on[0] || latest };
+  };
 
   const navigate = useNavigate();
 
@@ -319,7 +339,7 @@ export default function AdminDashboard() {
       a.name.toLowerCase().includes(term) ||
       a.email.toLowerCase().includes(term) ||
       (a.document || "").includes(search.replace(/\D/g, ""));
-    return matches && (!onlyMissingDoc || isMissingDoc(a));
+    return matches && (!onlyMissingDoc || isMissingDoc(a)) && (!onlyOnline || presenceOf(a).online);
   });
 
   const totalSemDocumento = accounts.filter(isMissingDoc).length;
@@ -425,6 +445,9 @@ export default function AdminDashboard() {
           <Button variant={onlyMissingDoc ? "destructive" : "outline"} onClick={() => setOnlyMissingDoc(v => !v)}>
             Sem CPF/CNPJ ({totalSemDocumento})
           </Button>
+          <Button variant={onlyOnline ? "default" : "outline"} onClick={() => setOnlyOnline(v => !v)}>
+            Online agora ({accounts.filter(a => presenceOf(a).online).length})
+          </Button>
           <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-2" />Nova Conta</Button>
         </div>
 
@@ -439,14 +462,15 @@ export default function AdminDashboard() {
                   <TableHead>Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Conexão / IP</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
                 ) : filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</TableCell></TableRow>
                 ) : filtered.map(account => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">
@@ -471,7 +495,26 @@ export default function AdminDashboard() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {(() => {
+                        const pr = presenceOf(account);
+                        if (!pr.latest) return <span className="text-xs text-muted-foreground">Sem registro</span>;
+                        return (
+                          <div className="flex flex-col gap-0.5 text-xs">
+                            <span className="flex items-center gap-1.5">
+                              <span className={`h-2 w-2 rounded-full ${pr.online ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40"}`} />
+                              {pr.online ? `Online${pr.onlineCount > 1 ? ` (${pr.onlineCount})` : ""}` : `Visto ${new Date(pr.latest.last_seen_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`}
+                            </span>
+                            <span className="font-mono text-muted-foreground">{pr.latest.ip_address || "—"}</span>
+                            <span className="text-muted-foreground">{pr.latest.device}</span>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" title="Histórico de conexões" onClick={() => setHistoryAcc(account)}>
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -670,6 +713,7 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    <SessionHistoryDialog ownerId={historyAcc?.user_id ?? null} name={historyAcc?.name ?? ""} open={!!historyAcc} onOpenChange={(o) => !o && setHistoryAcc(null)} />
     </div>
   );
 }
