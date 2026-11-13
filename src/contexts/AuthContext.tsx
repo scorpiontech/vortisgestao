@@ -41,6 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const signOut = async () => {
+    try {
+      const k = sessionStorage.getItem("vortis:session_key");
+      if (k) await supabase.functions.invoke("track-presence", { body: { action: "logout", session_key: k } });
+    } catch { /* ignore */ }
     await supabase.auth.signOut();
   };
 
