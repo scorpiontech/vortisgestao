@@ -25,7 +25,7 @@ const RelatorioProdutosPdv = () => {
     const register = cashRegisters.find(c => c.id === id);
     return register ? `#${id.slice(0, 8)} · ${format(new Date(register.opened_at), "dd/MM/yyyy HH:mm")} · ${memberName(register.user_id)}` : id === "unassigned" ? "Sem caixa identificado" : `#${id.slice(0, 8)}`;
   };
-  const attendantLabel = (id: string) => id === "unassigned" ? "Não identificado" : memberName(id) === "—" ? `Atendente #${id.slice(0, 8)}` : memberName(id);
+  const attendantLabel = (id: string) => id === "unassigned" ? "Não identificado" : memberName(id) === "—" ? `Vendedor #${id.slice(0, 8)}` : memberName(id);
   const options = (label: string, value: string, onChange: (v: string) => void, items: { id: string; name: string }[]) => <div className="min-w-0 w-full sm:w-64">
     <Label className="text-xs">{label}</Label>
     <Select value={value || "all"} onValueChange={v => onChange(v === "all" ? "" : v)}>
@@ -43,12 +43,12 @@ const RelatorioProdutosPdv = () => {
   }, [rows]);
   const def = (): ReportDefinition<(typeof rows)[number]> => ({
     ...commonMeta(company, sellerName, "Produtos vendidos no PDV", "produtos_pdv_diario", periodLabel(period.from, period.to), [
-      `Período: ${periodLabel(period.from, period.to)}`, `Caixa: ${cash ? cashLabel(cash) : "Todos"}`, `Atendente: ${attendant ? attendantLabel(attendant) : "Todos"}`, ...(product ? [`Produto: ${product}`] : []),
+      `Período: ${periodLabel(period.from, period.to)}`, `Caixa: ${cash ? cashLabel(cash) : "Todos"}`, `Vendedor: ${attendant ? attendantLabel(attendant) : "Todos"}`, ...(product ? [`Produto: ${product}`] : []),
     ]),
     columns: [
       { header: "Dia", value: r => r.day.split("-").reverse().join("/") },
       { header: "Caixa", value: r => cashLabel(r.cashId), width: 45 },
-      { header: "Atendente", value: r => attendantLabel(r.attendantId), width: 24 },
+      { header: "Vendedor", value: r => attendantLabel(r.attendantId), width: 24 },
       { header: "Produto", value: r => r.product, width: 30 },
       { header: "Quantidade", value: r => r.quantity },
       { header: "Vendas", value: r => r.saleIds.size },
@@ -60,7 +60,7 @@ const RelatorioProdutosPdv = () => {
     actions={!error && <ReportActions def={def} company={company} sellerName={sellerName} orientation="landscape" />}
     filters={<PeriodFilter period={period} setPeriod={setPeriod} onClearExtra={() => { setCash(""); setAttendant(""); setProduct(""); }} extra={<>
       {options("Caixa", cash, setCash, [...new Set(sales.map(s => s.cash_register_id || "unassigned"))].map(id => ({ id, name: cashLabel(id) })))}
-      {options("Atendente", attendant, setAttendant, [...new Set(sales.map(s => s.attendant_id || "unassigned"))].map(id => ({ id, name: attendantLabel(id) })))}
+      {options("Vendedor", attendant, setAttendant, [...new Set(sales.map(s => s.attendant_id || "unassigned"))].map(id => ({ id, name: attendantLabel(id) })))}
       <div><Label htmlFor="pdv-report-product" className="text-xs">Produto</Label><Input id="pdv-report-product" className="h-8 text-xs" placeholder="Buscar produto" value={product} onChange={e => setProduct(e.target.value)} /></div>
     </>} />}
     kpis={error ? [] : [{ label: "Vendas", value: String(saleCount) }, { label: "Quantidade vendida", value: String(quantity) }, { label: "Produtos", value: String(new Set(rows.map(r => r.product)).size) }, { label: "Valor dos itens", value: fmt(total), tone: "success" }]}
@@ -69,8 +69,8 @@ const RelatorioProdutosPdv = () => {
       <section className="space-y-3"><h2 className="font-semibold">Quantidade vendida por dia</h2>{daily.length ? <ResponsiveContainer width="100%" height={260}>
         <BarChart data={daily}><CartesianGrid strokeDasharray="3 3" className="stroke-muted" /><XAxis dataKey="day" tick={{ fontSize: 11 }} /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="quantity" name="Quantidade" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} /></BarChart>
       </ResponsiveContainer> : <ChartEmpty />}</section>
-      <section className="space-y-3"><h2 className="font-semibold">Produtos por dia, caixa e atendente</h2>
-        <div className="overflow-x-auto"><Table><TableHeader><TableRow>{["Dia", "Caixa", "Atendente", "Produto", "Quantidade", "Vendas", "Valor dos itens"].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader>
+      <section className="space-y-3"><h2 className="font-semibold">Produtos por dia, caixa e vendedor</h2>
+        <div className="overflow-x-auto"><Table><TableHeader><TableRow>{["Dia", "Caixa", "Vendedor", "Produto", "Quantidade", "Vendas", "Valor dos itens"].map(h => <TableHead key={h}>{h}</TableHead>)}</TableRow></TableHeader>
           <TableBody>{rows.length ? rows.map((r, i) => <TableRow key={i}><TableCell className="whitespace-nowrap">{r.day.split("-").reverse().join("/")}</TableCell><TableCell className="min-w-48">{cashLabel(r.cashId)}</TableCell><TableCell>{attendantLabel(r.attendantId)}</TableCell><TableCell className="font-medium">{r.product}</TableCell><TableCell>{r.quantity}</TableCell><TableCell>{r.saleIds.size}</TableCell><TableCell className="whitespace-nowrap">{fmt(r.total)}</TableCell></TableRow>) : <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum produto vendido no período selecionado</TableCell></TableRow>}</TableBody>
         </Table></div>
       </section>
