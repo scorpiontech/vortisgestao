@@ -200,6 +200,7 @@ export type Database = {
           paid: boolean
           paid_at: string | null
           payment_method: string
+          supplier_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -215,6 +216,7 @@ export type Database = {
           paid?: boolean
           paid_at?: string | null
           payment_method?: string
+          supplier_id?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -230,6 +232,7 @@ export type Database = {
           paid?: boolean
           paid_at?: string | null
           payment_method?: string
+          supplier_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string
@@ -247,6 +250,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -573,6 +583,7 @@ export type Database = {
           bill_id: string | null
           billing_type: string
           cancelled_at: string | null
+          cash_register_id: string | null
           created_at: string
           created_by: string | null
           customer_document: string
@@ -604,6 +615,7 @@ export type Database = {
           bill_id?: string | null
           billing_type?: string
           cancelled_at?: string | null
+          cash_register_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_document?: string
@@ -635,6 +647,7 @@ export type Database = {
           bill_id?: string | null
           billing_type?: string
           cancelled_at?: string | null
+          cash_register_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_document?: string
@@ -665,6 +678,13 @@ export type Database = {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_charges_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
             referencedColumns: ["id"]
           },
           {
@@ -1409,6 +1429,8 @@ export type Database = {
       }
       sales: {
         Row: {
+          attendant_id: string | null
+          cash_register_id: string | null
           customer_name: string | null
           date: string
           discount: number
@@ -1419,6 +1441,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attendant_id?: string | null
+          cash_register_id?: string | null
           customer_name?: string | null
           date?: string
           discount?: number
@@ -1429,6 +1453,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attendant_id?: string | null
+          cash_register_id?: string | null
           customer_name?: string | null
           date?: string
           discount?: number
@@ -1438,7 +1464,15 @@ export type Database = {
           total?: number
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sales_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_order_materials: {
         Row: {

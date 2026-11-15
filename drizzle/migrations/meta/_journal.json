@@ -15,6 +15,13 @@
       "when": 1794575561452,
       "tag": "0001_user_presence_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794769617174,
+      "tag": "0002_bill_supplier_and_pdv_sale_attribution",
+      "breakpoints": true
     }
   ]
 }

@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye, Search, X } from "lucide-react";
+import { Plus, CalendarIcon, Check, AlertTriangle, Pencil, Trash2, Wallet, Eye, Search, X, ChevronsUpDown } from "lucide-react";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { NovaCobrancaDialog } from "@/components/cobrancas/NovaCobrancaDialog";
 import { CobrancaLinksDialog, type ChargeInstallment } from "@/components/cobrancas/CobrancaLinksDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,7 @@ interface Bill {
   payment_method: string;
   charge_id?: string | null;
   customer_id?: string | null;
+  supplier_id?: string | null;
 }
 
 interface ContasPagarReceberProps {
@@ -43,12 +45,14 @@ const PAYMENT_METHODS = ["PIX", "Dinheiro", "Cartão de Débito", "Cartão de Cr
 const normalizeText = (v: string) =>
   v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
-const emptyForm = { description: "", amount: "", due_date: undefined as Date | undefined, payment_method: "" };
+const emptyForm = { description: "", amount: "", due_date: undefined as Date | undefined, payment_method: "", supplier_id: "" };
 
 const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   const { user } = useAuth();
   const { effectiveUserId } = useUserRole();
   const [bills, setBills] = useState<Bill[]>([]);
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
+  const [supplierOpen, setSupplierOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"all" | "pago" | "atrasado" | "pendente">("all");
@@ -74,6 +78,16 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   };
 
   useEffect(() => { setSearch(""); setStatusFilter("all"); fetchBills(); }, [type]);
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    let active = true;
+    supabase.from("suppliers").select("id, name").eq("user_id", effectiveUserId).order("name").then(({ data, error }) => {
+      if (!active) return;
+      if (error) toast({ title: "Erro ao carregar fornecedores", description: error.message, variant: "destructive" });
+      setSuppliers(data || []);
+    });
+    return () => { active = false; };
+  }, [effectiveUserId]);
 
   const getStatus = (bill: Bill): "pago" | "atrasado" | "pendente" => {
     if (bill.paid) return "pago";
@@ -101,6 +115,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
       amount: String(bill.amount),
       due_date: parseISO(bill.due_date),
       payment_method: bill.payment_method || "",
+      supplier_id: bill.supplier_id || "",
     });
     setDialogOpen(true);
   };
@@ -112,6 +127,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   };
 
   const handleSave = async () => {
+    if (!effectiveUserId) return;
     if (!form.description || !form.amount || !form.due_date || !form.payment_method) {
       toast({ title: "Erro", description: "Preencha todos os campos", variant: "destructive" });
       return;
@@ -127,17 +143,19 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
         amount: Number(form.amount),
         due_date: format(form.due_date, "yyyy-MM-dd"),
         payment_method: form.payment_method,
+        supplier_id: form.supplier_id || null,
       } as any).eq("id", editingBill.id);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: "Conta atualizada!" });
     } else {
       const { error } = await supabase.from("bills").insert({
-        user_id: effectiveUserId!,
+        user_id: effectiveUserId,
         type,
         description: form.description,
         amount: Number(form.amount),
         due_date: format(form.due_date, "yyyy-MM-dd"),
         payment_method: form.payment_method,
+        supplier_id: form.supplier_id || null,
       } as any);
       if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
       toast({ title: type === "pagar" ? "Conta a pagar registrada!" : "Conta a receber registrada!" });
@@ -165,11 +183,12 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
   };
 
   const handleMarkPaid = async (bill: Bill) => {
+    if (!effectiveUserId) return;
     const { error } = await supabase.from("bills").update({ paid: true, paid_at: new Date().toISOString() } as any).eq("id", bill.id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
 
     await supabase.from("transactions").insert({
-      user_id: effectiveUserId!,
+      user_id: effectiveUserId,
       type: type === "receber" ? "entrada" : "saida",
       description: bill.description,
       amount: Number(bill.amount),
@@ -212,6 +231,31 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{editingBill ? "Editar" : "Nova"} {type === "pagar" ? "Conta a Pagar" : "Conta a Receber"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="bill-supplier">Fornecedor</Label>
+              <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
+                <PopoverTrigger asChild>
+                  <Button id="bill-supplier" role="combobox" aria-expanded={supplierOpen} variant="outline" className="w-full justify-between font-normal">
+                    <span className="truncate">{suppliers.find(s => s.id === form.supplier_id)?.name || "Sem fornecedor"}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar fornecedor..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum fornecedor encontrado</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem value="Sem fornecedor" onSelect={() => { setForm({ ...form, supplier_id: "" }); setSupplierOpen(false); }}>Sem fornecedor</CommandItem>
+                        {suppliers.map(s => <CommandItem key={s.id} value={`${s.name} ${s.id}`} onSelect={() => { setForm({ ...form, supplier_id: s.id }); setSupplierOpen(false); }}>
+                          <Check className={cn("mr-2 h-4 w-4", form.supplier_id === s.id ? "opacity-100" : "opacity-0")} />{s.name}
+                        </CommandItem>)}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="space-y-1.5"><Label>Descrição</Label><Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
             <div className="space-y-1.5">
@@ -315,6 +359,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
           <TableHeader>
             <TableRow>
               <TableHead>Descrição</TableHead>
+              <TableHead>Fornecedor</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Forma</TableHead>
               <TableHead>Vencimento</TableHead>
@@ -328,6 +373,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
               return (
                 <TableRow key={b.id}>
                   <TableCell className="font-medium">{b.description}</TableCell>
+                  <TableCell>{suppliers.find(s => s.id === b.supplier_id)?.name || "—"}</TableCell>
                   <TableCell>{formatCurrency(Number(b.amount))}</TableCell>
                   <TableCell>{b.payment_method || "—"}</TableCell>
                   <TableCell>{format(parseISO(b.due_date), "dd/MM/yyyy")}</TableCell>
@@ -367,7 +413,7 @@ const ContasPagarReceber = ({ type }: ContasPagarReceberProps) => {
               );
             })}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                 {search.trim()
                   ? `Nenhuma conta com a descrição "${search.trim()}"`
                   : "Nenhuma conta encontrada"}

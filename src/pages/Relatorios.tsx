@@ -46,6 +46,7 @@ const REPORTS: ReportLinkItem[] = [
   { to: "/relatorios/vendas", title: "Vendas", description: "Faturamento, ticket médio e formas de pagamento", icon: ShoppingCart, group: "Vendas" },
   { to: "/relatorios/mais-vendidos", title: "Produtos Mais Vendidos", description: "Ranking por faturamento e quantidade", icon: Trophy, group: "Vendas" },
   { to: "/relatorios/vendedores", title: "Vendas por Vendedor", description: "Total, ticket médio e participação", icon: Users, group: "Vendas" },
+  { to: "/relatorios/produtos-pdv", title: "Produtos vendidos no PDV", description: "Produtos por dia, caixa e atendente", icon: ShoppingCart, group: "Vendas" },
   { to: "/relatorios/margem", title: "Margem de Lucro", description: "Margem em reais e percentual por produto", icon: Percent, group: "Vendas" },
   { to: "/relatorios/curva-abc", title: "Curva ABC", description: "Classificação A, B e C por faturamento", icon: Layers, group: "Vendas" },
 
