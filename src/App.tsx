@@ -23,6 +23,7 @@ import RelatorioFinanceiro from "./pages/relatorios/RelatorioFinanceiro";
 import RelatorioVendas from "./pages/relatorios/RelatorioVendas";
 import RelatorioMaisVendidos from "./pages/relatorios/RelatorioMaisVendidos";
 import RelatorioVendedores from "./pages/relatorios/RelatorioVendedores";
+import RelatorioProdutosPdv from "./pages/relatorios/RelatorioProdutosPdv";
 import RelatorioMargem from "./pages/relatorios/RelatorioMargem";
 import RelatorioCurvaAbc from "./pages/relatorios/RelatorioCurvaAbc";
 import RelatorioEstoque from "./pages/relatorios/RelatorioEstoque";
@@ -107,6 +108,7 @@ const App = () => {
               <Route path="/relatorios/vendas" element={<RelatorioVendas />} />
               <Route path="/relatorios/mais-vendidos" element={<RelatorioMaisVendidos />} />
               <Route path="/relatorios/vendedores" element={<RelatorioVendedores />} />
+              <Route path="/relatorios/produtos-pdv" element={<RelatorioProdutosPdv />} />
               <Route path="/relatorios/margem" element={<RelatorioMargem />} />
               <Route path="/relatorios/curva-abc" element={<RelatorioCurvaAbc />} />
               <Route path="/relatorios/estoque" element={<RelatorioEstoque />} />
