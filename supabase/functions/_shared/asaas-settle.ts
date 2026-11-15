@@ -60,6 +60,8 @@ export async function applyPaidInstallment(admin: any, paymentId: string, paidDa
       .from("sales")
       .insert({
         user_id: charge.owner_id,
+        attendant_id: charge.created_by || null,
+        cash_register_id: charge.cash_register_id || null,
         customer_name: charge.customer_name || null,
         payment_method: charge.payment_method || (charge.billing_type === "PIX" ? "PIX" : "Boleto"),
         total: Number(charge.total_amount),
