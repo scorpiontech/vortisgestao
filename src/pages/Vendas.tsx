@@ -81,6 +81,7 @@ const Vendas = () => {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [discount, setDiscount] = useState("0");
   const [discountType, setDiscountType] = useState<"percent" | "value">("percent");
+  const [amountReceived, setAmountReceived] = useState("");
   const [installments, setInstallments] = useState("1");
   const [asaasInstallments, setAsaasInstallments] = useState("1");
   const [asaasDueDate, setAsaasDueDate] = useState(() => {
@@ -143,6 +144,7 @@ const Vendas = () => {
     setSelectedCustomerId(p.customerId || "");
     setCustomerName(p.customerName || "");
     setPaymentMethod(p.paymentMethod || "Dinheiro");
+    setAmountReceived("");
     setInstallments(p.installments && p.installments > 1 ? String(p.installments) : "1");
     if (p.discountValue && p.discountValue > 0) {
       setDiscountType("value");
@@ -243,6 +245,9 @@ const Vendas = () => {
     ? subtotal * (Math.min(Number(discount) || 0, 100) / 100)
     : Math.min(Number(discount) || 0, subtotal);
   const total = Math.max(0, subtotal - discountValue);
+  const isCash = paymentMethod === "Dinheiro";
+  const receivedValue = isCash ? (Number(amountReceived) || 0) : 0;
+  const change = isCash && receivedValue > total ? receivedValue - total : 0;
   const formatCurrency = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const showInstallments = paymentMethod === "Cartão Crédito";
@@ -340,6 +345,14 @@ const Vendas = () => {
   const finalizeSale = async (opts: { autoPrint?: boolean; existingSaleId?: string | null } = {}) => {
     const { autoPrint = false, existingSaleId = null } = opts;
     if (items.length === 0) { toast({ title: "Adicione itens à venda", variant: "destructive" }); return; }
+    if (isCash && amountReceived !== "" && receivedValue < total) {
+      toast({
+        title: "Valor recebido insuficiente",
+        description: `Faltam ${formatCurrency(total - receivedValue)} para fechar a venda.`,
+        variant: "destructive",
+      });
+      return;
+    }
     // Trava contra duplo clique: impede registrar a mesma venda duas vezes.
     if (finalizingRef.current) return;
     finalizingRef.current = true;
@@ -470,6 +483,7 @@ const Vendas = () => {
     setDiscount("0");
     setDiscountType("percent");
     setInstallments("1");
+    setAmountReceived("");
     supabase.from("products").select("id, name, price, stock, sku").order("name").then(({ data }) => setProducts(data || []));
     fetchApprovedQuotes();
   };
@@ -764,7 +778,7 @@ const Vendas = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Forma de Pagamento</Label>
-                  <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); if (v !== "Cartão Crédito") setInstallments("1"); }}>
+                  <Select value={paymentMethod} onValueChange={v => { setPaymentMethod(v); if (v !== "Cartão Crédito") setInstallments("1"); if (v !== "Dinheiro") setAmountReceived(""); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Dinheiro">Dinheiro</SelectItem>
@@ -805,6 +819,21 @@ const Vendas = () => {
                     </Select>
                   </div>
                 </div>
+
+                {isCash && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pdv-received">Valor recebido</Label>
+                    <Input
+                      id="pdv-received"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={amountReceived}
+                      onChange={e => setAmountReceived(e.target.value)}
+                    />
+                  </div>
+                )}
 
                 {showInstallments && (
                   <div className="space-y-1.5">
@@ -861,6 +890,9 @@ const Vendas = () => {
                   )}
                   <p className="text-sm text-muted-foreground">Total da Venda</p>
                   <p className="text-2xl font-bold">{formatCurrency(total)}</p>
+                  {isCash && receivedValue > 0 && (
+                    <p className="text-sm font-semibold text-primary">Troco: {formatCurrency(change)}</p>
+                  )}
                   {showInstallments && installmentsNum > 1 && (
                     <p className="text-sm text-muted-foreground">{installmentsNum}x de {formatCurrency(total / installmentsNum)}</p>
                   )}
@@ -954,6 +986,18 @@ const Vendas = () => {
                       <span>Valor Parcela</span>
                       <span>{formatCurrency(total / installmentsNum)}</span>
                     </div>
+                  )}
+                  {isCash && receivedValue > 0 && (
+                    <>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Recebido</span>
+                        <span>{formatCurrency(receivedValue)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs font-bold">
+                        <span>TROCO</span>
+                        <span>{formatCurrency(change)}</span>
+                      </div>
+                    </>
                   )}
                   {customerName && <div className="flex justify-between text-xs text-muted-foreground"><span>Cliente</span><span>{customerName}</span></div>}
                   {sellerName && <div className="flex justify-between text-xs text-muted-foreground"><span>Vendedor</span><span>{sellerName}</span></div>}
