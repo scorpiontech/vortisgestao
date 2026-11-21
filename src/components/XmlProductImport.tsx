@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateProductBarcode } from "@/lib/barcodeGenerator";
+import { PricingCalculator } from "@/components/PricingCalculator";
 
 interface ParsedProduct {
   name: string;
@@ -25,16 +26,14 @@ interface ParsedProduct {
   price: string; // preço de venda editável
 }
 
-type PricingMode = "markup" | "margin";
-
 export const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
 
-/** Markup: preço = custo × (1 + %). Margem: preço = custo ÷ (1 − %). */
-export function calcSalePrice(cost: number, percent: number, mode: PricingMode): number {
-  if (!(cost > 0) || !(percent >= 0)) return round2(cost || 0);
-  if (mode === "markup") return round2(cost * (1 + percent / 100));
-  if (percent >= 100) return round2(cost);
-  return round2(cost / (1 - percent / 100));
+/** Mesma fórmula da calculadora do cadastro: (custo + frete) ÷ (1 − (impostos + lucro + despesas)/100). */
+export function calcSalePrice(cost: number, opts: { taxes: number; profit: number; expenses: number; freight: number }): number | null {
+  const divisor = 1 - (opts.taxes + opts.profit + opts.expenses) / 100;
+  const base = (cost || 0) + (opts.freight || 0);
+  if (!(divisor > 0) || !(base > 0)) return null;
+  return round2(base / divisor);
 }
 
 /** Margem de lucro sobre o preço de venda (%). */
@@ -56,8 +55,11 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
   const [products, setProducts] = useState<ParsedProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [reading, setReading] = useState(false);
-  const [mode, setMode] = useState<PricingMode>("markup");
-  const [percent, setPercent] = useState("30");
+  const [taxes, setTaxes] = useState("10");
+  const [profit, setProfit] = useState("30");
+  const [expenses, setExpenses] = useState("0");
+  const [freight, setFreight] = useState("0");
+  const pricingOpts = { taxes: Number(taxes) || 0, profit: Number(profit) || 0, expenses: Number(expenses) || 0, freight: Number(freight) || 0 };
   const [applyTo, setApplyTo] = useState<"all" | "new" | "selected">("all");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -120,17 +122,17 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
     setProducts((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
 
   const applyPricing = () => {
-    const pct = Number(percent.replace(",", "."));
-    if (!(pct >= 0) || (mode === "margin" && pct >= 100)) {
-      toast({ title: "Percentual inválido", description: mode === "margin" ? "A margem deve ser menor que 100%." : "Informe um percentual válido.", variant: "destructive" });
+    if (calcSalePrice(10, pricingOpts) === null) {
+      toast({ title: "Percentuais inválidos", description: "Soma de impostos + lucro + despesas deve ser menor que 100%.", variant: "destructive" });
       return;
     }
     let count = 0;
     setProducts((prev) => prev.map((p) => {
       const ok = applyTo === "all" || (applyTo === "new" && !p.existingId) || (applyTo === "selected" && p.selected);
-      if (!ok) return p;
+      const price = ok ? calcSalePrice(p.cost, pricingOpts) : null;
+      if (price === null) return p;
       count++;
-      return { ...p, price: String(calcSalePrice(p.cost, pct, mode)) };
+      return { ...p, price: String(price) };
     }));
     toast({ title: "Preços calculados", description: `Preço de venda recalculado para ${count} item(ns).` });
   };
@@ -231,25 +233,18 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
             <>
               <div className="rounded-md border bg-muted/30 p-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium"><Calculator className="h-4 w-4" />Calculadora de precificação</div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Método</Label>
-                    <Select value={mode} onValueChange={(v) => setMode(v as PricingMode)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="markup">Markup sobre o custo</SelectItem>
-                        <SelectItem value="margin">Margem sobre a venda</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Percentual (%)</Label>
-                    <Input type="number" min="0" step="0.01" value={percent} onChange={(e) => setPercent(e.target.value)} />
-                  </div>
+                <p className="text-xs text-muted-foreground">Preço = (custo + frete) ÷ (1 − impostos − lucro − despesas)</p>
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
+                  {([["Impostos (%)", taxes, setTaxes], ["Lucro (%)", profit, setProfit], ["Despesas (%)", expenses, setExpenses], ["Frete por unid. (R$)", freight, setFreight]] as const).map(([label, val, set]) => (
+                    <div key={label} className="space-y-1">
+                      <Label className="text-xs">{label}</Label>
+                      <Input type="number" min="0" step="0.01" value={val} onChange={(e) => set(e.target.value)} className="h-9" />
+                    </div>
+                  ))}
                   <div className="space-y-1">
                     <Label className="text-xs">Aplicar em</Label>
                     <Select value={applyTo} onValueChange={(v) => setApplyTo(v as any)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos os itens</SelectItem>
                         <SelectItem value="new">Somente novos</SelectItem>
@@ -257,10 +252,10 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button type="button" onClick={applyPricing}>Aplicar</Button>
+                  <Button type="button" className="h-9" onClick={applyPricing}>Aplicar</Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {mode === "markup" ? "Venda = custo × (1 + %)." : "Venda = custo ÷ (1 − %)."} Exemplo com custo R$ 10,00: {fmt(calcSalePrice(10, Number(percent) || 0, mode))}
+                  Exemplo com custo R$ 10,00: {(() => { const v = calcSalePrice(10, pricingOpts); return v === null ? "percentuais inválidos" : fmt(v); })()}
                 </p>
               </div>
 
@@ -307,8 +302,11 @@ export function XmlProductImport({ onImported }: XmlProductImportProps) {
                           <td className="px-2 py-2 text-right tabular-nums">{fmt(p.cost)}</td>
                           <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{p.currentPrice !== null ? fmt(p.currentPrice) : "—"}</td>
                           <td className="px-2 py-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                            <PricingCalculator cost={p.cost} onApply={(v) => update(i, { price: String(v) })} />
                             <Input type="number" min="0" step="0.01" value={p.price} aria-label={`Preço de venda de ${p.name}`}
-                              onChange={(e) => update(i, { price: e.target.value })} className="h-8 w-28 ml-auto text-right tabular-nums" />
+                              onChange={(e) => update(i, { price: e.target.value })} className="h-8 w-28 text-right tabular-nums" />
+                            </div>
                           </td>
                           <td className={`px-2 py-2 text-right tabular-nums ${margin !== null && margin < 0 ? "text-destructive" : ""}`}>
                             {margin !== null ? `${margin.toFixed(1)}%` : "—"}
