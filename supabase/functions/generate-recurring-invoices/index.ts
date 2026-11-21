@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { asaasFetch } from "../_shared/asaas.ts";
+import { billingToday, computeNextDueDate } from "../_shared/subscription-dates.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,21 +12,8 @@ const MONTHS_PT = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-function computeNextDueDate(dueDay: number, today: Date): Date {
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const day = Math.min(Math.max(dueDay || 10, 1), 28);
-
-  // próxima data >= hoje
-  let candidate = new Date(year, month, day);
-  if (candidate < new Date(year, month, today.getDate())) {
-    candidate = new Date(year, month + 1, day);
-  }
-  return candidate;
-}
-
 function referenceMonthLabel(d: Date): string {
-  return `${MONTHS_PT[d.getMonth()]} de ${d.getFullYear()}`;
+  return `${MONTHS_PT[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
 }
 
 Deno.serve(async (req) => {
@@ -80,8 +68,7 @@ Deno.serve(async (req) => {
 
     if (accErr) throw accErr;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = billingToday();
 
     const summary = { generated: 0, skipped: 0, errors: [] as string[] };
 

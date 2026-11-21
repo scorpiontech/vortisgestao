@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { SessionHistoryDialog } from "@/components/admin/SessionHistoryDialog";
 import { isOnline } from "@/lib/presence";
+import { billingToday, computeNextDueDate } from "../../supabase/functions/_shared/subscription-dates";
 import { Users, Shield, LogOut, Search, Plus, Edit, Trash2, Ban, CheckCircle, CreditCard, Receipt, FileText, Bell, Wallet, History } from "lucide-react";
 
 interface Plan {
@@ -135,6 +136,10 @@ export default function AdminDashboard() {
 
   const handleSave = async () => {
     if (!selected) return;
+    if (!Number.isInteger(editForm.due_day) || editForm.due_day < 1 || editForm.due_day > 31) {
+      toast.error("O dia de vencimento deve estar entre 1 e 31");
+      return;
+    }
     const plan = plans.find(p => p.id === editForm.plan_id);
     const { error } = await supabase.from("client_accounts").update({
       name: editForm.name,
@@ -266,11 +271,8 @@ export default function AdminDashboard() {
 
   const openCharge = (account: ClientAccount) => {
     setSelected(account);
-    const today = new Date();
-    const dueDay = account.due_day || 10;
-    const next = new Date(today.getFullYear(), today.getMonth(), dueDay);
-    if (next < today) next.setMonth(next.getMonth() + 1);
-    const refMonth = next.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const next = computeNextDueDate(account.due_day || 10, billingToday());
+    const refMonth = next.toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
     setChargeForm({
       due_date: next.toISOString().slice(0, 10),
       reference_month: refMonth.charAt(0).toUpperCase() + refMonth.slice(1),
@@ -569,7 +571,7 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>Valor Mensal</Label><Input type="number" step="0.01" value={editForm.monthly_value} onChange={e => setEditForm({ ...editForm, monthly_value: parseFloat(e.target.value) || 0 })} /></div>
-              <div className="space-y-2"><Label>Dia Vencimento</Label><Input type="number" min={1} max={28} value={editForm.due_day} onChange={e => setEditForm({ ...editForm, due_day: parseInt(e.target.value) || 10 })} /></div>
+              <div className="space-y-2"><Label>Dia Vencimento</Label><Input type="number" min={1} max={31} value={editForm.due_day} onChange={e => setEditForm({ ...editForm, due_day: parseInt(e.target.value) || 10 })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { asaasCors, asaasFetch, json, onlyDigits } from "../_shared/asaas.ts";
+import { dueDateInMonth } from "../_shared/subscription-dates.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: asaasCors });
@@ -47,7 +48,51 @@ Deno.serve(async (req) => {
       }, 400);
     }
 
-    const { client_account_id, due_date, reference_month, custom_amount } = await req.json();
+    const { action, invoice_id, client_account_id, due_date, reference_month, custom_amount } = await req.json();
+
+    // Repair an existing unpaid invoice in place; never create a second charge.
+    if (action === "repair_due_date") {
+      if (typeof invoice_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invoice_id)) {
+        return json({ error: "Fatura inválida" }, 400);
+      }
+      const { data: invoice, error: invoiceError } = await admin.from("subscription_invoices")
+        .select("id,client_account_id,due_date,status,asaas_id") .eq("id", invoice_id).maybeSingle();
+      if (invoiceError) throw invoiceError;
+      if (!invoice) return json({ error: "Fatura não encontrada" }, 404);
+      if (!["pending", "overdue"].includes(invoice.status) || !invoice.asaas_id) {
+        return json({ error: "Somente faturas Asaas não pagas podem ter o vencimento corrigido" }, 400);
+      }
+      const { data: ownerAccount, error: ownerError } = await admin.from("client_accounts")
+        .select("due_day,user_id").eq("id", invoice.client_account_id).single();
+      if (ownerError || !ownerAccount) throw ownerError || new Error("Conta não encontrada");
+      const [year, month] = invoice.due_date.split("-").map(Number);
+      const correctedDate = dueDateInMonth(ownerAccount.due_day, year, month - 1).toISOString().slice(0, 10);
+      const payment = await asaasFetch(settings, `/payments/${encodeURIComponent(invoice.asaas_id)}`);
+      if (!["PENDING", "OVERDUE"].includes(payment.status) || payment.deleted || payment.externalReference !== invoice.client_account_id) {
+        return json({ error: "Cobrança paga, cancelada ou não vinculada a esta conta" }, 409);
+      }
+      if (payment.dueDate !== correctedDate) {
+        await asaasFetch(settings, `/payments/${encodeURIComponent(invoice.asaas_id)}`, {
+          method: "POST", body: JSON.stringify({ dueDate: correctedDate }),
+        });
+      }
+      const verified = await asaasFetch(settings, `/payments/${encodeURIComponent(invoice.asaas_id)}`);
+      if (verified.dueDate !== correctedDate) throw new Error("Asaas não confirmou o novo vencimento");
+      const { error: updateError, data: updated } = await admin.from("subscription_invoices")
+        .update({ due_date: correctedDate }).eq("id", invoice.id).in("status", ["pending", "overdue"])
+        .select("id,due_date").maybeSingle();
+      if (updateError || !updated) throw updateError || new Error("Fatura mudou de status durante a correção");
+      if (invoice.due_date !== correctedDate) {
+        const { error: auditError } = await admin.from("audit_logs").insert({
+          user_id: user.id, owner_id: ownerAccount.user_id, user_email: user.email || "",
+          user_name: "Administrador", action: "update", entity: "subscription_invoices", entity_id: invoice.id,
+          details: { reason: "Correção do limite incorreto de 28 dias", previous_due_date: invoice.due_date, due_date: correctedDate, asaas_id: invoice.asaas_id },
+        });
+        if (auditError) throw auditError;
+      }
+      return json({ success: true, invoice_id: invoice.id, due_date: correctedDate, asaas_due_date: verified.dueDate });
+    }
+    if (action !== undefined) return json({ error: "Ação inválida" }, 400);
 
     if (!client_account_id || !due_date || !reference_month) {
       return json({ error: "Dados incompletos" }, 400);
